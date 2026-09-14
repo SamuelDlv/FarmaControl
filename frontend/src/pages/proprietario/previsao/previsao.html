@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<style id="fc-body-lock">body{visibility:hidden}</style>
+<script>(function(){
+  function forceRecalc() {
+    try {
+      if (document.body && document.documentElement) {
+        void document.body.offsetHeight;
+        void getComputedStyle(document.documentElement).getPropertyValue('background');
+        void getComputedStyle(document.body).getPropertyValue('background');
+      }
+    } catch(e) {}
+  }
+  function unlock() {
+    var l = document.getElementById('fc-body-lock');
+    if (l) l.remove();
+    forceRecalc();
+  }
+  var links = document.querySelectorAll('link[rel="stylesheet"]');
+  var remaining = links.length;
+  if (remaining === 0) { unlock(); return; }
+  links.forEach(function(link) {
+    link.addEventListener('load', function() {
+      remaining--;
+      if (remaining <= 0) unlock();
+    });
+    link.addEventListener('error', function() {
+      remaining--;
+      if (remaining <= 0) unlock();
+    });
+  });
+  setTimeout(unlock, 3000);
+})()</script>
+
+          <script>
+      // Anti-Flash: aplica a cor de destaque e o fundo imediatamente, antes de qualquer render
+      (function() {
+        try {
+          const stored = JSON.parse(localStorage.getItem('farmacontrol_configuracoes') || '{}');
+          const cor = (stored.cor_destaque || '#4a7c59').toLowerCase();
+          const palettes = {
+            '#4a7c59': { sage: '#4a7c59', sage2: '#3a6447', light: '#6aaa7e', pale: 'rgba(74,124,89,0.1)', border: 'rgba(74,124,89,0.22)' },
+            '#2e6da4': { sage: '#2e6da4', sage2: '#235590', light: '#4f8bc0', pale: 'rgba(46,109,164,0.1)', border: 'rgba(46,109,164,0.22)' },
+            '#b87a1a': { sage: '#b87a1a', sage2: '#965f14', light: '#d59636', pale: 'rgba(184,122,26,0.1)', border: 'rgba(184,122,26,0.22)' },
+            '#c03a3a': { sage: '#c03a3a', sage2: '#9b2d2d', light: '#d85c5c', pale: 'rgba(192,58,58,0.1)', border: 'rgba(192,58,58,0.22)' },
+            '#6b4fbb': { sage: '#6b4fbb', sage2: '#523a97', light: '#876fd0', pale: 'rgba(107,79,187,0.1)', border: 'rgba(107,79,187,0.22)' },
+            '#1a7a6e': { sage: '#1a7a6e', sage2: '#125f55', light: '#32998c', pale: 'rgba(26,122,110,0.1)', border: 'rgba(26,122,110,0.22)' }
+          };
+          const p = palettes[cor] || palettes['#4a7c59'];
+          const r = document.documentElement;
+          r.style.setProperty('--sage', p.sage);
+          r.style.setProperty('--sage-2', p.sage2);
+          r.style.setProperty('--sage-light', p.light);
+          r.style.setProperty('--sage-pale', p.pale);
+          r.style.setProperty('--sage-border', p.border);
+          // Fundo padrão imediato: impede o flash branco/cru antes do CSS carregar
+          r.style.setProperty('--bg-body', '#f0f2f1');
+          document.documentElement.style.background = '#f0f2f1';
+          document.documentElement.style.color = '#1a1a1a';
+        } catch (e) {}
+      })();
+    </script>
+<meta charset="UTF-8" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Previsão IA — FarmaControl</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=DM+Mono:wght@300;400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="previsao.css" />
+  <link rel="stylesheet" href="/styles/light-theme-contrast.css">
+  <link rel="stylesheet" href="/styles/page-transitions.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+</head>
+<body>
+<div class="app">
+
+  <!-- ══ SIDEBAR OVERLAY (mobile) ══ -->
+  <div class="sb-overlay" id="sb-overlay"></div>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar" role="navigation">
+    <div class="sb-head">
+      <div class="sb-brand">
+        <div class="sb-logo"><svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="8" y="1" width="2" height="16" rx="1" fill="currentColor"/><rect x="1" y="8" width="16" height="2" rx="1" fill="currentColor"/></svg></div>
+        <div class="sb-brand-text"><span class="sb-name">FarmaControl</span><span class="sb-ver">v 1.0 · Sistema</span></div>
+      </div>
+      <button class="sb-collapse" id="btn-collapse"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+    <nav class="sb-nav">
+      <p class="sb-group-label">Principal</p>
+
+      <a href="../../proprietario/dashboard/dashboard.html" class="sb-item" data-tooltip="Dashboard">
+        <span class="sb-icon">
+          <svg viewBox="0 0 16 16" fill="none">
+            <rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+            <rect x="9" y="1.5" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+            <rect x="1.5" y="9" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+            <rect x="9" y="9" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+          </svg>
+        </span>
+        <span class="sb-label">Dashboard</span>
+      </a>
+
+      <a href="../../proprietario/estoque/estoque.html" class="sb-item" data-tooltip="Estoque">
+        <span class="sb-icon">
+          <svg viewBox="0 0 16 16" fill="none">
+            <path d="M8 1L14.5 4.5V11.5L8 15L1.5 11.5V4.5L8 1Z" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/>
+            <path d="M1.5 4.5L8 8M8 8L14.5 4.5M8 8V15" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+          </svg>
+        </span>
+    <span class="sb-label">Estoque</span>
+  </a>
+
+  <a href="../../proprietario/vencimentos/vencimentos.html" class="sb-item" data-tooltip="Vencimentos">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+        <path d="M5 1.5V4M11 1.5V4M2 7h12" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="sb-label">Vencimentos</span>
+  </a>
+
+      <p class="sb-group-label">Análise</p>
+
+      <a href="../../proprietario/relatorios/relatorios.html" class="sb-item" data-tooltip="Relatórios">
+        <span class="sb-icon">
+          <svg viewBox="0 0 16 16" fill="none">
+            <rect x="3" y="2" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+            <path d="M5.5 6h5M5.5 8.5h5M5.5 11h3" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="sb-label">Relatórios</span>
+      </a>
+
+      <a href="../../proprietario/previsao/previsao.html" class="sb-item active" data-tooltip="Previsão IA">
+        <span class="sb-icon">
+          <svg viewBox="0 0 16 16" fill="none">
+            <path d="M2 11.5L5.5 7.5L8.5 9.5L12 4.5L14 6" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="14" cy="6" r="1.5" fill="currentColor"/>
+          </svg>
+        </span>
+        <span class="sb-label">Previsão IA</span>
+      </a>
+
+      <a href="../../proprietario/financeiro/financeiro.html" class="sb-item" data-tooltip="Financeiro">
+        <span class="sb-icon"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.5v13M10.8 4.2H6.7a2.1 2.1 0 0 0 0 4.2h2.6a2.1 2.1 0 0 1 0 4.2H5.2" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="sb-label">Financeiro</span>
+      </a>
+      <a href="../../proprietario/compras/compras.html" class="sb-item" data-tooltip="Compras">
+        <span class="sb-icon">
+          <svg viewBox="0 0 16 16" fill="none">
+            <path d="M1.5 2.5H3L5 11H13L14.5 5.5H4" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="6" cy="13.5" r="1" fill="currentColor"/>
+            <circle cx="12" cy="13.5" r="1" fill="currentColor"/>
+          </svg>
+        </span>
+        <span class="sb-label">Compras</span>
+      </a>
+
+      <p class="sb-group-label">Sistema</p>
+
+      <a href="../../proprietario/usuarios/usuarios.html" class="sb-item" data-tooltip="Usuários">
+        <span class="sb-icon">
+          <svg viewBox="0 0 16 16" fill="none">
+            <circle cx="6.5" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.25"/>
+            <path d="M1.5 14c0-2.485 2.239-4.5 5-4.5s5 2.015 5 4.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="sb-label">Usuários</span>
+      </a>
+
+      <a href="../../proprietario/configuracoes/configuracoes.html" class="sb-item" data-tooltip="Configurações">
+        <span class="sb-icon">
+          <svg viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.25"/>
+            <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="sb-label">Configurações</span>
+      </a>
+    </nav>
+
+    <div class="sb-footer">
+      <div class="sb-user-card">
+        <div class="sb-avatar" id="user-avatar">--</div>
+        <div class="sb-user-info"><span class="sb-user-name" id="user-name">Usuário</span><span class="sb-user-role" id="user-role">Cargo</span></div>
+        <button class="sb-logout" id="btn-logout" data-logout="../../auth/auth.html"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M9 2h2.5A1.5 1.5 0 0113 3.5v7A1.5 1.5 0 0111.5 12H9M6 9.5L3.5 7 6 4.5M3.5 7H10" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="mobile-menu-btn" id="btn-mobile-menu" aria-label="Abrir menu">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 4.5h14M2 9h14M2 13.5h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+        <div class="breadcrumb"><span class="bc-root">FarmaControl</span><span class="bc-sep">/</span><span class="bc-cur">Previsão IA</span></div>
+      </div>
+      <div class="topbar-center">
+        <div class="date-chip" id="topbar-date"><svg width="12" height="12" viewBox="0 0 13 13" fill="none"><rect x="1" y="2.5" width="11" height="9.5" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M4 1.5V3.5M9 1.5V3.5M1 6h11" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg><span id="date-text">Carregando...</span></div>
+      </div>
+      <div class="topbar-right">
+        <button class="tb-btn primary" id="btn-export-prev"><svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M7 1v8M4 6l3 3 3-3M2 10v2a1 1 0 001 1h8a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>Exportar</button>
+        <div class="tb-divider"></div>
+      </div>
+    </header>
+
+    <div class="page-body">
+
+      <!-- ÁREA PRINCIPAL SCROLLÁVEL -->
+      <main class="page-main" id="main-content">
+
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Inteligência de Demanda</h1>
+            <p class="page-subtitle">Análise preditiva baseada em histórico · Modelo RF07 · Última atualização: agora</p>
+          </div>
+          <div class="page-actions">
+            <button class="ghost-btn" id="btn-refresh"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M12.1 6A4.7 4.7 0 1 0 12.3 8.8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/><path d="M12.1 2.5v3.7H8.4" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>Atualizar</button>
+            <button class="ghost-btn" id="btn-export"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 1v8M4 6l3 3 3-3M2 10v2a1 1 0 001 1h8a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>Exportar</button>
+          </div>
+        </div>
+
+        <!-- KPI GRID — 6 cards no padrão da dashboard -->
+        <section class="kpi-grid">
+
+          <article class="kpi-card">
+            <div class="kpi-top">
+              <span class="kpi-label">Acurácia do Modelo</span>
+              <div class="kpi-icon green">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M2 10L5.5 6 8.5 8 12 3 14 5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 3h2v2" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="kpi-value">87,4%</div>
+            <div class="kpi-meta">
+              <span class="kpi-sub">Meta: &gt; 85%</span>
+              <span class="kpi-delta up">✓ Meta atingida</span>
+            </div>
+            <div class="kpi-spark"><div class="spark-bar" style="--h:65%"></div><div class="spark-bar" style="--h:72%"></div><div class="spark-bar" style="--h:68%"></div><div class="spark-bar" style="--h:80%"></div><div class="spark-bar" style="--h:83%"></div><div class="spark-bar hi" style="--h:86%"></div><div class="spark-bar hi" style="--h:87%"></div></div>
+          </article>
+
+          <article class="kpi-card amber">
+            <div class="kpi-top">
+              <span class="kpi-label">Sugestões Pendentes</span>
+              <div class="kpi-icon amber">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M8 2L14.5 13.5H1.5L8 2Z" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/><path d="M8 7v3M8 11.5v.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>
+              </div>
+            </div>
+            <div class="kpi-value" id="sug-count">0</div>
+            <div class="kpi-meta">
+              <span class="kpi-sub">reposições inteligentes</span>
+              <span class="kpi-delta" id="sug-delta">— —</span>
+            </div>
+            <div class="kpi-spark" id="sug-spark"></div>
+          </article>
+
+          <article class="kpi-card blue">
+            <div class="kpi-top">
+              <span class="kpi-label">Itens Curva A</span>
+              <div class="kpi-icon blue">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M8 1L14.5 4.5V11.5L8 15L1.5 11.5V4.5L8 1Z" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/><path d="M1.5 4.5L8 8M8 8L14.5 4.5M8 8V15" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-curva-a">0</div>
+            <div class="kpi-meta">
+              <span class="kpi-sub">itens de alto giro</span>
+              <span class="kpi-delta" id="curva-a-delta">— —</span>
+            </div>
+            <div class="kpi-spark" id="curva-a-spark"></div>
+          </article>
+
+          <article class="kpi-card">
+            <div class="kpi-top">
+              <span class="kpi-label">MAE Médio</span>
+              <div class="kpi-icon green">
+                <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.25"/><path d="M5.5 8l2 2 3.5-3" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="kpi-value">11,2%</div>
+            <div class="kpi-meta">
+              <span class="kpi-sub">erro absoluto médio</span>
+              <span class="kpi-delta up">Meta &lt; 15%</span>
+            </div>
+            <div class="kpi-spark"><div class="spark-bar hi" style="--h:100%"></div><div class="spark-bar hi" style="--h:90%"></div><div class="spark-bar" style="--h:85%"></div><div class="spark-bar" style="--h:80%"></div><div class="spark-bar" style="--h:75%"></div><div class="spark-bar" style="--h:70%"></div><div class="spark-bar" style="--h:65%"></div></div>
+          </article>
+
+          <article class="kpi-card">
+            <div class="kpi-top">
+              <span class="kpi-label">Pedidos Aprovados</span>
+              <div class="kpi-icon green">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M1.5 2.5H3L5 11H13L14.5 5.5H4" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="13.5" r="1" fill="currentColor"/><circle cx="12" cy="13.5" r="1" fill="currentColor"/></svg>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-pedidos-valor">R$&nbsp;0</div>
+            <div class="kpi-meta">
+              <span class="kpi-sub">últimos 30 dias</span>
+              <span class="kpi-delta" id="pedidos-delta">— —</span>
+            </div>
+            <div class="kpi-spark" id="pedidos-spark"></div>
+          </article>
+
+          <article class="kpi-card">
+            <div class="kpi-top">
+              <span class="kpi-label">Último Retreino</span>
+              <div class="kpi-icon green">
+                <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.25"/><path d="M8 5v3.5l2.5 1.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="kpi-value">3d</div>
+            <div class="kpi-meta">
+              <span class="kpi-sub">próximo em 4 dias</span>
+              <span class="kpi-delta up">Modelo estável</span>
+            </div>
+            <div class="kpi-spark"><div class="spark-bar hi" style="--h:100%"></div><div class="spark-bar" style="--h:0%"></div><div class="spark-bar" style="--h:0%"></div><div class="spark-bar" style="--h:0%"></div><div class="spark-bar" style="--h:0%"></div><div class="spark-bar" style="--h:0%"></div><div class="spark-bar" style="--h:0%"></div></div>
+          </article>
+
+        </section>
+
+        <!-- BARRA DE FILTROS -->
+        <div class="filter-bar">
+          <div class="filter-bar-left">
+            <span class="filter-label">Período:</span>
+            <div class="ftabs" id="filter-period">
+              <button class="ftab active" data-val="30">30 dias</button>
+              <button class="ftab" data-val="60">60 dias</button>
+              <button class="ftab" data-val="90">90 dias</button>
+            </div>
+            <select class="ghost-btn" id="filter-category" style="cursor:pointer;">
+              <option value="">Todas as categorias</option>
+              <option value="analgesico">Analgésico</option>
+              <option value="antibiotico">Antibiótico</option>
+              <option value="antiacido">Antiácido</option>
+              <option value="antidiabetico">Antidiabético</option>
+            </select>
+            <select class="ghost-btn" id="filter-curve" style="cursor:pointer;">
+              <option value="">Curva ABC — Todas</option>
+              <option value="A">Curva A</option>
+              <option value="B">Curva B</option>
+              <option value="C">Curva C</option>
+            </select>
+          </div>
+          <div class="filter-bar-right">
+            <button class="ghost-btn sm" id="btn-clear-filters"><svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Limpar filtros</button>
+          </div>
+        </div>
+
+        <!-- GRÁFICO DE PROJEÇÃO -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-head-l">
+              <h2 class="card-title">Projeção de Demanda</h2>
+              <span class="badge ai-b">IA</span>
+            </div>
+            <div class="card-head-r">
+              <div class="chart-legend">
+                <span class="legend-dot" style="background:#4a7c59;"></span><span>Histórico</span>
+                <span class="legend-dot" style="background:#2e6da4; margin-left:10px;"></span><span>Previsão IA</span>
+                <span class="legend-area" style="margin-left:10px;"></span><span>Intervalo 95%</span>
+              </div>
+              <select id="product-select" class="ghost-btn" style="cursor:pointer;">
+                <option value="dipirona">Dipirona 500mg</option>
+                <option value="omeprazol">Omeprazol 20mg</option>
+                <option value="amoxicilina">Amoxicilina 500mg</option>
+              </select>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="forecastChart"></canvas>
+          </div>
+        </div>
+
+        <!-- TABELA: SUGESTÕES DE REPOSIÇÃO -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-head-l">
+              <h2 class="card-title">Sugestões de Reposição</h2>
+              <span class="badge" id="sug-badge">6 itens</span>
+            </div>
+            <div class="card-head-r">
+              <div class="search-wrap">
+                <svg class="search-icon" width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.2"/><path d="M10 10l2.5 2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                <input type="text" id="search-table" placeholder="Buscar produto…" class="search-input">
+              </div>
+            </div>
+          </div>
+          <div class="batch-actions" id="batch-bar">
+            <div class="batch-info"><span id="selected-count">0</span> produtos selecionados</div>
+            <div style="display:flex; gap:8px;">
+              <button class="ghost-btn sm" id="btn-batch-reject"><svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Rejeitar</button>
+              <button class="tb-btn primary sm" id="btn-batch-approve"><svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>Aprovar em Lote</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th class="c" style="width:44px;"><input type="checkbox" id="check-all"></th>
+                  <th>Produto</th>
+                  <th>Curva</th>
+                  <th class="r">Estoque Atual</th>
+                  <th class="r">Mín. Config.</th>
+                  <th class="r">Prev. (30d)</th>
+                  <th>Cobertura</th>
+                  <th class="r">Sugestão</th>
+                  <th>Fornecedor</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="forecast-table-body">
+                <!-- Preenchido via JS -->
+              </tbody>
+            </table>
+          </div>
+          <div class="card-foot">
+            <span class="foot-info" id="table-count">Exibindo 6 itens</span>
+            <button class="ghost-btn sm" id="btn-export-table"><svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3.5 5.5L6 8l2.5-2.5M1.5 9.5v1a1 1 0 001 1h7a1 1 0 001-1v-1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>Exportar CSV</button>
+          </div>
+        </div>
+
+        <!-- HISTÓRICO DE PEDIDOS APROVADOS -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-head-l">
+              <h2 class="card-title">Histórico de Pedidos Aprovados</h2>
+              <span class="badge">5 registros</span>
+            </div>
+            <div class="card-head-r">
+              <select class="ghost-btn" id="filter-history-status" style="cursor:pointer;">
+                <option value="">Todos os status</option>
+                <option value="entregue">Entregue</option>
+                <option value="transito">Em trânsito</option>
+                <option value="pendente">Pendente</option>
+              </select>
+              <button class="ghost-btn sm" id="btn-export-history"><svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3.5 5.5L6 8l2.5-2.5M1.5 9.5v1a1 1 0 001 1h7a1 1 0 001-1v-1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>Exportar CSV</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nº Pedido</th>
+                  <th>Data Aprovação</th>
+                  <th>Produto</th>
+                  <th class="r">Qtd. Pedida</th>
+                  <th>Fornecedor</th>
+                  <th class="r">Valor Total</th>
+                  <th>Prev. Entrega</th>
+                  <th>Status</th>
+                  <th>Aprovado por</th>
+                </tr>
+              </thead>
+              <tbody id="history-table-body">
+                <!-- Preenchido via JS -->
+              </tbody>
+            </table>
+          </div>
+          <div class="card-foot">
+            <span class="foot-info" id="history-count">Exibindo 5 registros</span>
+            <button class="ghost-btn sm" id="btn-view-all-history">Ver todos →</button>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- PAINEL LATERAL DIREITO -->
+      <aside class="page-panel">
+
+        <!-- Sazonalidade -->
+        <div class="panel-section">
+          <div class="panel-hd">
+            <span class="panel-title">Fatores Sazonais</span>
+            <span class="badge ai-b" style="font-size:10px;">IA</span>
+          </div>
+          <div class="season-list">
+            <div class="season-item up">
+              <div class="season-icon up">
+                <svg viewBox="0 0 14 14" fill="none"><path d="M7 2v10M3 6l4-4 4 4" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div class="season-body">
+                <p class="season-name">Clima Frio</p>
+                <p class="season-desc">Pico de gripe previsto</p>
+              </div>
+              <span class="season-pct up">+15%</span>
+            </div>
+            <div class="season-item down">
+              <div class="season-icon down">
+                <svg viewBox="0 0 14 14" fill="none"><path d="M7 2v10M3 8l4 4 4-4" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div class="season-body">
+                <p class="season-name">Feriados Próximos</p>
+                <p class="season-desc">Redução de dispensações</p>
+              </div>
+              <span class="season-pct down">-5%</span>
+            </div>
+            <div class="season-item up">
+              <div class="season-icon up">
+                <svg viewBox="0 0 14 14" fill="none"><path d="M7 2v10M3 6l4-4 4 4" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div class="season-body">
+                <p class="season-name">Campanha Saúde</p>
+                <p class="season-desc">Hipertensão e diabetes</p>
+              </div>
+              <span class="season-pct up">+8%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alertas Críticos de Cobertura -->
+        <div class="panel-section">
+          <div class="panel-hd">
+            <span class="panel-title">Cobertura Crítica</span>
+            <span class="badge red" style="font-size:10.5px;">2</span>
+            <button class="panel-link">Ver todos →</button>
+          </div>
+          <div class="palerts" id="insuf-list">
+            <!-- Preenchido dinamicamente -->
+          </div>
+        </div>
+
+        <!-- Previsão Resumida por Produto -->
+        <div class="panel-section">
+          <div class="panel-hd">
+            <span class="panel-title">Previsão — Próx. 30d</span>
+            <span class="badge ai-b" style="font-size:10px;">IA</span>
+          </div>
+          <ul class="ia-list" id="ia-forecast-list">
+            <!-- Preenchido dinamicamente -->
+          </ul>
+        </div>
+
+        <!-- Métricas do Modelo -->
+        <div class="panel-section">
+          <div class="panel-hd">
+            <span class="panel-title">Métricas do Modelo</span>
+          </div>
+          <div class="model-metrics">
+            <div class="metric-row">
+              <span class="metric-label">Algoritmo</span>
+              <span class="metric-val">Random Forest</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Versão</span>
+              <span class="metric-val">RF07</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Confiança</span>
+              <span class="metric-val" style="color:var(--sage); font-weight:600;">91%</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Amostras</span>
+              <span class="metric-val">12.480</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Próx. retreino</span>
+              <span class="metric-val">4 dias</span>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+    </div><!-- /.page-body -->
+  </div><!-- /.main -->
+</div><!-- /.app -->
+<script src="../../../utils/global-settings.js"></script>
+<script src="../../../utils/sidebar-init.js"></script>
+<script src="previsao.js"></script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+/* ══════════════════════════════════════════════════════════════════════
+ * FARMAControl — TEMA CLARO PADRONIZADO
+ * ══════════════════════════════════════════════════════════════════════
+ *
+ * ESCOPO: body:not(.fc-dark):not(.fc-auth)
+ * → Aplica apenas no tema claro e NUNCA na página de login
+ *
+ * RESPONSÁVEL POR:
+ * - Cores de fundo, texto e bordas do tema claro
+ * - Estilos de sidebar, topbar, cards e tabelas
+ * - Cores de botões, inputs e modais
+ *
+ * IMPORTANTE: Usa valores var() que são definidos pelo
+ * global-settings.js no <html> root.
+ * ══════════════════════════════════════════════════════════════════════ */
+
+/**
+ * FarmaControl — Light Theme Contrast Enhancements
+ * Garante máximo contraste e legibilidade no tema claro
+ */
+
+/* Tema claro: Aplicar contraste máximo (excluir página de auth) */
+body:not(.fc-dark):not(.fc-auth) {
+  background: var(--bg-body, #f0f2f1) !important;
+  color: var(--ink, #1a1a1a) !important;
+}
+
+body:not(.fc-dark):not(.fc-auth) h1,
+body:not(.fc-dark):not(.fc-auth) h2,
+body:not(.fc-dark):not(.fc-auth) h3,
+body:not(.fc-dark):not(.fc-auth) h4,
+body:not(.fc-dark):not(.fc-auth) h5,
+body:not(.fc-dark):not(.fc-auth) h6 {
+  color: var(--ink, #1a1a1a) !important;
+}
+
+body:not(.fc-dark):not(.fc-auth) .page-title {
+  color: var(--ink, #1a1a1a) !important;
+}
+
+body:not(.fc-dark):not(.fc-auth) .sb-item {
+  color: var(--ink-60, #2d2d2d) !important;
+}
+
+body:not(.fc-dark):not(.fc-auth) .sb-item:hover {
+  background: var(--ink-06, #e8e8e8) !important;
+  color: var(--ink, #1a1a1a) !important;
+}
+
+body:not(.fc-dark):not(.fc-auth) .sb-item.active {
+  background: var(--sage-pale) !important;
+  color: var(--ink, #1a1a1a) !important;
+}
+/* Feedback imediato no clique (antes do crossfade): o item "afunda" e
+   escurece no frame do clique — o usuário sente a resposta instantânea
+   enquanto a transição começa. */
+body:not(.fc-dark):not(.fc-auth) .sb-item:active,
+body:not(.fc-dark):not(.fc-auth) .sb-item.sb-clicked {
+  background: var(--ink-12, #d0d0d0) !important;
+  transform: scale(0.985);
+}
+body:not(.fc-dark):not(.fc-auth) .sb-item {
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.12s ease;
+}
+
+body:not(.fc-dark):not(.fc-auth) .sb-group-label {
+  color: var(--ink-35, #5a5a5a) !important;
+}
+
+body:not(.fc-dark):not(.fc-auth) .sidebar {
+  background: var(--surface, #ffffff) !important;
+  border-right: 1px solid var(--ink-12, #d0d0d0) !important;
+}
+
+body:not(.fc-dark):not(.fc-auth) .topbar {
+  background: var(--surface-2, #fafafa) !important;
+  border-bottom: 1px solid var(--ink-12, #d0d0d0) !important;
+}
+
+body:not(.fc-dark):not(.fc-auth) .card,
+body:not(.fc-dark):not(.fc-auth) .kpi-card {
+  background: var(--surface, #ffffff) !important;
+  border: 1px solid var(--ink-12, #d0d0d0) !important;
+}
+
+body:not(.fc-dark):not(.fc-auth) table thead th {
+  background: var(--surface-2, #fafafa) !important;
+  color: var(--ink, #1a1a1a) !important;
+  border-bottom: 1px solid var(--ink-12, #d0d0d0) !important;
+}
+
+body:not(.fc-dark):not(.fc-auth) table tbody td {
+  color: var(--ink-60, #2d2d2d) !important;
+  border-bottom: 1px solid var(--ink-12, #d0d0d0) !important;
+}
+
+body:not(.fc-dark):not(.fc-auth) .form-input,
+body:not(.fc-dark):not(.fc-auth) .form-select,
+body:not(.fc-dark):not(.fc-auth) input,
+body:not(.fc-dark):not(.fc-auth) select,
+body:not(.fc-dark):not(.fc-auth) textarea {
+  background: var(--surface, #ffffff) !important;
+  color: var(--ink-60, #2d2d2d) !important;
+  border: 1px solid var(--ink-12, #d0d0d0) !important;
+}
+
+body:not(.fc-dark):not(.fc-auth) .form-input::placeholder,
+body:not(.fc-dark):not(.fc-auth) input::placeholder {
+  color: var(--ink-35, #5a5a5a) !important;
+}
+
+body:not(.fc-dark):not(.fc-auth) .badge,
+body:not(.fc-dark):not(.fc-auth) .pill {
+  background: var(--surface-2, #fafafa) !important;
+  color: var(--ink-60, #2d2d2d) !important;
+  border: 1px solid var(--ink-12, #d0d0d0) !important;
+}
+
+body:not(.fc-dark):not(.fc-auth) .ghost-btn,
+body:not(.fc-dark):not(.fc-auth) .tb-btn:not(.primary) {
+  background: var(--surface, #ffffff) !important;
+  color: var(--ink-60, #2d2d2d) !important;
+  border: 1px solid var(--ink-12, #d0d0d0) !important;
+}
+
+body:not(.fc-dark):not(.fc-auth) .ghost-btn:hover,
+body:not(.fc-dark):not(.fc-auth) .tb-btn:not(.primary):hover {
+  background: var(--surface-2, #fafafa) !important;
+  border-color: var(--ink-35, #5a5a5a) !important;
+  color: var(--ink, #1a1a1a) !important;
+}
+
+body:not(.fc-dark):not(.fc-auth) .breadcrumb {
+  color: var(--ink-35, #5a5a5a) !important;
+}
+
+body:not(.fc-dark):not(.fc-auth) .bc-root,
+body:not(.fc-dark):not(.fc-auth) .bc-cur {
+  color: var(--ink-60, #2d2d2d) !important;
+}
+
+body:not(.fc-dark):not(.fc-auth) .muted,
+body:not(.fc-dark):not(.fc-auth) .text-muted {
+  color: var(--ink-35, #5a5a5a) !important;
+}
+
+body:not(.fc-dark):not(.fc-auth) ::-webkit-scrollbar-track {
+  background: var(--surface-2, #fafafa) !important;
+}
+
+body:not(.fc-dark):not(.fc-auth) ::-webkit-scrollbar-thumb {
+  background: var(--ink-12, #d0d0d0) !important;
+}
+
+body:not(.fc-dark):not(.fc-auth) ::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-35, #5a5a5a) !important;
+}

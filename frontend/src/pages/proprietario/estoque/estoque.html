@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<style id="fc-body-lock">body{visibility:hidden}</style>
+<script>(function(){
+  function forceRecalc() {
+    try {
+      if (document.body && document.documentElement) {
+        void document.body.offsetHeight;
+        void getComputedStyle(document.documentElement).getPropertyValue('background');
+        void getComputedStyle(document.body).getPropertyValue('background');
+      }
+    } catch(e) {}
+  }
+  function unlock() {
+    var l = document.getElementById('fc-body-lock');
+    if (l) l.remove();
+    forceRecalc();
+  }
+  var links = document.querySelectorAll('link[rel="stylesheet"]');
+  var remaining = links.length;
+  if (remaining === 0) { unlock(); return; }
+  links.forEach(function(link) {
+    link.addEventListener('load', function() {
+      remaining--;
+      if (remaining <= 0) unlock();
+    });
+    link.addEventListener('error', function() {
+      remaining--;
+      if (remaining <= 0) unlock();
+    });
+  });
+  setTimeout(unlock, 3000);
+})()</script>
+
+          <script>
+      // Anti-Flash: aplica a cor de destaque e o fundo imediatamente, antes de qualquer render
+      (function() {
+        try {
+          const stored = JSON.parse(localStorage.getItem('farmacontrol_configuracoes') || '{}');
+          const cor = (stored.cor_destaque || '#4a7c59').toLowerCase();
+          const palettes = {
+            '#4a7c59': { sage: '#4a7c59', sage2: '#3a6447', light: '#6aaa7e', pale: 'rgba(74,124,89,0.1)', border: 'rgba(74,124,89,0.22)' },
+            '#2e6da4': { sage: '#2e6da4', sage2: '#235590', light: '#4f8bc0', pale: 'rgba(46,109,164,0.1)', border: 'rgba(46,109,164,0.22)' },
+            '#b87a1a': { sage: '#b87a1a', sage2: '#965f14', light: '#d59636', pale: 'rgba(184,122,26,0.1)', border: 'rgba(184,122,26,0.22)' },
+            '#c03a3a': { sage: '#c03a3a', sage2: '#9b2d2d', light: '#d85c5c', pale: 'rgba(192,58,58,0.1)', border: 'rgba(192,58,58,0.22)' },
+            '#6b4fbb': { sage: '#6b4fbb', sage2: '#523a97', light: '#876fd0', pale: 'rgba(107,79,187,0.1)', border: 'rgba(107,79,187,0.22)' },
+            '#1a7a6e': { sage: '#1a7a6e', sage2: '#125f55', light: '#32998c', pale: 'rgba(26,122,110,0.1)', border: 'rgba(26,122,110,0.22)' }
+          };
+          const p = palettes[cor] || palettes['#4a7c59'];
+          const r = document.documentElement;
+          r.style.setProperty('--sage', p.sage);
+          r.style.setProperty('--sage-2', p.sage2);
+          r.style.setProperty('--sage-light', p.light);
+          r.style.setProperty('--sage-pale', p.pale);
+          r.style.setProperty('--sage-border', p.border);
+          // Fundo padrão imediato: impede o flash branco/cru antes do CSS carregar
+          r.style.setProperty('--bg-body', '#f0f2f1');
+          document.documentElement.style.background = '#f0f2f1';
+          document.documentElement.style.color = '#1a1a1a';
+        } catch (e) {}
+      })();
+    </script>
+<meta charset="UTF-8" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Estoque</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=DM+Mono:wght@300;400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="estoque.css" />
+  <link rel="stylesheet" href="/styles/light-theme-contrast.css">
+  <link rel="stylesheet" href="/styles/page-transitions.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ══ SIDEBAR OVERLAY (mobile) ══ -->
+  <div class="sb-overlay" id="sb-overlay"></div>
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar" id="sidebar" role="navigation">
+    <div class="sb-head">
+      <div class="sb-brand">
+        <div class="sb-logo">
+          <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="8" y="1" width="2" height="16" rx="1" fill="currentColor"/><rect x="1" y="8" width="16" height="2" rx="1" fill="currentColor"/></svg>
+        </div>
+        <div class="sb-brand-text">
+          <span class="sb-name">FarmaControl</span>
+          <span class="sb-ver">v 1.0 · Sistema</span>
+        </div>
+      </div>
+      <button class="sb-collapse" id="btn-collapse">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+   <nav class="sb-nav">
+  <p class="sb-group-label">Principal</p>
+
+  <a href="../../proprietario/dashboard/dashboard.html" class="sb-item" data-tooltip="Dashboard">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+        <rect x="9" y="1.5" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+        <rect x="1.5" y="9" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+        <rect x="9" y="9" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+      </svg>
+    </span>
+    <span class="sb-label">Dashboard</span>
+  </a>
+
+  <!-- ESTOQUE (ACTIVE + ÍCONE CORRETO) -->
+  <a href="../../proprietario/estoque/estoque.html" class="sb-item active" data-tooltip="Estoque">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <path d="M8 1L14.5 4.5V11.5L8 15L1.5 11.5V4.5L8 1Z" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/>
+        <path d="M1.5 4.5L8 8M8 8L14.5 4.5M8 8V15" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="sb-label">Estoque</span>
+  </a>
+
+  <a href="../../proprietario/vencimentos/vencimentos.html" class="sb-item" data-tooltip="Vencimentos">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+        <path d="M5 1.5V4M11 1.5V4M2 7h12" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="sb-label">Vencimentos</span>
+  </a>
+
+  <p class="sb-group-label">Análise</p>
+
+  <!-- RELATÓRIOS COM ÍCONE CORRETO -->
+  <a href="../../proprietario/relatorios/relatorios.html" class="sb-item" data-tooltip="Relatórios">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <rect x="3" y="2" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+        <path d="M5.5 6h5M5.5 8.5h5M5.5 11h3" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="sb-label">Relatórios</span>
+  </a>
+
+  <a href="../../proprietario/previsao/previsao.html" class="sb-item" data-tooltip="Previsão IA">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <path d="M2 11.5L5.5 7.5L8.5 9.5L12 4.5L14 6" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="14" cy="6" r="1.5" fill="currentColor"/>
+      </svg>
+    </span>
+    <span class="sb-label">Previsão IA</span>
+  </a>
+
+      <a href="../../proprietario/financeiro/financeiro.html" class="sb-item" data-tooltip="Financeiro">
+        <span class="sb-icon"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.5v13M10.8 4.2H6.7a2.1 2.1 0 0 0 0 4.2h2.6a2.1 2.1 0 0 1 0 4.2H5.2" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="sb-label">Financeiro</span>
+      </a>
+  <a href="../../proprietario/compras/compras.html" class="sb-item" data-tooltip="Compras">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <path d="M1.5 2.5H3L5 11H13L14.5 5.5H4" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="6" cy="13.5" r="1" fill="currentColor"/>
+        <circle cx="12" cy="13.5" r="1" fill="currentColor"/>
+      </svg>
+    </span>
+    <span class="sb-label">Compras</span>
+  </a>
+
+  <p class="sb-group-label">Sistema</p>
+
+  <a href="../../proprietario/usuarios/usuarios.html" class="sb-item" data-tooltip="Usuários">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <circle cx="6.5" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.25"/>
+        <path d="M1.5 14c0-2.485 2.239-4.5 5-4.5s5 2.015 5 4.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="sb-label">Usuários</span>
+  </a>
+
+  <a href="../../proprietario/configuracoes/configuracoes.html" class="sb-item" data-tooltip="Configurações">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.25"/>
+        <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="sb-label">Configurações</span>
+  </a>
+</nav>
+
+    <div class="sb-footer">
+      <div class="sb-user-card">
+        <div class="sb-avatar" id="user-avatar">--</div>
+        <div class="sb-user-info">
+          <span class="sb-user-name" id="user-name">Usuário</span>
+          <span class="sb-user-role" id="user-role">Cargo</span>
+        </div>
+        <button class="sb-logout" id="btn-logout" data-logout="../../auth/auth.html" title="Sair">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M9 2h2.5A1.5 1.5 0 0113 3.5v7A1.5 1.5 0 0111.5 12H9M6 9.5L3.5 7 6 4.5M3.5 7H10" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ══ -->
+  <div class="main">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="mobile-menu-btn" id="btn-mobile-menu" aria-label="Abrir menu">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 4.5h14M2 9h14M2 13.5h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+        <div class="breadcrumb">
+          <span class="bc-root">FarmaControl</span>
+          <span class="bc-sep">/</span>
+          <span class="bc-cur">Estoque</span>
+        </div>
+      </div>
+      <div class="topbar-center">
+        <div class="date-chip" id="date-chip">
+          <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><rect x="1" y="2.5" width="11" height="9.5" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M4 1.5V3.5M9 1.5V3.5M1 6h11" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+          <span id="date-text">—</span>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn-primary" id="btn-add">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span>Novo Produto</span>
+        </button>
+        <div class="tb-divider"></div>
+        <button class="btn-icon" title="Gerenciar Fornecedores" id="btn-suppliers">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M4 16v-2a3 3 0 013-3h6a3 3 0 013 3v2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="6" r="3.2" stroke="currentColor" stroke-width="1.3"/><path d="M14 6.5a4.5 4.5 0 013 4.2M6 6.5A4.5 4.5 0 003 10.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </button>
+        <div class="tb-divider"></div>
+        <button class="btn-icon" title="Exportar CSV" id="btn-export">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M10 3v9M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 14v2a1 1 0 001 1h12a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Page -->
+    <div class="page">
+
+      <!-- Page Title -->
+      <div class="page-title-block">
+        <h1 class="page-title">Estoque</h1>
+        <p class="page-subtitle" id="page-subtitle">Situação do estoque em tempo real · Última atualização: —</p>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <div class="kpi-icon">
+              <svg viewBox="0 0 20 20" fill="none"><path d="M17 13.5V7a1 1 0 00-.5-.87l-6-3.46a1 1 0 00-1 0L3.5 6.13A1 1 0 003 7v6.5a1 1 0 00.5.87l6 3.46a1 1 0 001 0l6-3.46a1 1 0 00.5-.87z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+            </div>
+            <span class="kpi-trend neutral">— —</span>
+          </div>
+          <div class="kpi-value" id="kpi-total">0</div>
+          <div class="kpi-label">Total de Produtos</div>
+        </div>
+        <div class="kpi-card err">
+          <div class="kpi-header">
+            <div class="kpi-icon">
+              <svg viewBox="0 0 20 20" fill="none"><path d="M10 3L18 17H2L10 3z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M10 9v4M10 15v.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </div>
+            <span class="kpi-trend neutral">— —</span>
+          </div>
+          <div class="kpi-value" id="kpi-criticos">0</div>
+          <div class="kpi-label">Estoque Crítico</div>
+        </div>
+        <div class="kpi-card warn">
+          <div class="kpi-header">
+            <div class="kpi-icon">
+              <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 6v5M10 13v.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </div>
+            <span class="kpi-trend neutral">— —</span>
+          </div>
+          <div class="kpi-value" id="kpi-baixos">0</div>
+          <div class="kpi-label">Estoque Baixo</div>
+        </div>
+        <div class="kpi-card gold">
+          <div class="kpi-header">
+            <div class="kpi-icon">
+              <svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="13" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M7 2v4M13 2v4M3 9h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </div>
+            <span class="kpi-trend neutral">— —</span>
+          </div>
+          <div class="kpi-value" id="kpi-vencendo">0</div>
+          <div class="kpi-label">Vencem em Breve</div>
+        </div>
+      </div>
+
+      <!-- Panel row -->
+      <div class="panel-row">
+
+        <!-- Stock Table Card -->
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">Medicamentos em Estoque</div>
+              <div class="card-subtitle">Clique no cabeçalho para ordenar</div>
+            </div>
+          </div>
+
+          <!-- Filters -->
+          <div class="filters">
+            <div class="search-wrap">
+              <svg viewBox="0 0 20 20" fill="none"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M15 15l-3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <input class="field-input" type="text" placeholder="Buscar por nome, princípio ou lote…" id="search-input" />
+            </div>
+            <select class="filter-select" id="filter-cat">
+              <option value="">Todas categorias</option>
+              <option>Analgésicos</option>
+              <option>Antibióticos</option>
+              <option>Anti-inflamatório</option>
+              <option>Cardiovascular</option>
+              <option>Diabetes</option>
+              <option>Dermatologia</option>
+              <option>Gastro</option>
+              <option>Psiquiátrico</option>
+              <option>Vitaminas</option>
+            </select>
+            <select class="filter-select" id="filter-status">
+              <option value="">Todos status</option>
+              <option value="ok">Normal</option>
+              <option value="warn">Baixo</option>
+              <option value="err">Crítico</option>
+            </select>
+          </div>
+
+          <!-- Table -->
+          <div class="table-wrap">
+            <table id="stock-table">
+              <thead>
+                <tr>
+                  <th class="sortable" data-sort="nome">Produto</th>
+                  <th>Lote</th>
+                  <th class="sortable" data-sort="categoria">Categoria</th>
+                  <th class="sortable" data-sort="qty">Qtd</th>
+                  <th>Mín.</th>
+                  <th class="sortable" data-sort="validade">Validade</th>
+                  <th class="sortable" data-sort="status">Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="table-body"></tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="pagination">
+            <span class="page-info" id="page-info">Mostrando 1–10 de 10</span>
+            <div class="page-btns" id="page-btns"></div>
+          </div>
+        </div>
+
+        <!-- Side panels -->
+        <div class="side-panels">
+
+          <!-- Alertas -->
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <div class="card-title">Alertas</div>
+                <div class="card-subtitle" id="alert-subtitle">Nenhum item requer atenção</div>
+              </div>
+            </div>
+            <div class="alert-list" id="alert-list">
+              <!-- Preenchido dinamicamente -->
+            </div>
+          </div>
+
+          <!-- Próximos a vencer -->
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <div class="card-title">Próximos ao Vencimento</div>
+                <div class="card-subtitle">Nos próximos 30 dias</div>
+              </div>
+            </div>
+            <div style="padding:14px 0" id="expiry-list">
+              <!-- Preenchido dinamicamente -->
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ MODAL: Gerenciar Fornecedores ══ -->
+<div class="modal-overlay" id="suppliers-overlay">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-head">
+      <div class="modal-icon">
+        <svg viewBox="0 0 20 20" fill="none"><path d="M4 16v-2a3 3 0 013-3h6a3 3 0 013 3v2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="6" r="3.2" stroke="currentColor" stroke-width="1.3"/><path d="M14 6.5a4.5 4.5 0 013 4.2M6 6.5A4.5 4.5 0 003 10.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      </div>
+      <div>
+        <div class="modal-title">Fornecedores</div>
+        <div class="modal-sub">Os fornecedores cadastrados aqui aparecem na página de Compras</div>
+      </div>
+      <button class="modal-close" id="suppliers-close">
+        <svg viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" style="max-height:46vh;overflow-y:auto">
+      <div id="suppliers-list"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" id="suppliers-cancel">Fechar</button>
+      <button class="btn-modal-submit" id="suppliers-new">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Novo Fornecedor
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: Novo Fornecedor ══ -->
+<div class="modal-overlay" id="supplier-form-overlay">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-head">
+      <div class="modal-icon">
+        <svg viewBox="0 0 20 20" fill="none"><path d="M10 3v14M3 10h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+      <div>
+        <div class="modal-title" id="supplier-form-title">Novo Fornecedor</div>
+        <div class="modal-sub">Cadastre um fornecedor para usar em compras</div>
+      </div>
+      <button class="modal-close" id="supplier-form-close">
+        <svg viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="field-group" style="grid-column:1/-1">
+          <label class="field-label">Nome Fantasia *</label>
+          <input class="field-input-light" type="text" id="sup-nome" placeholder="Ex: Distribuidora Alpha" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field-group" style="grid-column:1/-1">
+          <label class="field-label">Razão Social *</label>
+          <input class="field-input-light" type="text" id="sup-razao" placeholder="Ex: Distribuidora Alpha Ltda" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field-group">
+          <label class="field-label">CNPJ *</label>
+          <input class="field-input-light" type="text" id="sup-cnpj" placeholder="00.000.000/0000-00" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Contato</label>
+          <input class="field-input-light" type="text" id="sup-contato" placeholder="Nome do responsável" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field-group">
+          <label class="field-label">Telefone</label>
+          <input class="field-input-light" type="tel" id="sup-telefone" placeholder="(00) 00000-0000" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">E-mail</label>
+          <input class="field-input-light" type="email" id="sup-email" placeholder="contato@fornecedor.com" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field-group" style="grid-column:1/-1">
+          <label class="field-label">Endereço</label>
+          <input class="field-input-light" type="text" id="sup-endereco" placeholder="Rua, número, bairro, cidade" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" id="supplier-form-cancel">Cancelar</button>
+      <button class="btn-modal-submit" id="supplier-form-save">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M13 5L6.5 11.5 3 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Salvar Fornecedor
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: Novo Produto ══ -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-icon">
+        <svg viewBox="0 0 20 20" fill="none"><path d="M17 13.5V7a1 1 0 00-.5-.87l-6-3.46a1 1 0 00-1 0L3.5 6.13A1 1 0 003 7v6.5a1 1 0 00.5.87l6 3.46a1 1 0 001 0l6-3.46a1 1 0 00.5-.87z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3.27 6.5L10 10.5l6.73-4M10 17.5v-7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </div>
+      <div>
+        <div class="modal-title">Novo Produto</div>
+        <div class="modal-sub">Cadastrar medicamento no estoque</div>
+      </div>
+      <button class="modal-close" id="modal-close">
+        <svg viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="field-group" style="grid-column:1/-1">
+          <label class="field-label">Nome do Medicamento *</label>
+          <input class="field-input-light" type="text" id="add-nome" placeholder="Ex: Dipirona Sódica 500mg" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field-group">
+          <label class="field-label">Princípio Ativo</label>
+          <input class="field-input-light" type="text" id="add-principio" placeholder="Ex: Dipirona Sódica" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Categoria</label>
+          <select class="field-input-light" id="add-categoria">
+            <option value="">Selecione…</option>
+            <option>Analgésicos</option>
+            <option>Antibióticos</option>
+            <option>Anti-inflamatório</option>
+            <option>Cardiovascular</option>
+            <option>Dermatologia</option>
+            <option>Diabetes</option>
+            <option>Gastro</option>
+            <option>Psiquiátrico</option>
+            <option>Vitaminas</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field-group">
+          <label class="field-label">Nº do Lote</label>
+          <input class="field-input-light" type="text" id="add-lote" placeholder="Ex: DIP2024-001" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Data de Validade</label>
+          <input class="field-input-light" type="date" id="add-validade" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field-group">
+          <label class="field-label">Quantidade Inicial</label>
+          <input class="field-input-light" type="number" id="add-qty" placeholder="0" min="0" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Estoque Mínimo</label>
+          <input class="field-input-light" type="number" id="add-min" placeholder="Ex: 20" min="0" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field-group">
+          <label class="field-label">Preço de Custo (R$)</label>
+          <input class="field-input-light" type="number" id="add-custo" placeholder="0,00" step="0.01" min="0" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Fornecedor</label>
+          <select class="field-input-light" id="add-fornecedor">
+            <option value="">Selecione…</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" id="modal-cancel">Cancelar</button>
+      <button class="btn-modal-submit" id="modal-save">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M13 5L6.5 11.5 3 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Salvar Produto
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: Editar Produto ══ -->
+<div class="modal-overlay" id="edit-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-icon" style="background:linear-gradient(135deg,var(--gold),var(--gold-light))">
+        <svg viewBox="0 0 20 20" fill="none"><path d="M14 3l3 3-9.5 9.5H4v-3.5L13.5 3z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 5l3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </div>
+      <div>
+        <div class="modal-title">Editar Produto</div>
+        <div class="modal-sub">Atualizar dados do medicamento</div>
+      </div>
+      <button class="modal-close" id="edit-close">
+        <svg viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="field-group" style="grid-column:1/-1">
+          <label class="field-label">Nome do Medicamento *</label>
+          <input class="field-input-light" type="text" id="edit-nome" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field-group">
+          <label class="field-label">Princípio Ativo</label>
+          <input class="field-input-light" type="text" id="edit-principio" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Categoria</label>
+          <select class="field-input-light" id="edit-categoria">
+            <option value="">Selecione…</option>
+            <option>Analgésicos</option>
+            <option>Antibióticos</option>
+            <option>Anti-inflamatório</option>
+            <option>Cardiovascular</option>
+            <option>Dermatologia</option>
+            <option>Diabetes</option>
+            <option>Gastro</option>
+            <option>Psiquiátrico</option>
+            <option>Vitaminas</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field-group">
+          <label class="field-label">Nº do Lote</label>
+          <input class="field-input-light" type="text" id="edit-lote" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Data de Validade</label>
+          <input class="field-input-light" type="date" id="edit-validade" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field-group">
+          <label class="field-label">Quantidade</label>
+          <input class="field-input-light" type="number" id="edit-qty" min="0" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Estoque Mínimo</label>
+          <input class="field-input-light" type="number" id="edit-min" min="0" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field-group">
+          <label class="field-label">Preço de Custo (R$)</label>
+          <input class="field-input-light" type="number" id="edit-custo" step="0.01" min="0" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Fornecedor</label>
+          <select class="field-input-light" id="edit-fornecedor">
+            <option value="">Selecione…</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" id="edit-cancel">Cancelar</button>
+      <button class="btn-modal-submit" id="edit-save">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M13 5L6.5 11.5 3 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Salvar Alterações
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: Movimentação ══ -->
+<div class="modal-overlay" id="move-overlay">
+  <div class="modal" style="width:420px">
+    <div class="modal-head">
+      <div class="modal-icon" style="background:linear-gradient(135deg,var(--sage),var(--sage-light))">
+        <svg viewBox="0 0 20 20" fill="none"><path d="M10 3v14M4 9l6 6 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <div class="modal-title">Movimentar Estoque</div>
+        <div class="modal-sub" id="move-product-name">—</div>
+      </div>
+      <button class="modal-close" id="move-close">
+        <svg viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label class="field-label">Tipo de Movimentação</label>
+        <div class="move-btns">
+          <button class="move-btn selected" id="move-btn-in">
+            <svg viewBox="0 0 16 16" fill="none"><path d="M8 3v10M4 9l4 4 4-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Entrada
+          </button>
+          <button class="move-btn" id="move-btn-out">
+            <svg viewBox="0 0 16 16" fill="none"><path d="M8 13V3M4 7l4-4 4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Saída
+          </button>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Estoque Atual</label>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:28px;color:var(--text-1);font-weight:300" id="move-current-qty">0</div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Quantidade *</label>
+        <input class="field-input-light" type="number" id="move-qty" placeholder="0" min="1" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">Observação</label>
+        <input class="field-input-light" type="text" id="move-obs" placeholder="Ex: Recebimento NF-e 1234" />
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" id="move-cancel">Cancelar</button>
+      <button class="btn-modal-submit" id="move-save">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M13 5L6.5 11.5 3 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Confirmar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: Histórico ══ -->
+<div class="modal-overlay" id="history-overlay">
+  <div class="modal" style="width:460px">
+    <div class="modal-head">
+      <div class="modal-icon" style="background:linear-gradient(135deg,#5a7a8a,#7aabb8)">
+        <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 6v4l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </div>
+      <div>
+        <div class="modal-title">Histórico</div>
+        <div class="modal-sub" id="history-product-name">—</div>
+      </div>
+      <button class="modal-close" id="history-close">
+        <svg viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="history-list" id="history-list" style="max-height:400px;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- ══ Toast ══ -->
+<div class="toast" id="toast">
+  <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/><path d="M7 10l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <span id="toast-msg">Operação realizada!</span>
+</div>
+<script src="../../../utils/global-settings.js"></script>
+<script src="../../../utils/sidebar-init.js"></script>
+<script src="estoque.js"></script>
+</body>
+</html>

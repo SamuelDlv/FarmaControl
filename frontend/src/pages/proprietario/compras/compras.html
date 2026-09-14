@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<style id="fc-body-lock">body{visibility:hidden}</style>
+<script>(function(){
+  function forceRecalc() {
+    try {
+      if (document.body && document.documentElement) {
+        void document.body.offsetHeight;
+        void getComputedStyle(document.documentElement).getPropertyValue('background');
+        void getComputedStyle(document.body).getPropertyValue('background');
+      }
+    } catch(e) {}
+  }
+  function unlock() {
+    var l = document.getElementById('fc-body-lock');
+    if (l) l.remove();
+    forceRecalc();
+  }
+  var links = document.querySelectorAll('link[rel="stylesheet"]');
+  var remaining = links.length;
+  if (remaining === 0) { unlock(); return; }
+  links.forEach(function(link) {
+    link.addEventListener('load', function() {
+      remaining--;
+      if (remaining <= 0) unlock();
+    });
+    link.addEventListener('error', function() {
+      remaining--;
+      if (remaining <= 0) unlock();
+    });
+  });
+  setTimeout(unlock, 3000);
+})()</script>
+
+          <script>
+      // Anti-Flash: aplica a cor de destaque e o fundo imediatamente, antes de qualquer render
+      (function() {
+        try {
+          const stored = JSON.parse(localStorage.getItem('farmacontrol_configuracoes') || '{}');
+          const cor = (stored.cor_destaque || '#4a7c59').toLowerCase();
+          const palettes = {
+            '#4a7c59': { sage: '#4a7c59', sage2: '#3a6447', light: '#6aaa7e', pale: 'rgba(74,124,89,0.1)', border: 'rgba(74,124,89,0.22)' },
+            '#2e6da4': { sage: '#2e6da4', sage2: '#235590', light: '#4f8bc0', pale: 'rgba(46,109,164,0.1)', border: 'rgba(46,109,164,0.22)' },
+            '#b87a1a': { sage: '#b87a1a', sage2: '#965f14', light: '#d59636', pale: 'rgba(184,122,26,0.1)', border: 'rgba(184,122,26,0.22)' },
+            '#c03a3a': { sage: '#c03a3a', sage2: '#9b2d2d', light: '#d85c5c', pale: 'rgba(192,58,58,0.1)', border: 'rgba(192,58,58,0.22)' },
+            '#6b4fbb': { sage: '#6b4fbb', sage2: '#523a97', light: '#876fd0', pale: 'rgba(107,79,187,0.1)', border: 'rgba(107,79,187,0.22)' },
+            '#1a7a6e': { sage: '#1a7a6e', sage2: '#125f55', light: '#32998c', pale: 'rgba(26,122,110,0.1)', border: 'rgba(26,122,110,0.22)' }
+          };
+          const p = palettes[cor] || palettes['#4a7c59'];
+          const r = document.documentElement;
+          r.style.setProperty('--sage', p.sage);
+          r.style.setProperty('--sage-2', p.sage2);
+          r.style.setProperty('--sage-light', p.light);
+          r.style.setProperty('--sage-pale', p.pale);
+          r.style.setProperty('--sage-border', p.border);
+          // Fundo padrão imediato: impede o flash branco/cru antes do CSS carregar
+          r.style.setProperty('--bg-body', '#f0f2f1');
+          document.documentElement.style.background = '#f0f2f1';
+          document.documentElement.style.color = '#1a1a1a';
+        } catch (e) {}
+      })();
+    </script>
+<meta charset="UTF-8" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FarmaControl — Compras</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=DM+Mono:wght@300;400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="compras.css" />
+  <link rel="stylesheet" href="/styles/light-theme-contrast.css">
+  <link rel="stylesheet" href="/styles/page-transitions.css">
+</head>
+<body>
+<div class="app">
+
+  <!-- ══ SIDEBAR OVERLAY (mobile) ══ -->
+  <div class="sb-overlay" id="sb-overlay"></div>
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar" id="sidebar" role="navigation">
+    <div class="sb-head">
+      <div class="sb-brand">
+        <div class="sb-logo">
+          <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="8" y="1" width="2" height="16" rx="1" fill="currentColor"/><rect x="1" y="8" width="16" height="2" rx="1" fill="currentColor"/></svg>
+        </div>
+        <div class="sb-brand-text">
+          <span class="sb-name">FarmaControl</span>
+          <span class="sb-ver">v 1.0 · Sistema</span>
+        </div>
+      </div>
+      <button class="sb-collapse" id="btn-collapse">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <nav class="sb-nav">
+      <p class="sb-group-label">Principal</p>
+
+      <a href="../../proprietario/dashboard/dashboard.html" class="sb-item" data-tooltip="Dashboard">
+        <span class="sb-icon"><svg viewBox="0 0 16 16" fill="none"><rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.25"/><rect x="9" y="1.5" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.25"/><rect x="1.5" y="9" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.25"/><rect x="9" y="9" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.25"/></svg></span>
+        <span class="sb-label">Dashboard</span>
+      </a>
+
+      <a href="../../proprietario/estoque/estoque.html" class="sb-item" data-tooltip="Estoque">
+        <span class="sb-icon"><svg viewBox="0 0 16 16" fill="none"><path d="M8 1L14.5 4.5V11.5L8 15L1.5 11.5V4.5L8 1Z" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/><path d="M1.5 4.5L8 8M8 8L14.5 4.5M8 8V15" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg></span>
+        <span class="sb-label">Estoque</span>
+      </a>
+
+      <a href="../../proprietario/vencimentos/vencimentos.html" class="sb-item" data-tooltip="Vencimentos">
+        <span class="sb-icon"><svg viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" stroke-width="1.25"/><path d="M5 1.5V4M11 1.5V4M2 7h12" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg></span>
+        <span class="sb-label">Vencimentos</span>
+      </a>
+
+      <p class="sb-group-label">Análise</p>
+
+      <a href="../../proprietario/relatorios/relatorios.html" class="sb-item" data-tooltip="Relatórios">
+        <span class="sb-icon"><svg viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.25"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg></span>
+        <span class="sb-label">Relatórios</span>
+      </a>
+
+      <a href="../../proprietario/previsao/previsao.html" class="sb-item" data-tooltip="Previsão IA">
+        <span class="sb-icon"><svg viewBox="0 0 16 16" fill="none"><path d="M2 11.5L5.5 7.5L8.5 9.5L12 4.5L14 6" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="6" r="1.5" fill="currentColor"/></svg></span>
+        <span class="sb-label">Previsão IA</span>
+      </a>
+
+      <a href="../../proprietario/financeiro/financeiro.html" class="sb-item" data-tooltip="Financeiro">
+        <span class="sb-icon"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.5v13M10.8 4.2H6.7a2.1 2.1 0 0 0 0 4.2h2.6a2.1 2.1 0 0 1 0 4.2H5.2" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="sb-label">Financeiro</span>
+      </a>
+      <a href="../../proprietario/compras/compras.html" class="sb-item active" data-tooltip="Compras">
+        <span class="sb-icon"><svg viewBox="0 0 16 16" fill="none"><path d="M1.5 2.5H3L5 11H13L14.5 5.5H4" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="13.5" r="1" fill="currentColor"/><circle cx="12" cy="13.5" r="1" fill="currentColor"/></svg></span>
+        <span class="sb-label">Compras</span>
+      </a>
+
+      <p class="sb-group-label">Sistema</p>
+
+      <a href="../../proprietario/usuarios/usuarios.html" class="sb-item" data-tooltip="Usuários">
+        <span class="sb-icon"><svg viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.25"/><path d="M1.5 14c0-2.485 2.239-4.5 5-4.5s5 2.015 5 4.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg></span>
+        <span class="sb-label">Usuários</span>
+      </a>
+
+      <a href="../../proprietario/configuracoes/configuracoes.html" class="sb-item" data-tooltip="Configurações">
+        <span class="sb-icon"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.25"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg></span>
+        <span class="sb-label">Configurações</span>
+      </a>
+    </nav>
+
+    <div class="sb-footer">
+      <div class="sb-user-card">
+        <div class="sb-avatar" id="user-avatar">--</div>
+        <div class="sb-user-info">
+          <span class="sb-user-name" id="user-name">Usuário</span>
+          <span class="sb-user-role" id="user-role">Cargo</span>
+        </div>
+        <button class="sb-logout" id="btn-logout" data-logout="../../auth/auth.html" title="Sair">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M9 2h2.5A1.5 1.5 0 0113 3.5v7A1.5 1.5 0 0111.5 12H9M6 9.5L3.5 7 6 4.5M3.5 7H10" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ══ -->
+  <div class="main">
+
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="mobile-menu-btn" id="btn-mobile-menu" aria-label="Abrir menu">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 4.5h14M2 9h14M2 13.5h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+        <div class="breadcrumb">
+          <span class="bc-root">FarmaControl</span>
+          <span class="bc-sep">/</span>
+          <span class="bc-cur">Compras</span>
+        </div>
+      </div>
+      <div class="topbar-center">
+        <div class="date-chip">
+          <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><rect x="1" y="2.5" width="11" height="9.5" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M4 1.5V3.5M9 1.5V3.5M1 6h11" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+          <span id="date-label">Carregando…</span>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="tb-btn" id="btn-export">
+          <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M7 1v8M4 6l3 3 3-3M2 10v2a1 1 0 001 1h8a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Exportar PDF
+        </button>
+        <button class="tb-btn primary" id="btn-new-order">
+          <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M1 6.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Nova Compra
+        </button>
+        <div class="tb-divider"></div>
+      </div>
+    </header>
+
+    <div class="page-body">
+
+      <!-- ══ MAIN CONTENT ══ -->
+      <main class="page-main" id="main-content">
+
+        <!-- Page Header -->
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Compras</h1>
+            <p class="page-subtitle" id="page-subtitle">Gestão de pedidos e fornecedores</p>
+          </div>
+          <div class="page-actions">
+            <div class="period-selector">
+              <button class="period-btn active" data-period="month">Mês</button>
+              <button class="period-btn" data-period="quarter">Trimestre</button>
+              <button class="period-btn" data-period="year">Ano</button>
+            </div>
+            <button class="ghost-btn" id="btn-refresh">
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M12.1 6A4.7 4.7 0 1 0 12.3 8.8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/><path d="M12.1 2.5v3.7H8.4" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Atualizar
+            </button>
+          </div>
+        </div>
+
+        <!-- KPIs de Compras -->
+        <section class="kpi-grid">
+          <article class="kpi-card">
+            <div class="kpi-top">
+              <span class="kpi-label">Total de Pedidos</span>
+              <div class="kpi-icon green">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M1.5 2.5H3L5 11H13L14.5 5.5H4" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="13.5" r="1" fill="currentColor"/><circle cx="12" cy="13.5" r="1" fill="currentColor"/></svg>
+              </div>
+            </div>
+            <div class="kpi-value" data-target="0">0</div>
+            <div class="kpi-meta">
+              <span class="kpi-sub">pedidos no período</span>
+            </div>
+            <div class="kpi-spark">
+              <div class="spark-bar" style="--h:55%"></div><div class="spark-bar" style="--h:60%"></div>
+              <div class="spark-bar" style="--h:70%"></div><div class="spark-bar" style="--h:65%"></div>
+              <div class="spark-bar" style="--h:80%"></div><div class="spark-bar hi" style="--h:90%"></div>
+              <div class="spark-bar hi" style="--h:100%"></div>
+            </div>
+          </article>
+
+          <article class="kpi-card blue">
+            <div class="kpi-top">
+              <span class="kpi-label">Valor Total Comprado</span>
+              <div class="kpi-icon blue">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M8 1.5v13M11 4.5H6.5a2.5 2.5 0 000 5H10a2.5 2.5 0 010 5H5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>
+              </div>
+            </div>
+            <div class="kpi-value kpi-currency" data-target="0">0</div>
+            <div class="kpi-meta">
+              <span class="kpi-sub">valor total (R$)</span>
+            </div>
+            <div class="kpi-spark">
+              <div class="spark-bar" style="--h:45%"></div><div class="spark-bar" style="--h:58%"></div>
+              <div class="spark-bar" style="--h:62%"></div><div class="spark-bar" style="--h:72%"></div>
+              <div class="spark-bar" style="--h:78%"></div><div class="spark-bar hi" style="--h:88%"></div>
+              <div class="spark-bar hi" style="--h:100%"></div>
+            </div>
+          </article>
+
+          <article class="kpi-card amber">
+            <div class="kpi-top">
+              <span class="kpi-label">Pedidos Pendentes</span>
+              <div class="kpi-icon amber">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M8 2L14.5 13.5H1.5L8 2Z" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/><path d="M8 7v3M8 11.5v.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>
+              </div>
+            </div>
+            <div class="kpi-value" data-target="0">0</div>
+            <div class="kpi-meta">
+              <span class="kpi-sub">aguardando entrega</span>
+            </div>
+            <div class="kpi-spark">
+              <div class="spark-bar" style="--h:30%"></div><div class="spark-bar" style="--h:45%"></div>
+              <div class="spark-bar" style="--h:50%"></div><div class="spark-bar" style="--h:60%"></div>
+              <div class="spark-bar" style="--h:55%"></div><div class="spark-bar hi" style="--h:75%"></div>
+              <div class="spark-bar hi" style="--h:85%"></div>
+            </div>
+          </article>
+
+          <article class="kpi-card red">
+            <div class="kpi-top">
+              <span class="kpi-label">Fornecedores Ativos</span>
+              <div class="kpi-icon red">
+                <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.25"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>
+              </div>
+            </div>
+            <div class="kpi-value" data-target="0">0</div>
+            <div class="kpi-meta">
+              <span class="kpi-sub">fornecedores cadastrados</span>
+            </div>
+            <div class="kpi-spark">
+              <div class="spark-bar" style="--h:70%"></div><div class="spark-bar" style="--h:75%"></div>
+              <div class="spark-bar" style="--h:80%"></div><div class="spark-bar" style="--h:80%"></div>
+              <div class="spark-bar" style="--h:85%"></div><div class="spark-bar hi" style="--h:90%"></div>
+              <div class="spark-bar hi" style="--h:100%"></div>
+            </div>
+          </article>
+        </section>
+
+        <!-- Compras por Categoria + Top Fornecedores -->
+        <div class="two-col">
+
+          <!-- Gráfico de barras: Compras por Categoria -->
+          <div class="card">
+            <div class="card-head">
+              <div class="card-head-l">
+                <h2 class="card-title">Compras por Categoria</h2>
+              </div>
+              <button class="card-link">Ver detalhe →</button>
+            </div>
+            <div class="category-chart" id="category-chart">
+              <!-- Renderizado via JS -->
+              <div style="text-align:center;padding:20px;color:rgba(13,21,16,0.4);font-size:12px">Carregando categorias…</div>
+            </div>
+          </div>
+
+          <!-- Top Fornecedores -->
+          <div class="card">
+            <div class="card-head">
+              <div class="card-head-l">
+                <h2 class="card-title">Top Fornecedores</h2>
+              </div>
+              <button class="card-link">Ver todos →</button>
+            </div>
+            <ul class="rank-list" id="rank-list">
+              <!-- Renderizado via JS -->
+              <li style="text-align:center;padding:20px;color:rgba(13,21,16,0.4);font-size:12px">Carregando fornecedores…</li>
+            </ul>
+          </div>
+
+        </div>
+
+        <!-- Evolução Mensal de Compras -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-head-l">
+              <h2 class="card-title">Evolução Mensal de Compras</h2>
+            </div>
+            <div class="card-head-r">
+              <div class="ftabs">
+                <button class="ftab active" data-chart="saidas">Valor (R$)</button>
+                <button class="ftab" data-chart="entradas">Qtd. Pedidos</button>
+                <button class="ftab" data-chart="ambos">Comparar</button>
+              </div>
+            </div>
+          </div>
+          <div class="monthly-chart" id="monthly-chart">
+            <div class="mc-y-labels">
+              <span>40k</span><span>30k</span><span>20k</span><span>10k</span><span>0</span>
+            </div>
+            <div class="mc-bars-wrap">
+              <div class="mc-grid">
+                <div class="mc-grid-line"></div><div class="mc-grid-line"></div>
+                <div class="mc-grid-line"></div><div class="mc-grid-line"></div>
+              </div>
+              <div class="mc-bars" id="mc-bars">
+                <!-- Renderizado via JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabela de Pedidos de Compra -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-head-l">
+              <h2 class="card-title">Pedidos de Compra</h2>
+              <span class="badge" id="mov-count">0 registros</span>
+            </div>
+            <div class="card-head-r">
+              <div class="search-field">
+                <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.1"/><path d="M9 9l2.5 2.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+                <input type="text" id="table-search" placeholder="Buscar produto…" />
+              </div>
+              <div class="ftabs">
+                <button class="ftab active" data-type="all">Todos</button>
+                <button class="ftab" data-type="recebido">Recebidos</button>
+                <button class="ftab" data-type="pendente">Pendentes</button>
+              </div>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Produto</th>
+                  <th>Fornecedor</th>
+                  <th>Nº Pedido</th>
+                  <th class="c">Status</th>
+                  <th class="r">Qtd.</th>
+                  <th class="r">Valor Unit.</th>
+                  <th class="r">Total</th>
+                  <th>Responsável</th>
+                </tr>
+              </thead>
+              <tbody id="mov-table-body">
+                <!-- Renderizado via JS -->
+                <tr><td colspan="9" style="text-align:center;padding:24px;color:rgba(13,21,16,0.4)">Carregando pedidos…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card-foot">
+            <span class="foot-info" id="mov-filter-count">Exibindo 0 de 0 registros</span>
+            <div style="display:flex;gap:6px;">
+              <button class="ghost-btn sm">← Anterior</button>
+              <button class="ghost-btn sm">Próximos →</button>
+            </div>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- ══ RIGHT PANEL ══ -->
+      <aside class="page-panel">
+
+        <!-- Ações Rápidas -->
+        <div class="panel-section">
+          <div class="panel-hd">
+            <span class="panel-title">Ações Rápidas</span>
+          </div>
+          <div class="report-list">
+            <div class="report-item" id="rpt-estoque">
+              <div class="report-icon green">
+                <svg viewBox="0 0 14 14" fill="none"><path d="M1.5 2.5H3L5 11H13L14.5 5.5H4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="13.5" r="0.9" fill="currentColor"/><circle cx="12" cy="13.5" r="0.9" fill="currentColor"/></svg>
+              </div>
+              <div class="report-body">
+                <p class="report-name">Novo Pedido</p>
+                <p class="report-desc">Criar ordem de compra</p>
+              </div>
+              <button class="report-dl">
+                <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M1 6.5h11" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+            <div class="report-item" id="rpt-saidas">
+              <div class="report-icon blue">
+                <svg viewBox="0 0 14 14" fill="none"><rect x="1" y="2.5" width="12" height="9.5" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M4 1.5V3.5M10 1.5V3.5M1 6h12" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+              </div>
+              <div class="report-body">
+                <p class="report-name">Agendar Entrega</p>
+                <p class="report-desc">Definir data de recebimento</p>
+              </div>
+              <button class="report-dl">
+                <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M7 1v8M4 6l3 3 3-3M2 10v2a1 1 0 001 1h8a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+            <div class="report-item" id="rpt-venc">
+              <div class="report-icon amber">
+                <svg viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.1"/><path d="M7 4v3.5l2 2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+              </div>
+              <div class="report-body">
+                <p class="report-name">Pedidos Pendentes</p>
+                <p class="report-desc">5 aguardando confirmação</p>
+              </div>
+              <button class="report-dl">
+                <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M7 1v8M4 6l3 3 3-3M2 10v2a1 1 0 001 1h8a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+            <div class="report-item" id="rpt-fin">
+              <div class="report-icon red">
+                <svg viewBox="0 0 14 14" fill="none"><path d="M7 1v12M10 3.5H5.5a2.5 2.5 0 000 5H9a2.5 2.5 0 010 5H4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+              </div>
+              <div class="report-body">
+                <p class="report-name">Relatório de Compras</p>
+                <p class="report-desc">Exportar histórico do período</p>
+              </div>
+              <button class="report-dl">
+                <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M7 1v8M4 6l3 3 3-3M2 10v2a1 1 0 001 1h8a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resumo do Período -->
+        <div class="panel-section" id="period-summary-section">
+          <div class="panel-hd">
+            <span class="panel-title">Resumo do Período</span>
+          </div>
+          <div class="summary-list" id="summary-list">
+            <!-- Renderizado via JS -->
+            <div style="text-align:center;padding:20px;color:rgba(13,21,16,0.4);font-size:12px">Carregando resumo…</div>
+          </div>
+        </div>
+
+        <!-- Histórico de Exportações -->
+        <div class="panel-section" id="export-history-section">
+          <div class="panel-hd">
+            <span class="panel-title">Exportações Recentes</span>
+          </div>
+          <div class="export-history" id="export-history-list">
+            <!-- Renderizado via JS -->
+            <div style="text-align:center;padding:20px;color:rgba(13,21,16,0.4);font-size:12px">Nenhuma exportação recente.</div>
+          </div>
+        </div>
+
+      </aside>
+
+    </div><!-- /page-body -->
+  </div><!-- /main -->
+
+  <!-- ══ MODAL: AGENDAR ENTREGA ══ -->
+  <div class="modal-overlay" id="modal-agenda-entrega">
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-icon">
+          <svg viewBox="0 0 16 16" fill="none"><rect x="1.5" y="3" width="13" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1.5 7h13M5 1.5V4.5M11 1.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </div>
+        <div>
+          <div class="modal-title">Agendar Entrega</div>
+          <div style="font-size: 11px; color: var(--ink-35); margin-top: 2px;">Confirme o recebimento dos pedidos pendentes</div>
+        </div>
+        <button class="modal-close" aria-label="Fechar" onclick="document.getElementById('modal-agenda-entrega').classList.remove('open')">✕</button>
+      </div>
+      <div class="modal-body" id="agenda-entrega-body">
+        <!-- Renderizado via JS -->
+        <div style="text-align:center;padding:20px;color:var(--ink-35);font-size:13px">Carregando pedidos…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MODAL: NOVA COMPRA ══ -->
+  <div class="modal-overlay" id="modal-nova-compra">
+    <div class="modal modal-lg">
+      <div class="modal-head">
+        <div class="modal-icon">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M1.5 2.5H3L5 11H13L14.5 5.5H4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="13.5" r="1" fill="currentColor"/><circle cx="12" cy="13.5" r="1" fill="currentColor"/></svg>
+        </div>
+        <div>
+          <div class="modal-title">Nova Compra</div>
+          <div style="font-size: 11px; color: var(--ink-35); margin-top: 2px;">Registre um pedido de compra com fornecedor e itens</div>
+        </div>
+        <button class="modal-close" id="btn-close-modal-compra" aria-label="Fechar">✕</button>
+      </div>
+      <div class="modal-body">
+        <!-- Linha 1: Fornecedor, Status e Valor Total -->
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="cmp-fornecedor">Fornecedor *</label>
+            <select class="form-select" id="cmp-fornecedor">
+              <option value="">Selecione um fornecedor...</option>
+            </select>
+            <div class="form-hint" id="cmp-fornecedor-notice" style="display:none;margin-top:6px;font-size:12px;color:var(--ink-35,#777)"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="cmp-status">Status</label>
+            <select class="form-select" id="cmp-status">
+              <option value="pendente">Pendente</option>
+              <option value="recebido">Recebido (dá entrada no estoque)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="cmp-valor-total">Valor Total (R$) *</label>
+            <input type="number" class="form-input" id="cmp-valor-total" placeholder="0,00" min="0" step="0.01">
+          </div>
+        </div>
+
+        <div class="cmp-section-title">Itens da Compra</div>
+
+        <!-- Lista de itens -->
+        <div class="cmp-itens-list" id="cmp-itens-list"></div>
+
+        <!-- Adicionar item -->
+        <div class="cmp-add-item">
+          <button class="ghost-btn" type="button" id="btn-add-item">
+            <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M1 6.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Adicionar item
+          </button>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-modal-cancel" type="button" id="btn-cancel-modal-compra">Cancelar</button>
+        <button class="btn-modal-submit" type="button" id="btn-save-compra">Confirmar Compra</button>
+      </div>
+    </div>
+  </div>
+
+<script src="../../../utils/global-settings.js"></script>
+<script src="../../../utils/sidebar-init.js"></script>
+<script src="compras.js"></script>
+</body>
+</html>

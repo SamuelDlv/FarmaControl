@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<style id="fc-body-lock">body{visibility:hidden}</style>
+<script>(function(){
+  function forceRecalc() {
+    try {
+      if (document.body && document.documentElement) {
+        void document.body.offsetHeight;
+        void getComputedStyle(document.documentElement).getPropertyValue('background');
+        void getComputedStyle(document.body).getPropertyValue('background');
+      }
+    } catch(e) {}
+  }
+  function unlock() {
+    var l = document.getElementById('fc-body-lock');
+    if (l) l.remove();
+    forceRecalc();
+  }
+  var links = document.querySelectorAll('link[rel="stylesheet"]');
+  var remaining = links.length;
+  if (remaining === 0) { unlock(); return; }
+  links.forEach(function(link) {
+    link.addEventListener('load', function() {
+      remaining--;
+      if (remaining <= 0) unlock();
+    });
+    link.addEventListener('error', function() {
+      remaining--;
+      if (remaining <= 0) unlock();
+    });
+  });
+  setTimeout(unlock, 3000);
+})()</script>
+
+          <script>
+      // Anti-Flash: aplica a cor de destaque e o fundo imediatamente, antes de qualquer render
+      (function() {
+        try {
+          const stored = JSON.parse(localStorage.getItem('farmacontrol_configuracoes') || '{}');
+          const cor = (stored.cor_destaque || '#4a7c59').toLowerCase();
+          const palettes = {
+            '#4a7c59': { sage: '#4a7c59', sage2: '#3a6447', light: '#6aaa7e', pale: 'rgba(74,124,89,0.1)', border: 'rgba(74,124,89,0.22)' },
+            '#2e6da4': { sage: '#2e6da4', sage2: '#235590', light: '#4f8bc0', pale: 'rgba(46,109,164,0.1)', border: 'rgba(46,109,164,0.22)' },
+            '#b87a1a': { sage: '#b87a1a', sage2: '#965f14', light: '#d59636', pale: 'rgba(184,122,26,0.1)', border: 'rgba(184,122,26,0.22)' },
+            '#c03a3a': { sage: '#c03a3a', sage2: '#9b2d2d', light: '#d85c5c', pale: 'rgba(192,58,58,0.1)', border: 'rgba(192,58,58,0.22)' },
+            '#6b4fbb': { sage: '#6b4fbb', sage2: '#523a97', light: '#876fd0', pale: 'rgba(107,79,187,0.1)', border: 'rgba(107,79,187,0.22)' },
+            '#1a7a6e': { sage: '#1a7a6e', sage2: '#125f55', light: '#32998c', pale: 'rgba(26,122,110,0.1)', border: 'rgba(26,122,110,0.22)' }
+          };
+          const p = palettes[cor] || palettes['#4a7c59'];
+          const r = document.documentElement;
+          r.style.setProperty('--sage', p.sage);
+          r.style.setProperty('--sage-2', p.sage2);
+          r.style.setProperty('--sage-light', p.light);
+          r.style.setProperty('--sage-pale', p.pale);
+          r.style.setProperty('--sage-border', p.border);
+          // Fundo padrão imediato: impede o flash branco/cru antes do CSS carregar
+          r.style.setProperty('--bg-body', '#f0f2f1');
+          document.documentElement.style.background = '#f0f2f1';
+          document.documentElement.style.color = '#1a1a1a';
+        } catch (e) {}
+      })();
+    </script>
+<meta charset="UTF-8" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vencimentos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=DM+Mono:wght@300;400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="vencimentos.css" />
+  <link rel="stylesheet" href="/styles/light-theme-contrast.css">
+  <link rel="stylesheet" href="/styles/page-transitions.css">
+</head>
+<body>
+<div class="app">
+
+  <!-- ══ SIDEBAR OVERLAY (mobile) ══ -->
+  <div class="sb-overlay" id="sb-overlay"></div>
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar" id="sidebar" role="navigation">
+    <div class="sb-head">
+      <div class="sb-brand">
+        <div class="sb-logo">
+          <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="8" y="1" width="2" height="16" rx="1" fill="currentColor"/><rect x="1" y="8" width="16" height="2" rx="1" fill="currentColor"/></svg>
+        </div>
+        <div class="sb-brand-text">
+          <span class="sb-name">FarmaControl</span>
+          <span class="sb-ver">v 1.0 · Sistema</span>
+        </div>
+      </div>
+      <button class="sb-collapse" id="btn-collapse">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+   <nav class="sb-nav">
+  <p class="sb-group-label">Principal</p>
+
+  <a href="../../proprietario/dashboard/dashboard.html" class="sb-item" data-tooltip="Dashboard">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+        <rect x="9" y="1.5" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+        <rect x="1.5" y="9" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+        <rect x="9" y="9" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+      </svg>
+    </span>
+    <span class="sb-label">Dashboard</span>
+  </a>
+
+  <a href="../../proprietario/estoque/estoque.html" class="sb-item" data-tooltip="Estoque">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <path d="M8 1L14.5 4.5V11.5L8 15L1.5 11.5V4.5L8 1Z" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/>
+        <path d="M1.5 4.5L8 8M8 8L14.5 4.5M8 8V15" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="sb-label">Estoque</span>
+  </a>
+  
+  <!-- VENCIMENTOS (ACTIVE + ÍCONE CORRETO) -->
+  <a href="../../proprietario/vencimentos/vencimentos.html" class="sb-item active" data-tooltip="Vencimentos">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+        <path d="M5 1.5V4M11 1.5V4M2 7h12" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="sb-label">Vencimentos</span>
+  </a>
+
+  <p class="sb-group-label">Análise</p>
+
+  <!-- RELATÓRIOS COM ÍCONE CORRETO -->
+  <a href="../../proprietario/relatorios/relatorios.html" class="sb-item" data-tooltip="Relatórios">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <rect x="3" y="2" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+        <path d="M5.5 6h5M5.5 8.5h5M5.5 11h3" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="sb-label">Relatórios</span>
+  </a>
+
+  <a href="../../proprietario/previsao/previsao.html" class="sb-item" data-tooltip="Previsão IA">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <path d="M2 11.5L5.5 7.5L8.5 9.5L12 4.5L14 6" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="14" cy="6" r="1.5" fill="currentColor"/>
+      </svg>
+    </span>
+    <span class="sb-label">Previsão IA</span>
+  </a>
+
+      <a href="../../proprietario/financeiro/financeiro.html" class="sb-item" data-tooltip="Financeiro">
+        <span class="sb-icon"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.5v13M10.8 4.2H6.7a2.1 2.1 0 0 0 0 4.2h2.6a2.1 2.1 0 0 1 0 4.2H5.2" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="sb-label">Financeiro</span>
+      </a>
+  <a href="../../proprietario/compras/compras.html" class="sb-item" data-tooltip="Compras">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <path d="M1.5 2.5H3L5 11H13L14.5 5.5H4" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="6" cy="13.5" r="1" fill="currentColor"/>
+        <circle cx="12" cy="13.5" r="1" fill="currentColor"/>
+      </svg>
+    </span>
+    <span class="sb-label">Compras</span>
+  </a>
+
+  <p class="sb-group-label">Sistema</p>
+
+  <a href="../../proprietario/usuarios/usuarios.html" class="sb-item" data-tooltip="Usuários">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <circle cx="6.5" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.25"/>
+        <path d="M1.5 14c0-2.485 2.239-4.5 5-4.5s5 2.015 5 4.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="sb-label">Usuários</span>
+  </a>
+
+  <a href="../../proprietario/configuracoes/configuracoes.html" class="sb-item" data-tooltip="Configurações">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.25"/>
+        <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="sb-label">Configurações</span>
+  </a>
+</nav>
+
+    <div class="sb-footer">
+      <div class="sb-user-card">
+        <div class="sb-avatar" id="user-avatar">--</div>
+        <div class="sb-user-info">
+          <span class="sb-user-name" id="user-name">Usuário</span>
+          <span class="sb-user-role" id="user-role">Cargo</span>
+        </div>
+        <button class="sb-logout" id="btn-logout" data-logout="../../auth/auth.html" title="Sair">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M9 2h2.5A1.5 1.5 0 0113 3.5v7A1.5 1.5 0 0111.5 12H9M6 9.5L3.5 7 6 4.5M3.5 7H10" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ══ -->
+  <div class="main">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="mobile-menu-btn" id="btn-mobile-menu" aria-label="Abrir menu">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 4.5h14M2 9h14M2 13.5h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+        <div class="breadcrumb">
+          <span class="bc-root">FarmaControl</span>
+          <span class="bc-sep">/</span>
+          <span class="bc-cur">Vencimentos</span>
+        </div>
+      </div>
+      <div class="topbar-center">
+        <div class="date-chip">
+          <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><rect x="1" y="2.5" width="11" height="9.5" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M4 1.5V3.5M9 1.5V3.5M1 6h11" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+          <span id="date-text">—</span>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="tb-btn" id="btn-export">
+          <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v8M3.5 6l3 3 3-3M1.5 10v1.5a1 1 0 001 1h8a1 1 0 001-1V10" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Exportar
+        </button>
+        <button class="tb-btn primary" id="btn-add-lote">
+          <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M6.5 1.5v10M1.5 6.5h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Novo Lote
+        </button>
+        <div class="tb-divider"></div>
+      </div>
+    </header>
+
+    <!-- Page -->
+    <div class="page">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Vencimentos</h1>
+          <p class="page-subtitle" id="page-subtitle">Monitoramento de validade dos lotes · Última atualização: agora</p>
+        </div>
+        <div class="page-actions">
+          <button class="ghost-btn" id="btn-refresh">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M12.1 6A4.7 4.7 0 1 0 12.3 8.8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/><path d="M12.1 2.5v3.7H8.4" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Atualizar
+          </button>
+          <button class="ghost-btn" id="btn-print">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="2" y="4" width="10" height="7" rx="1" stroke="currentColor" stroke-width="1.25"/><path d="M4 4V2.5a.5.5 0 01.5-.5h5a.5.5 0 01.5.5V4M4 11v1.5a.5.5 0 00.5.5h5a.5.5 0 00.5-.5V11" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/><circle cx="10.5" cy="6.5" r=".75" fill="currentColor"/></svg>
+            Imprimir
+          </button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <section class="kpi-grid">
+
+        <article class="kpi-card red">
+          <div class="kpi-top">
+            <span class="kpi-label">Vencidos</span>
+            <div class="kpi-icon red">
+              <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.25"/><path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>
+            </div>
+          </div>
+          <div class="kpi-value" id="kpi-vencidos">0</div>
+          <div class="kpi-meta">
+            <span class="kpi-sub">lotes expirados</span>
+            <span class="kpi-delta down">⚠ requer ação imediata</span>
+          </div>
+        </article>
+
+        <article class="kpi-card amber">
+          <div class="kpi-top">
+            <span class="kpi-label">Vencem em 30 dias</span>
+            <div class="kpi-icon amber">
+              <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.25"/><path d="M8 4.5V8l2.5 2" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>
+            </div>
+          </div>
+          <div class="kpi-value" id="kpi-30dias">0</div>
+          <div class="kpi-meta">
+            <span class="kpi-sub">lotes com alerta crítico</span>
+            <span class="kpi-delta down" id="kpi-30-delta">—</span>
+          </div>
+        </article>
+
+        <article class="kpi-card amber-soft">
+          <div class="kpi-top">
+            <span class="kpi-label">Vencem em 60 dias</span>
+            <div class="kpi-icon amber-soft">
+              <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.25"/><path d="M8 4.5V8l2 1.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>
+            </div>
+          </div>
+          <div class="kpi-value" id="kpi-60dias">0</div>
+          <div class="kpi-meta">
+            <span class="kpi-sub">lotes em atenção</span>
+            <span class="kpi-delta neutral" id="kpi-60-delta">—</span>
+          </div>
+        </article>
+
+        <article class="kpi-card green">
+          <div class="kpi-top">
+            <span class="kpi-label">Dentro da Validade</span>
+            <div class="kpi-icon green">
+              <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.25"/><path d="M5 8l2.5 2.5L11 5.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+          <div class="kpi-value" id="kpi-ok">0</div>
+          <div class="kpi-meta">
+            <span class="kpi-sub">lotes regulares</span>
+            <span class="kpi-delta up" id="kpi-ok-delta">—</span>
+          </div>
+        </article>
+
+      </section>
+
+      <!-- Timeline visual -->
+      <div class="card timeline-card">
+        <div class="card-head">
+          <div class="card-head-l">
+            <h2 class="card-title">Linha do Tempo de Vencimentos</h2>
+            <span class="badge" id="timeline-badge">— lotes</span>
+          </div>
+          <div class="card-head-r tl-legend-group">
+            <span class="tl-legend"><span class="tl-dot tl-dot--exp"></span>Vencido</span>
+            <span class="tl-legend"><span class="tl-dot tl-dot--crit"></span>≤ 30 dias</span>
+            <span class="tl-legend"><span class="tl-dot tl-dot--warn"></span>31–60 dias</span>
+            <span class="tl-legend"><span class="tl-dot tl-dot--ok"></span>&gt; 60 dias</span>
+          </div>
+        </div>
+        <!-- Cabeçalho de colunas -->
+        <div class="tl-col-header">
+          <div class="tl-header">
+            <span class="tl-header-name">Medicamento</span>
+            <span class="tl-header-lote">Lote</span>
+            <span class="tl-header-bar">Tempo até o vencimento</span>
+            <span class="tl-header-days">Dias restantes</span>
+          </div>
+        </div>
+        <div class="timeline-wrap" id="timeline-wrap">
+          <!-- Gerado por JS -->
+        </div>
+      </div>
+
+      <!-- Main table + side panel -->
+      <div class="panel-row">
+
+        <!-- Tabela principal -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-head-l">
+              <h2 class="card-title">Controle de Lotes</h2>
+              <span class="badge" id="table-count-badge">— itens</span>
+            </div>
+            <div class="card-head-r">
+              <!-- Filter tabs -->
+              <div class="ftabs">
+                <button class="ftab active" data-filter="all">Todos</button>
+                <button class="ftab" data-filter="exp">Vencidos</button>
+                <button class="ftab" data-filter="crit">≤ 30 dias</button>
+                <button class="ftab" data-filter="warn">31–60 dias</button>
+                <button class="ftab" data-filter="ok">&gt; 60 dias</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filters bar -->
+          <div class="filters-bar">
+            <div class="search-wrap">
+              <svg viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.2"/><path d="M10 10l2.5 2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              <input type="text" placeholder="Buscar medicamento, lote…" id="search-input" />
+            </div>
+            <select class="filter-select" id="filter-cat">
+              <option value="">Todas as categorias</option>
+              <option>Analgésicos</option>
+              <option>Antibióticos</option>
+              <option>Anti-inflamatório</option>
+              <option>Cardiovascular</option>
+              <option>Dermatologia</option>
+              <option>Diabetes</option>
+              <option>Gastro</option>
+              <option>Psiquiátrico</option>
+              <option>Vitaminas</option>
+            </select>
+            <select class="filter-select" id="filter-sort">
+              <option value="dias-asc">Vence primeiro</option>
+              <option value="dias-desc">Vence por último</option>
+              <option value="nome">Nome A–Z</option>
+              <option value="qty-desc">Maior quantidade</option>
+            </select>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Medicamento</th>
+                  <th>Lote</th>
+                  <th>Categoria</th>
+                  <th class="r">Qtd.</th>
+                  <th>Validade</th>
+                  <th>Dias Restantes</th>
+                  <th>Status</th>
+                  <th class="c">Ação</th>
+                </tr>
+              </thead>
+              <tbody id="table-body">
+                <!-- Gerado por JS -->
+              </tbody>
+            </table>
+          </div>
+          <div class="card-foot">
+            <span class="foot-info" id="filter-count">—</span>
+            <div style="display:flex;gap:6px;">
+              <button class="ghost-btn sm" id="btn-prev">← Anterior</button>
+              <span class="page-indicator" id="page-indicator">1 / 1</span>
+              <button class="ghost-btn sm" id="btn-next">Próximo →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Painel lateral -->
+        <aside class="side-panel">
+
+          <!-- Resumo por categoria -->
+          <div class="card side-card">
+            <div class="card-head">
+              <div class="card-head-l">
+                <h2 class="card-title">Por Categoria</h2>
+              </div>
+            </div>
+            <div class="cat-list" id="cat-list">
+              <!-- Gerado por JS -->
+            </div>
+          </div>
+
+          <!-- Ações sugeridas -->
+          <div class="card side-card">
+            <div class="card-head">
+              <div class="card-head-l">
+                <h2 class="card-title">Ações Sugeridas</h2>
+                <span class="badge ai-b">IA</span>
+              </div>
+            </div>
+            <ul class="action-list" id="action-list">
+              <!-- Gerado por JS -->
+            </ul>
+          </div>
+
+        </aside>
+      </div>
+
+    </div><!-- /page -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ══ MODAL: Descarte / Devolução ══ -->
+<div class="modal-overlay" id="descarte-overlay">
+  <div class="modal" style="width:460px">
+    <div class="modal-head">
+      <div class="modal-icon" style="background:linear-gradient(135deg,var(--red),#d96060)">
+        <svg viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+      <div>
+        <div class="modal-title">Registrar Descarte</div>
+        <div class="modal-sub" id="descarte-product-name">—</div>
+      </div>
+      <button class="modal-close" id="descarte-close">
+        <svg viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label class="field-label">Tipo de Baixa</label>
+        <div class="move-btns">
+          <button class="move-btn selected" id="baixa-btn-descarte">
+            <svg viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            Descarte
+          </button>
+          <button class="move-btn" id="baixa-btn-devolucao">
+            <svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8h9M8.5 4l4 4-4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Devolução
+          </button>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field-group">
+          <label class="field-label">Quantidade a Baixar</label>
+          <input class="field-input-light" type="number" id="descarte-qty" placeholder="0" min="1" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Estoque Atual</label>
+          <div class="qty-display" id="descarte-current-qty">0</div>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Motivo</label>
+        <select class="field-input-light" id="descarte-motivo">
+          <option value="">Selecione…</option>
+          <option>Produto vencido</option>
+          <option>Embalagem danificada</option>
+          <option>Contaminação</option>
+          <option>Recall do fabricante</option>
+          <option>Devolução ao fornecedor</option>
+          <option>Outro</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Observação</label>
+        <input class="field-input-light" type="text" id="descarte-obs" placeholder="Observação adicional…" />
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" id="descarte-cancel">Cancelar</button>
+      <button class="btn-modal-submit btn-danger" id="descarte-save">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M13 5L6.5 11.5 3 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Confirmar Baixa
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: Detalhe do Lote ══ -->
+<div class="modal-overlay" id="detail-overlay">
+  <div class="modal" style="width:480px">
+    <div class="modal-head">
+      <div class="modal-icon" style="background:linear-gradient(135deg,#5a7a8a,#7aabb8)">
+        <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 9v5M10 6.5v.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </div>
+      <div>
+        <div class="modal-title">Detalhe do Lote</div>
+        <div class="modal-sub" id="detail-product-name">—</div>
+      </div>
+      <button class="modal-close" id="detail-close">
+        <svg viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="detail-body">
+      <!-- Gerado por JS -->
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: NOVO LOTE ══ -->
+<div class="modal-overlay" id="modal-lote">
+  <div class="modal" style="width:520px">
+    <div class="modal-head">
+      <div class="modal-icon" style="background:var(--sage)">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M8 1L14.5 4.5V11.5L8 15L1.5 11.5V4.5L8 1Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M1.5 4.5L8 8M8 8L14.5 4.5M8 8V15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+      <div>
+        <div class="modal-title">Cadastrar Novo Lote</div>
+        <div class="modal-sub">Adicione uma nova remessa ao estoque</div>
+      </div>
+      <button class="modal-close" onclick="closeLoteModal()">
+        <svg viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label class="field-label">Produto</label>
+        <select class="field-input-light" id="lote-produto-id">
+          <option value="">Selecione um produto...</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="field-group">
+          <label class="field-label">Número do Lote</label>
+          <input type="text" class="field-input-light" id="lote-numero" placeholder="Ex: ABC1234">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Quantidade Inicial</label>
+          <input type="number" class="field-input-light" id="lote-quantidade" placeholder="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field-group">
+          <label class="field-label">Data de Validade</label>
+          <input type="date" class="field-input-light" id="lote-validade">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Preço de Compra (Un.)</label>
+          <input type="number" step="0.01" class="field-input-light" id="lote-preco" placeholder="0,00">
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" onclick="closeLoteModal()">Cancelar</button>
+      <button class="btn-modal-submit" id="btn-lote-submit" style="background:var(--sage); color:white; border:none;">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M13 5L6.5 11.5 3 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Cadastrar Lote
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Toast ══ -->
+<div class="toast" id="toast">
+  <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/><path d="M7 10l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <span id="toast-msg">Operação realizada!</span>
+</div>
+<script src="../../../utils/global-settings.js"></script>
+<script src="../../../utils/sidebar-init.js"></script>
+<script src="vencimentos.js"></script>
+</body>
+</html>

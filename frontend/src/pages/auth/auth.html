@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/x-icon" href="../../favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../../favicon.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>FarmaControl — Acesso</title>
+  <link rel="stylesheet" href="auth.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Outfit:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="../../utils/global-settings.js"></script>
+  <link rel="stylesheet" href="../../styles/light-theme-contrast.css" />
+</head>
+<body class="fc-auth">
+
+  <!-- Background decoration -->
+  <div class="bg-layer">
+    <div class="bg-orb bg-orb--1"></div>
+    <div class="bg-orb bg-orb--2"></div>
+    <div class="bg-orb bg-orb--3"></div>
+    <div class="bg-grain"></div>
+  </div>
+
+  <div class="layout">
+
+    <!-- ═══ LEFT PANEL ═══ -->
+    <aside class="panel-left" aria-label="Apresentação do sistema">
+
+      <!-- Glass Cards (floating metric cards) -->
+      <div class="glass-cards" aria-hidden="true">
+        <div class="glass-card">
+          <div class="glass-card-icon glass-card-icon--blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+            </svg>
+          </div>
+          <div class="glass-card-text">
+            <strong>2.450</strong>
+            <span>itens em estoque</span>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="glass-card-icon glass-card-icon--red">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+          </div>
+          <div class="glass-card-text">
+            <strong>12</strong>
+            <span>alertas de vencimento</span>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="glass-card-icon glass-card-icon--green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="20" x2="12" y2="10"/>
+              <line x1="18" y1="20" x2="18" y2="4"/>
+              <line x1="6" y1="20" x2="6" y2="16"/>
+            </svg>
+          </div>
+          <div class="glass-card-text">
+            <strong>R$ 45.200</strong>
+            <span>vendas este mês</span>
+            <div class="glass-card-spark">
+              <span style="height:6px"></span>
+              <span style="height:10px"></span>
+              <span style="height:8px"></span>
+              <span style="height:14px"></span>
+              <span style="height:12px"></span>
+              <span style="height:18px"></span>
+              <span style="height:16px"></span>
+              <span style="height:20px"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3D Capsule Decorations -->
+      <div class="capsule-deco capsule-deco--1" aria-hidden="true"></div>
+      <div class="capsule-deco capsule-deco--2" aria-hidden="true"></div>
+      <div class="capsule-deco capsule-deco--3" aria-hidden="true"></div>
+      <div class="capsule-deco capsule-deco--4" aria-hidden="true"></div>
+
+      <header class="brand">
+        <div class="brand-mark">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="12" y="2" width="4" height="24" rx="2" fill="currentColor"/>
+            <rect x="2" y="12" width="24" height="4" rx="2" fill="currentColor"/>
+          </svg>
+        </div>
+        <span class="brand-name">FarmaControl</span>
+      </header>
+
+      <div class="panel-body">
+        <p class="panel-eyebrow">Sistema de Gestão Farmacêutica</p>
+        <h1 class="panel-headline">
+          Inteligência<br/>
+          <em>aplicada</em><br/>
+          ao seu estoque.
+        </h1>
+        <p class="panel-desc">
+          Controle medicamentos, antecipe demandas com IA e tome decisões 
+          estratégicas em tempo real — com precisão de farmacêutico e eficiência de tecnologia.
+        </p>
+
+        <ul class="feature-list" role="list">
+          <li class="feature-item">
+            <span class="feature-num">01</span>
+            <div>
+              <strong>Estoque em tempo real</strong>
+              <span>Saldo atualizado a cada movimentação</span>
+            </div>
+          </li>
+          <li class="feature-item">
+            <span class="feature-num">02</span>
+            <div>
+              <strong>Alertas inteligentes</strong>
+              <span>Reposição automática por nível mínimo</span>
+            </div>
+          </li>
+          <li class="feature-item">
+            <span class="feature-num">03</span>
+            <div>
+              <strong>Previsão por IA</strong>
+              <span>Demand forecast baseado em histórico</span>
+            </div>
+          </li>
+          <li class="feature-item">
+            <span class="feature-num">04</span>
+            <div>
+              <strong>Rastreabilidade total</strong>
+              <span>Lotes, validades e dispensações</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <footer class="panel-footer">
+        <div class="stat-block">
+          <span class="stat-value">v 1.0</span>
+          <span class="stat-label">Versão Atual</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-block">
+          <span class="stat-value">2026</span>
+          <span class="stat-label">Projeto Integrador</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-block">
+          <span class="stat-value">SI · 5°</span>
+          <span class="stat-label">Engenharia da Computação</span>
+        </div>
+      </footer>
+
+    </aside>
+
+    <!-- ═══ RIGHT PANEL ═══ -->
+    <main class="panel-right">
+
+      <div class="card" role="main">
+
+        <!-- Tab navigation -->
+        <nav class="tab-nav" role="tablist" aria-label="Modo de acesso">
+          <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="panel-login" data-tab="login">
+            <span>Entrar</span>
+          </button>
+          <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-register" data-tab="register">
+            <span>Cadastrar</span>
+          </button>
+          <div class="tab-indicator" aria-hidden="true"></div>
+        </nav>
+
+        <!-- ── LOGIN ── -->
+        <section class="form-panel active" id="panel-login" role="tabpanel" aria-labelledby="tab-login">
+
+          <div class="form-header">
+            <h2 class="form-title">Bem-vindo de volta</h2>
+            <p class="form-subtitle">Acesse o painel da sua farmácia</p>
+          </div>
+
+          <form id="form-login" novalidate autocomplete="on">
+
+            <div class="field-group">
+              <label class="field-label" for="login-email">E-mail</label>
+              <div class="field-wrap">
+                <svg class="field-icon" viewBox="0 0 20 20" fill="none"><path d="M2.5 5.5A1.5 1.5 0 014 4h12a1.5 1.5 0 011.5 1.5v9A1.5 1.5 0 0116 16H4a1.5 1.5 0 01-1.5-1.5v-9z" stroke="currentColor" stroke-width="1.25"/><path d="M2.5 6l7.5 5 7.5-5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>
+                <input type="email" id="login-email" name="email" placeholder="seu@email.com" autocomplete="email" />
+              </div>
+              <p class="field-error" id="err-login-email" role="alert" aria-live="polite">Informe um e-mail válido.</p>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="login-password">Senha</label>
+              <div class="field-wrap">
+                <svg class="field-icon" viewBox="0 0 20 20" fill="none"><rect x="4" y="9" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.25"/><path d="M7 9V7a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/><circle cx="10" cy="13" r="1.25" fill="currentColor"/></svg>
+                <input type="password" id="login-password" name="password" placeholder="••••••••" autocomplete="current-password" />
+                <button type="button" class="eye-toggle" data-target="login-password" aria-label="Mostrar senha">
+                  <svg class="eye-open" viewBox="0 0 20 20" fill="none"><path d="M2 10s3-5.5 8-5.5S18 10 18 10s-3 5.5-8 5.5S2 10 2 10z" stroke="currentColor" stroke-width="1.25"/><circle cx="10" cy="10" r="2" stroke="currentColor" stroke-width="1.25"/></svg>
+                  <svg class="eye-closed" viewBox="0 0 20 20" fill="none" style="display:none"><path d="M3 3l14 14M8.46 8.53A2 2 0 0011.47 11.47M4.05 5.89A9 9 0 002 10s3 5.5 8 5.5a8.4 8.4 0 004.11-1.06M7.5 4.83A8.3 8.3 0 0110 4.5c5 0 8 5.5 8 5.5a9.15 9.15 0 01-2.06 2.62" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>
+                </button>
+              </div>
+              <p class="field-error" id="err-login-password" role="alert" aria-live="polite">Informe sua senha.</p>
+            </div>
+
+            <div class="field-meta">
+              <label class="check-label">
+                <input type="checkbox" id="remember" name="remember" />
+                <span class="check-box" aria-hidden="true"></span>
+                Lembrar acesso
+              </label>
+              <button type="button" class="ghost-link" id="btn-forgot">Esqueci a senha</button>
+            </div>
+
+            <button type="submit" class="btn-primary" id="btn-login">
+              <span class="btn-text">Entrar no sistema</span>
+              <span class="btn-arrow" aria-hidden="true">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <span class="btn-loader" aria-hidden="true">
+                <span class="spinner"></span>
+              </span>
+            </button>
+
+          </form>
+        </section>
+
+        <!-- ── REGISTER ── -->
+        <section class="form-panel" id="panel-register" role="tabpanel" aria-labelledby="tab-register">
+
+          <div class="form-header">
+            <h2 class="form-title">Criar conta</h2>
+            <p class="form-subtitle">Preencha os dados abaixo para se cadastrar</p>
+          </div>
+
+          <form id="form-register" novalidate autocomplete="on">
+
+            <div class="field-row">
+              <div class="field-group">
+                <label class="field-label" for="reg-nome">Nome</label>
+                <div class="field-wrap">
+                  <svg class="field-icon" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3" stroke="currentColor" stroke-width="1.25"/><path d="M3 17c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>
+                  <input type="text" id="reg-nome" name="nome" placeholder="Nome" autocomplete="given-name" />
+                </div>
+                <p class="field-error" id="err-reg-nome" role="alert" aria-live="polite">Campo obrigatório.</p>
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="reg-sobrenome">Sobrenome</label>
+                <div class="field-wrap">
+                  <svg class="field-icon" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3" stroke="currentColor" stroke-width="1.25"/><path d="M3 17c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>
+                  <input type="text" id="reg-sobrenome" name="sobrenome" placeholder="Sobrenome" autocomplete="family-name" />
+                </div>
+                <p class="field-error" id="err-reg-sobrenome" role="alert" aria-live="polite">Campo obrigatório.</p>
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="reg-email">E-mail</label>
+              <div class="field-wrap">
+                <svg class="field-icon" viewBox="0 0 20 20" fill="none"><path d="M2.5 5.5A1.5 1.5 0 014 4h12a1.5 1.5 0 011.5 1.5v9A1.5 1.5 0 0116 16H4a1.5 1.5 0 01-1.5-1.5v-9z" stroke="currentColor" stroke-width="1.25"/><path d="M2.5 6l7.5 5 7.5-5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>
+                <input type="email" id="reg-email" name="email" placeholder="seu@email.com" autocomplete="email" />
+              </div>
+              <p class="field-error" id="err-reg-email" role="alert" aria-live="polite">Informe um e-mail válido.</p>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="reg-role">Perfil de Acesso</label>
+
+              <!-- Hidden native select for form submission -->
+              <input type="hidden" id="reg-role" name="role" />
+
+              <!-- Custom dropdown -->
+              <div class="custom-select" id="custom-select" role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="reg-role-label" tabindex="0">
+                <div class="custom-select__trigger">
+                  <span class="custom-select__icon-wrap" id="select-icon-wrap">
+                    <!-- SVG: user-circle default -->
+                    <svg viewBox="0 0 20 20" fill="none"><path d="M10 2a4 4 0 100 8 4 4 0 000-8zM4 14a6 6 0 0112 0v1a1 1 0 01-1 1H5a1 1 0 01-1-1v-1z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                  </span>
+                  <span class="custom-select__value" id="select-value">Selecione um perfil…</span>
+                  <svg class="custom-select__chevron" viewBox="0 0 16 16" fill="none">
+                    <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+
+                <ul class="custom-select__dropdown" role="listbox" aria-label="Perfil de acesso">
+
+                  <li class="custom-select__option" role="option" data-value="proprietario" aria-selected="false">
+                    <span class="opt-icon">
+                      <!-- shield-check: proprietário -->
+                      <svg viewBox="0 0 20 20" fill="none"><path d="M10 2l7 3v5c0 4-3.5 7-7 8-3.5-1-7-4-7-8V5l7-3z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M7 10l2 2 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                    <span class="opt-text">
+                      <strong>Proprietário</strong>
+                      <small>Visão total do negócio</small>
+                    </span>
+                  </li>
+
+                  <li class="custom-select__option" role="option" data-value="farmaceutico" aria-selected="false">
+                    <span class="opt-icon">
+                      <!-- plus-circle: farmacêutico -->
+                      <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 6.5v7M6.5 10h7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                    </span>
+                    <span class="opt-text">
+                      <strong>Farmacêutico</strong>
+                      <small>Responsável técnico</small>
+                    </span>
+                  </li>
+
+                  <li class="custom-select__option" role="option" data-value="admin" aria-selected="false">
+                    <span class="opt-icon">
+                      <!-- shield-check: admin -->
+                      <svg viewBox="0 0 20 20" fill="none"><path d="M10 2l6 2.5v5C16 13.5 13.2 17 10 18 6.8 17 4 13.5 4 9.5v-5L10 2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M7.5 10l2 2 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                    <span class="opt-text">
+                      <strong>Gerente</strong>
+                      <small>Acesso total ao sistema</small>
+                    </span>
+                  </li>
+
+                  <li class="custom-select__option" role="option" data-value="atendente" aria-selected="false">
+                    <span class="opt-icon">
+                      <!-- id-card: atendente -->
+                      <svg viewBox="0 0 20 20" fill="none"><rect x="2" y="5" width="16" height="10" rx="1.5" stroke="currentColor" stroke-width="1.4"/><circle cx="7" cy="10" r="2" stroke="currentColor" stroke-width="1.4"/><path d="M11 8.5h4M11 11.5h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                    </span>
+                    <span class="opt-text">
+                      <strong>Atendente / Balconista</strong>
+                      <small>Consulta e dispensação</small>
+                    </span>
+                  </li>
+
+                  <li class="custom-select__option" role="option" data-value="compras" aria-selected="false">
+                    <span class="opt-icon">
+                      <!-- package: compras -->
+                      <svg viewBox="0 0 20 20" fill="none"><path d="M17 13.5V7a1 1 0 00-.5-.87l-6-3.46a1 1 0 00-1 0L3.5 6.13A1 1 0 003 7v6.5a1 1 0 00.5.87l6 3.46a1 1 0 001 0l6-3.46a1 1 0 00.5-.87z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3.27 6.5L10 10.5l6.73-4M10 17.5v-7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                    </span>
+                    <span class="opt-text">
+                      <strong>Responsável por Compras</strong>
+                      <small>Pedidos e fornecedores</small>
+                    </span>
+                  </li>
+
+                  <li class="custom-select__option" role="option" data-value="ti" aria-selected="false">
+                    <span class="opt-icon">
+                      <!-- terminal: TI -->
+                      <svg viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="12" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M6 8l3 3-3 3M11 14h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                    <span class="opt-text">
+                      <strong>TI / Suporte</strong>
+                      <small>Configurações técnicas</small>
+                    </span>
+                  </li>
+
+                </ul>
+              </div>
+
+              <p class="field-error" id="err-reg-role" role="alert" aria-live="polite">Selecione um perfil.</p>
+              <div class="role-badge" id="role-badge" aria-live="polite"></div>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="reg-password">Senha</label>
+              <div class="field-wrap">
+                <svg class="field-icon" viewBox="0 0 20 20" fill="none"><rect x="4" y="9" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.25"/><path d="M7 9V7a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/><circle cx="10" cy="13" r="1.25" fill="currentColor"/></svg>
+                <input type="password" id="reg-password" name="password" placeholder="Mínimo 8 caracteres" autocomplete="new-password" />
+                <button type="button" class="eye-toggle" data-target="reg-password" aria-label="Mostrar senha">
+                  <svg class="eye-open" viewBox="0 0 20 20" fill="none"><path d="M2 10s3-5.5 8-5.5S18 10 18 10s-3 5.5-8 5.5S2 10 2 10z" stroke="currentColor" stroke-width="1.25"/><circle cx="10" cy="10" r="2" stroke="currentColor" stroke-width="1.25"/></svg>
+                  <svg class="eye-closed" viewBox="0 0 20 20" fill="none" style="display:none"><path d="M3 3l14 14M8.46 8.53A2 2 0 0011.47 11.47M4.05 5.89A9 9 0 002 10s3 5.5 8 5.5a8.4 8.4 0 004.11-1.06M7.5 4.83A8.3 8.3 0 0110 4.5c5 0 8 5.5 8 5.5a9.15 9.15 0 01-2.06 2.62" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>
+                </button>
+              </div>
+              <div class="strength-track" aria-label="Força da senha">
+                <div class="strength-fill" id="strength-fill"></div>
+              </div>
+              <p class="strength-text" id="strength-text"></p>
+              <p class="field-error" id="err-reg-password" role="alert" aria-live="polite">Mínimo de 8 caracteres.</p>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="reg-confirm">Confirmar Senha</label>
+              <div class="field-wrap">
+                <svg class="field-icon" viewBox="0 0 20 20" fill="none"><rect x="4" y="9" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.25"/><path d="M7 9V7a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/><circle cx="10" cy="13" r="1.25" fill="currentColor"/></svg>
+                <input type="password" id="reg-confirm" name="confirm" placeholder="Repita a senha" autocomplete="new-password" />
+                <button type="button" class="eye-toggle" data-target="reg-confirm" aria-label="Mostrar confirmação">
+                  <svg class="eye-open" viewBox="0 0 20 20" fill="none"><path d="M2 10s3-5.5 8-5.5S18 10 18 10s-3 5.5-8 5.5S2 10 2 10z" stroke="currentColor" stroke-width="1.25"/><circle cx="10" cy="10" r="2" stroke="currentColor" stroke-width="1.25"/></svg>
+                  <svg class="eye-closed" viewBox="0 0 20 20" fill="none" style="display:none"><path d="M3 3l14 14M8.46 8.53A2 2 0 0011.47 11.47M4.05 5.89A9 9 0 002 10s3 5.5 8 5.5a8.4 8.4 0 004.11-1.06M7.5 4.83A8.3 8.3 0 0110 4.5c5 0 8 5.5 8 5.5a9.15 9.15 0 01-2.06 2.62" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>
+                </button>
+              </div>
+              <p class="field-error" id="err-reg-confirm" role="alert" aria-live="polite">As senhas não coincidem.</p>
+            </div>
+
+            <button type="submit" class="btn-primary" id="btn-register">
+              <span class="btn-text">Criar conta</span>
+              <span class="btn-arrow" aria-hidden="true">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <span class="btn-loader" aria-hidden="true">
+                <span class="spinner"></span>
+              </span>
+            </button>
+
+            <p class="terms-note">
+              Ao continuar, você concorda com os
+              <a href="#" class="terms-link">Termos de Uso</a> e a
+              <a href="#" class="terms-link">Política de Privacidade</a>.
+            </p>
+
+          </form>
+        </section>
+
+      </div><!-- /card -->
+
+    </main>
+
+  </div><!-- /layout -->
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true">
+    <svg class="toast-icon" viewBox="0 0 20 20" fill="none">
+      <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M7 10l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="toast-msg"></span>
+  </div>
+
+  <script src="auth.js"></script>
+<script src="../../utils/sidebar-init.js"></script>
+</body>
+</html>

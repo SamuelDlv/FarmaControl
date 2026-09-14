@@ -1,0 +1,59 @@
+/* ══════════════════════════════════════════════════════════════════════
+ * FARMAControl — TRANSIÇÕES DE PÁGINA (SPA)
+ * ══════════════════════════════════════════════════════════════════════
+ *
+ * ANIMAÇÕES DE NAVEGAÇÃO:
+ * - Fade-in suave ao trocar de página no SPA
+ * - Slide-up nos elementos ao carregar
+ * - Transição da sidebar ao recolher/expandir
+ *
+ * Estas animações são opcionais e podem ser desativadas
+ * nas configurações do usuário (animacoes_interface: false).
+ * ══════════════════════════════════════════════════════════════════════ */
+
+/**
+ * FarmaControl — Transições de Página (v5)
+ * Navegação SPA (sidebar-init.js v12): swap ATÔMICO sem ocultação.
+ * A página antiga permanece visível até o instante do swap.
+ * Não há fade, não há overlay, não há display:none — troca instantânea.
+ *
+ * Este CSS fornece apenas:
+ *  - Fundo sólido imediato (html/body), sem var dinâmica
+ *  - Transições curtas de cor APENAS em elementos interativos
+ *  - Respeito a prefers-reduced-motion
+ */
+
+/* Fundo sólido IMEDIATO e estático — nunca transparente, nunca varia */
+html, body {
+  background: #f0f2f1;
+  color: #1a1a1a;
+}
+
+/* Troca de cor de destaque gradual — APENAS em superfícies interativas */
+button, a, .sb-item, input, select, textarea {
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+              color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Feedback de clique/press em botões */
+button {
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+              color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Sidebar: transição suave na expansão/recolha */
+.sidebar {
+  transition: width 0.25s ease, min-width 0.25s ease;
+}
+
+/* Respeitar usuários que desativaram animações */
+.fc-no-animations button,
+.fc-no-animations a,
+.fc-no-animations input,
+.fc-no-animations select,
+.fc-no-animations textarea,
+.fc-no-animations .sb-item,
+.fc-no-animations .sidebar {
+  transition: none !important;
+  animation: none !important;
+}

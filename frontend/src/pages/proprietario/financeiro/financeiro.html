@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<style id="fc-body-lock">body{visibility:hidden}</style>
+<script>(function(){
+  function forceRecalc() {
+    try {
+      if (document.body && document.documentElement) {
+        void document.body.offsetHeight;
+        void getComputedStyle(document.documentElement).getPropertyValue('background');
+        void getComputedStyle(document.body).getPropertyValue('background');
+      }
+    } catch(e) {}
+  }
+  function unlock() {
+    var l = document.getElementById('fc-body-lock');
+    if (l) l.remove();
+    forceRecalc();
+  }
+  var links = document.querySelectorAll('link[rel="stylesheet"]');
+  var remaining = links.length;
+  if (remaining === 0) { unlock(); return; }
+  links.forEach(function(link) {
+    link.addEventListener('load', function() {
+      remaining--;
+      if (remaining <= 0) unlock();
+    });
+    link.addEventListener('error', function() {
+      remaining--;
+      if (remaining <= 0) unlock();
+    });
+  });
+  setTimeout(unlock, 3000);
+})()</script>
+
+          <script>
+      // Anti-Flash: aplica a cor de destaque e o fundo imediatamente, antes de qualquer render
+      (function() {
+        try {
+          const stored = JSON.parse(localStorage.getItem('farmacontrol_configuracoes') || '{}');
+          const cor = (stored.cor_destaque || '#4a7c59').toLowerCase();
+          const palettes = {
+            '#4a7c59': { sage: '#4a7c59', sage2: '#3a6447', light: '#6aaa7e', pale: 'rgba(74,124,89,0.1)', border: 'rgba(74,124,89,0.22)' },
+            '#2e6da4': { sage: '#2e6da4', sage2: '#235590', light: '#4f8bc0', pale: 'rgba(46,109,164,0.1)', border: 'rgba(46,109,164,0.22)' },
+            '#b87a1a': { sage: '#b87a1a', sage2: '#965f14', light: '#d59636', pale: 'rgba(184,122,26,0.1)', border: 'rgba(184,122,26,0.22)' },
+            '#c03a3a': { sage: '#c03a3a', sage2: '#9b2d2d', light: '#d85c5c', pale: 'rgba(192,58,58,0.1)', border: 'rgba(192,58,58,0.22)' },
+            '#6b4fbb': { sage: '#6b4fbb', sage2: '#523a97', light: '#876fd0', pale: 'rgba(107,79,187,0.1)', border: 'rgba(107,79,187,0.22)' },
+            '#1a7a6e': { sage: '#1a7a6e', sage2: '#125f55', light: '#32998c', pale: 'rgba(26,122,110,0.1)', border: 'rgba(26,122,110,0.22)' }
+          };
+          const p = palettes[cor] || palettes['#4a7c59'];
+          const r = document.documentElement;
+          r.style.setProperty('--sage', p.sage);
+          r.style.setProperty('--sage-2', p.sage2);
+          r.style.setProperty('--sage-light', p.light);
+          r.style.setProperty('--sage-pale', p.pale);
+          r.style.setProperty('--sage-border', p.border);
+          // Fundo padrão imediato: impede o flash branco/cru antes do CSS carregar
+          r.style.setProperty('--bg-body', '#f0f2f1');
+          document.documentElement.style.background = '#f0f2f1';
+          document.documentElement.style.color = '#1a1a1a';
+        } catch (e) {}
+      })();
+    </script>
+<meta charset="UTF-8" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Financeiro — FarmaControl</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=DM+Mono:wght@300;400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="financeiro.css" />
+  <link rel="stylesheet" href="/styles/light-theme-contrast.css">
+  <link rel="stylesheet" href="/styles/page-transitions.css">
+</head>
+<body>
+<div class="app">
+
+  <!-- ══ SIDEBAR OVERLAY (mobile) ══ -->
+  <div class="sb-overlay" id="sb-overlay"></div>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar" role="navigation">
+    <div class="sb-head">
+      <div class="sb-brand">
+        <div class="sb-logo"><svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="8" y="1" width="2" height="16" rx="1" fill="currentColor"/><rect x="1" y="8" width="16" height="2" rx="1" fill="currentColor"/></svg></div>
+        <div class="sb-brand-text"><span class="sb-name">FarmaControl</span><span class="sb-ver">v 1.0 · Sistema</span></div>
+      </div>
+      <button class="sb-collapse" id="btn-collapse"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+  <nav class="sb-nav">
+  <p class="sb-group-label">Principal</p>
+
+  <!-- DASHBOARD (ACTIVE + ÍCONE CORRETO) -->
+  <a href="../../proprietario/dashboard/dashboard.html" class="sb-item" data-tooltip="Dashboard">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+        <rect x="9" y="1.5" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+        <rect x="1.5" y="9" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+        <rect x="9" y="9" width="5.5" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+      </svg>
+    </span>
+    <span class="sb-label">Dashboard</span>
+  </a>
+
+  <a href="../../proprietario/estoque/estoque.html" class="sb-item" data-tooltip="Estoque">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <path d="M8 1L14.5 4.5V11.5L8 15L1.5 11.5V4.5L8 1Z" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/>
+        <path d="M1.5 4.5L8 8M8 8L14.5 4.5M8 8V15" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="sb-label">Estoque</span>
+  </a>
+
+  <a href="../../proprietario/vencimentos/vencimentos.html" class="sb-item" data-tooltip="Vencimentos">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+        <path d="M5 1.5V4M11 1.5V4M2 7h12" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="sb-label">Vencimentos</span>
+  </a>
+
+  <p class="sb-group-label">Análise</p>
+
+  <!-- RELATÓRIOS COM ÍCONE CORRETO -->
+  <a href="../../proprietario/relatorios/relatorios.html" class="sb-item" data-tooltip="Relatórios">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <rect x="3" y="2" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+        <path d="M5.5 6h5M5.5 8.5h5M5.5 11h3" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="sb-label">Relatórios</span>
+  </a>
+
+  <a href="../../proprietario/previsao/previsao.html" class="sb-item" data-tooltip="Previsão IA">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <path d="M2 11.5L5.5 7.5L8.5 9.5L12 4.5L14 6" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="14" cy="6" r="1.5" fill="currentColor"/>
+      </svg>
+    </span>
+    <span class="sb-label">Previsão IA</span>
+  </a>
+
+      <a href="../../proprietario/financeiro/financeiro.html" class="sb-item active" data-tooltip="Financeiro">
+        <span class="sb-icon"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.5v13M10.8 4.2H6.7a2.1 2.1 0 0 0 0 4.2h2.6a2.1 2.1 0 0 1 0 4.2H5.2" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="sb-label">Financeiro</span>
+      </a>
+  <a href="../../proprietario/compras/compras.html" class="sb-item" data-tooltip="Compras">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <path d="M1.5 2.5H3L5 11H13L14.5 5.5H4" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="6" cy="13.5" r="1" fill="currentColor"/>
+        <circle cx="12" cy="13.5" r="1" fill="currentColor"/>
+      </svg>
+    </span>
+    <span class="sb-label">Compras</span>
+  </a>
+
+  <p class="sb-group-label">Sistema</p>
+
+  <a href="../../proprietario/usuarios/usuarios.html" class="sb-item" data-tooltip="Usuários">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <circle cx="6.5" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.25"/>
+        <path d="M1.5 14c0-2.485 2.239-4.5 5-4.5s5 2.015 5 4.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="sb-label">Usuários</span>
+  </a>
+
+  <a href="../../proprietario/configuracoes/configuracoes.html" class="sb-item" data-tooltip="Configurações">
+    <span class="sb-icon">
+      <svg viewBox="0 0 16 16" fill="none">
+        <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.25"/>
+        <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="sb-label">Configurações</span>
+  </a>
+</nav>
+
+    <div class="sb-footer">
+      <div class="sb-user-card">
+        <div class="sb-avatar" id="user-avatar">--</div>
+        <div class="sb-user-info"><span class="sb-user-name" id="user-name">Usuário</span><span class="sb-user-role" id="user-role">Cargo</span></div>
+        <button class="sb-logout" id="btn-logout" data-logout="../../auth/auth.html"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M9 2h2.5A1.5 1.5 0 0113 3.5v7A1.5 1.5 0 0111.5 12H9M6 9.5L3.5 7 6 4.5M3.5 7H10" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="mobile-menu-btn" id="btn-mobile-menu" aria-label="Abrir menu">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 4.5h14M2 9h14M2 13.5h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+        <div class="breadcrumb"><span class="bc-root">FarmaControl</span><span class="bc-sep">/</span><span class="bc-cur">Financeiro</span></div>
+      </div>
+      <div class="topbar-center">
+        <div class="date-chip"><svg width="12" height="12" viewBox="0 0 13 13" fill="none"><rect x="1" y="2.5" width="11" height="9.5" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M4 1.5V3.5M9 1.5V3.5M1 6h11" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg><span>Sexta-feira, 20 de março de 2026</span></div>
+      </div>
+      <div class="topbar-right">
+        <button class="tb-btn primary" id="btn-nova-transacao">
+          <svg width="12" height="12" viewBox="0 0 13 13" fill="none"><path d="M6.5 3l3.5 3.5-3.5 3.5M13 6.5H3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.5 10V3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Nova Transação
+        </button>
+        <div class="tb-divider"></div>
+      </div>
+    </header>
+
+    <div class="page-body">
+
+      <!-- LEFT SCROLLABLE -->
+      <main class="page-main" id="main-content">
+
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Financeiro</h1>
+            <p class="page-subtitle">Fluxo de caixa, receitas e despesas · Última atualização: agora</p>
+          </div>
+          <div class="page-actions">
+            <button class="ghost-btn" id="btn-refresh"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M12.1 6A4.7 4.7 0 1 0 12.3 8.8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/><path d="M12.1 2.5v3.7H8.4" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>Atualizar</button>
+          </div>
+        </div>
+
+        <!-- KPIs -->
+        <section class="kpi-grid">
+          <article class="kpi-card">
+            <div class="kpi-top"><span class="kpi-label">Saldo em Caixa</span><div class="kpi-icon sage"><svg viewBox="0 0 16 16" fill="none"><path d="M8 2V14M8 2C5.8 2 4 3.8 4 6C4 8.2 5.8 10 8 10C10.2 10 12 8.2 12 10.5C12 12.7 10.2 14.5 8 14.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/><circle cx="8" cy="13" r="1.5" fill="currentColor"/></svg></div></div>
+            <div class="kpi-value" id="kpi-saldo" >R$ 0,00</div>
+            <div class="kpi-meta"><span class="kpi-sub">saldo atual</span><span class="kpi-delta" id="kpi-saldo-delta">— —</span></div>
+            <div class="kpi-spark"></div>
+          </article>
+          <article class="kpi-card green">
+            <div class="kpi-top"><span class="kpi-label">Receitas — Período</span><div class="kpi-icon green"><svg viewBox="0 0 16 16" fill="none"><path d="M8 13V3M8 3L5 6M8 3L11 6" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+            <div class="kpi-value" id="kpi-receitas" >R$ 0,00</div>
+            <div class="kpi-meta"><span class="kpi-sub">entradas no período</span><span class="kpi-delta up" id="kpi-receitas-delta">— —</span></div>
+            <div class="kpi-spark"></div>
+          </article>
+          <article class="kpi-card red">
+            <div class="kpi-top"><span class="kpi-label">Despesas — Período</span><div class="kpi-icon red"><svg viewBox="0 0 16 16" fill="none"><path d="M8 3V13M8 13L5 10M8 13L11 10" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+            <div class="kpi-value" id="kpi-despesas" >R$ 0,00</div>
+            <div class="kpi-meta"><span class="kpi-sub">saídas no período</span><span class="kpi-delta down" id="kpi-despesas-delta">— —</span></div>
+            <div class="kpi-spark"></div>
+          </article>
+          <article class="kpi-card blue">
+            <div class="kpi-top"><span class="kpi-label">Ticket Médio</span><div class="kpi-icon blue"><svg viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.25"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg></div></div>
+            <div class="kpi-value" id="kpi-ticket" >R$ 0,00</div>
+            <div class="kpi-meta"><span class="kpi-sub">por venda</span><span class="kpi-delta neutral">— —</span></div>
+            <div class="kpi-spark"></div>
+          </article>
+        </section>
+
+        <!-- TABLE -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-head-l"><h2 class="card-title">Transações Recentes</h2><span class="badge" id="trans-count">0 transações</span></div>
+            <div class="card-head-r">
+              <div class="search-box">
+                <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.25"/><path d="M9.5 9.5L13 13" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>
+                <input type="text" placeholder="Buscar..." id="search-trans" style="border:none;background:none;outline:none;font-size:12.5px;color:var(--ink);width:100%;">
+              </div>
+              <button class="card-link" id="btn-export-csv">Exportar CSV</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Descrição</th><th>Categoria</th><th class="r">Valor</th><th>Método</th><th>Status</th><th>Data</th></tr></thead>
+              <tbody id="trans-body">
+                <tr><td colspan="6" style="text-align:center;color:var(--ink-35);padding:24px;">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card-foot"><span class="foot-info" id="filter-count">Exibindo 0 itens</span></div>
+        </div>
+
+        <!-- BOTTOM TWO-COL -->
+        <div class="two-col">
+          <!-- Fluxo de Caixa Chart -->
+          <div class="card">
+            <div class="card-head"><div class="card-head-l"><h2 class="card-title">Fluxo de Caixa</h2><span class="badge" id="chart-badge">—</span></div></div>
+            <div class="card-body">
+              <div class="chart-area" id="fluxo-chart">
+                <div class="y-labels"><span>0</span></div>
+                <div class="bars-wrap">
+                  <div class="grid-lines"></div>
+                  <div class="bars-group" id="bars-group"></div>
+                </div>
+              </div>
+              <div class="x-labels" id="x-labels"></div>
+              <div class="chart-legend">
+                <span class="legend-item"><span class="legend-dot green"></span> Receitas</span>
+                <span class="legend-item"><span class="legend-dot red"></span> Despesas</span>
+              </div>
+            </div>
+          </div>
+          <!-- Despesas por Categoria -->
+          <div class="card">
+            <div class="card-head"><div class="card-head-l"><h2 class="card-title">Despesas por Categoria</h2><span class="badge" id="cat-badge">—</span></div></div>
+            <div class="card-body">
+              <div class="cat-list" id="cat-list">
+                <!-- Dados carregados via API -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div><!-- /page-body -->
+  </div><!-- /main -->
+</div><!-- /app -->
+  <!-- ══ MODAL: NOVA TRANSAÇÃO ══ -->
+  <div class="modal-overlay" id="modal-nova-transacao">
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-icon" style="background: var(--sage);">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M8 3V13M3 8H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+        <div>
+          <div class="modal-title">Nova Transação</div>
+          <div style="font-size: 11px; color: var(--ink-35); margin-top: 2px;">Registre uma receita ou despesa</div>
+        </div>
+        <button class="modal-close" onclick="closeTransModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Tipo</label>
+            <select class="form-select" id="tx-tipo">
+              <option value="receita">Receita</option>
+              <option value="despesa">Despesa</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Categoria</label>
+            <select class="form-select" id="tx-categoria">
+              <option value="">Selecione...</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descrição</label>
+          <input type="text" class="form-input" id="tx-descricao" placeholder="Ex: Venda de medicamentos...">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Valor (R$)</label>
+            <input type="number" class="form-input" id="tx-valor" placeholder="0.00" step="0.01" min="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Método de Pagamento</label>
+            <select class="form-select" id="tx-metodo">
+              <option value="dinheiro">Dinheiro</option>
+              <option value="pix">PIX</option>
+              <option value="cartao_credito">Cartão de Crédito</option>
+              <option value="cartao_debito">Cartão de Débito</option>
+              <option value="boleto">Boleto</option>
+              <option value="transferencia">Transferência</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-modal-cancel" onclick="closeTransModal()">Cancelar</button>
+        <button class="btn-modal-submit" id="btn-save-transacao">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../../utils/global-settings.js"></script>
+  <script src="../../../utils/sidebar-init.js"></script>
+  <script src="financeiro.js"></script>
+</body>
+</html>
