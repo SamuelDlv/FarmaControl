@@ -1,50 +1,52 @@
 # Frontend — FarmaControl
 
-Interface web do sistema, organizada por páginas e componentes reutilizáveis.
+Esta pasta contém a interface web do FarmaControl. Organizei o frontend por páginas, componentes e serviços para separar a apresentação das chamadas à API.
 
 ## Estrutura
 
-```
+```text
 frontend/
 ├── public/
-│   ├── icons/           # Favicons e ícones PWA
-│   └── fonts/           # Fontes locais (fallback)
-│
+│   ├── icons/
+│   └── fonts/
 └── src/
     ├── assets/
-    │   ├── images/      # Logos, ilustrações
-    │   ├── icons/       # SVGs de ícones
-    │   └── fonts/       # Arquivos de fonte
-    │
-    ├── styles/          # CSS global, variáveis, reset, tipografia
-    ├── layouts/         # Shells de layout (sidebar, topbar, painel)
-    │
+    ├── styles/
+    ├── layouts/
     ├── components/
-    │   ├── ui/          # Botões, badges, pills, toasts, inputs
-    │   └── shared/      # KPI cards, tabelas, gráficos, alertas
-    │
+    │   ├── ui/
+    │   └── shared/
     ├── pages/
-    │   ├── auth/        # Login, recuperação de senha
-    │   ├── dashboard/   # Visão geral (atual)
-    │   ├── estoque/     # Lista e detalhe de produtos
-    │   ├── dispensacao/ # Registro de saídas
-    │   ├── compras/     # Pedidos e fornecedores
-    │   ├── vencimentos/ # Controle de lotes
-    │   ├── relatorios/  # Relatórios e exportações
-    │   ├── usuarios/    # Gestão de usuários e perfis
-    │   └── configuracoes/ # Configurações do sistema
-    │
-    ├── services/        # Chamadas à API (fetch/axios)
-    ├── hooks/           # Lógica reutilizável (auth, permissões)
-    ├── utils/           # Formatadores, helpers, máscaras
-    ├── contexts/        # Estado global (auth, tema, perfil)
-    ├── constants/       # Enums, perfis, rotas, configurações fixas
-    └── types/           # Tipagens e interfaces (JSDoc)
+    │   ├── auth/
+    │   ├── dashboard/
+    │   ├── estoque/
+    │   ├── dispensacao/
+    │   ├── compras/
+    │   ├── vencimentos/
+    │   ├── relatorios/
+    │   ├── usuarios/
+    │   └── configuracoes/
+    ├── services/
+    ├── hooks/
+    ├── utils/
+    ├── contexts/
+    ├── constants/
+    └── types/
 ```
 
-## Convenções
+## Organização
 
-- Cada página tem seu próprio `.html`, `.css` e `.js`
-- Componentes reutilizáveis ficam em `components/`
-- Chamadas à API ficam **somente** em `services/`
-- Nenhuma lógica de negócio dentro dos arquivos de página
+- Cada página mantém seus arquivos de interface e comportamento próximos.
+- Componentes reutilizáveis ficam em `components/`.
+- As chamadas para a API ficam concentradas em `services/`.
+- A lógica específica da aplicação não deve ficar misturada com a apresentação das páginas.
+
+A estrutura ainda está em evolução conforme o frontend ganha novas telas.
+
+## Autor
+
+Frontend desenvolvido e mantido por **SamuelDlv**.
+
+GitHub: https://github.com/SamuelDlv
+
+Para entender o projeto como um todo, consulte o README da raiz do FarmaControl.
