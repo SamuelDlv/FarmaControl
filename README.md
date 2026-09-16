@@ -1,55 +1,45 @@
 # FarmaControl
 
-Sistema de controle de estoque para farmácias, desenvolvido como Projeto Integrador no curso de Engenharia da Computação.
+Sistema de controle de estoque para farmácias que estou desenvolvendo como projeto integrador no curso de Engenharia da Computação.
 
-> **Status:** Em desenvolvimento
+O objetivo é juntar, em um só lugar, cadastro de produtos, estoque, dispensação, compras, vencimentos, relatórios e controle de usuários. Também estou trabalhando em um módulo de previsão de demanda para usar o histórico do estoque como apoio à reposição.
 
-## Sobre o projeto
+## O que já faz parte do projeto
 
-O FarmaControl tem como objetivo desenvolver uma solução para auxiliar farmácias de pequeno e médio porte na gestão de seus estoques, centralizando informações e reduzindo problemas como falta de medicamentos, excesso de produtos, vencimentos e dificuldades no acompanhamento das movimentações.
+- Cadastro e gerenciamento de medicamentos e produtos
+- Entradas e saídas de estoque
+- Controle por lote e validade
+- Alertas de estoque mínimo e vencimentos
+- Compras e fornecedores
+- Relatórios
+- Usuários e níveis de acesso
+- Previsão de demanda
 
-O projeto integra conhecimentos das disciplinas de **Engenharia de Software** e **Banco de Dados**, abrangendo levantamento e especificação de requisitos, modelagem de dados, desenvolvimento do sistema, testes e versionamento.
+## Tecnologias
 
-Um dos principais diferenciais previstos é a utilização de **Inteligência Artificial para previsão de demanda**, utilizando o histórico de movimentações para auxiliar na identificação das necessidades de reposição e na tomada de decisões relacionadas ao estoque.
+- Python + Flask
+- MySQL/MariaDB
+- JavaScript
+- HTML e CSS
+- API REST
 
-## Principais funcionalidades previstas
-
-- Cadastro e gerenciamento de medicamentos e produtos;
-- Controle de entradas e saídas de estoque;
-- Rastreabilidade por lote e data de vencimento;
-- Acompanhamento do estoque em tempo real;
-- Alertas para estoque mínimo e produtos próximos do vencimento;
-- Registro e acompanhamento de pedidos a fornecedores;
-- Relatórios de movimentação e análise de estoque;
-- Previsão de demanda utilizando Inteligência Artificial;
-- Sugestões de reposição baseadas no estoque e na demanda prevista;
-- Controle de usuários e níveis de acesso.
-
-## Tecnologias e desenvolvimento
-
-A documentação do projeto prevê uma arquitetura baseada em API REST, com possibilidade de utilização de **Node.js ou Python** no backend, interface web responsiva no frontend e **PostgreSQL ou MySQL** como banco de dados. O módulo de previsão de demanda poderá utilizar Python e bibliotecas voltadas à análise e modelagem de séries temporais.
-
-As tecnologias e decisões de implementação podem ser ajustadas conforme o desenvolvimento do projeto.
+O projeto ainda está em desenvolvimento, então algumas decisões de arquitetura e funcionalidades podem mudar conforme eu avanço na implementação.
 
 ## Estrutura
 
 ```text
 FarmaControl/
-│
-├── frontend/
-│   ├── pages/
-│   ├── components/
-│   └── assets/
-│
-├── backend/
-│   ├── routes/
-│   ├── controllers/
-│   ├── middlewares/
-│   └── database/
-│
-└── docs/
+├── frontend/    # Interface web
+├── backend/     # API e regras do sistema
+└── docs/        # Documentação técnica
 ```
 
-## Desenvolvimento
+Para detalhes específicos do backend e frontend, há READMEs dentro das respectivas pastas.
 
-O projeto encontra-se atualmente em desenvolvimento. A implementação seguirá as etapas definidas no Projeto Integrador, passando pela modelagem, implementação, integração do módulo de Inteligência Artificial, testes e documentação técnica.
+## Autor
+
+Desenvolvido e mantido por **SamuelDlv**.
+
+GitHub: https://github.com/SamuelDlv
+
+Este repositório faz parte dos projetos que estou usando para praticar desenvolvimento de software, bancos de dados e segurança de aplicações.
