@@ -1,0 +1,87 @@
+body {
+  margin: 0;
+  background: #f3f7f4;
+  color: #1f2937;
+  font-family: Arial, Helvetica, sans-serif;
+}
+.reset-card {
+  max-width: 430px;
+  margin: 10vh auto;
+  padding: 34px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 18px 50px #0002;
+}
+.reset-card h1 {
+  margin: 0 0 12px;
+  color: #173321;
+}
+.reset-card p {
+  line-height: 1.5;
+  color: #4b5563;
+}
+.reset-card label {
+  display: block;
+  margin: 24px 0 8px;
+  font-weight: 600;
+}
+.password-wrap {
+  position: relative;
+}
+.reset-card input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px 48px 13px 13px;
+  border: 1px solid #b8c3bb;
+  border-radius: 8px;
+  font: inherit;
+}
+.eye-toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  margin: 0;
+  padding: 7px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #5f6770;
+  cursor: pointer;
+}
+.eye-toggle:hover {
+  background: #eaf2ed;
+  color: #166534;
+}
+.eye-toggle svg {
+  width: 20px;
+  height: 20px;
+}
+.reset-card > form > button {
+  width: 100%;
+  margin-top: 18px;
+  padding: 13px;
+  border: 0;
+  border-radius: 8px;
+  background: #166534;
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+}
+.reset-card > form > button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+.reset-message {
+  margin-top: 16px;
+  font-size: 14px;
+}
+.reset-message.error {
+  color: #b42318;
+}
+.reset-message.success {
+  color: #166534;
+}

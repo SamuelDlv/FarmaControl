@@ -2,13 +2,13 @@
 FARMAControl — Backend API (Flask + MariaDB)
 ══════════════════════════════════════════════
 
-Sistema de gestão para farmácias com IA preditiva.
+Sistema de gestão para farmácias.
 
 ARQUITETURA:
 ├── Flask App: Servidor HTTP RESTful
-├── Database: MariaDB/MySQL via PyMySQL (connection pooling)
-├── Auth: JWT-free (sessão via localStorage no frontend)
-├── CORS: Habilitado para desenvolvimento local
+├── Database: MariaDB/MySQL via PyMySQL (conexão por requisição)
+├── Auth: cookie Flask assinado e HttpOnly; CSRF nas mutações
+├── CORS: Somente origens explicitamente configuradas (mesma origem por padrão)
 └── Logging: Console com timestamp e nível
 
 ROTA DE ARQUIVOS:
@@ -30,33 +30,52 @@ ENDPOINTS PRINCIPAIS:
 ├── GET  /financeiro/transacoes  → Tabela de transações
 ├── GET  /financeiro/fluxo       → Fluxo de caixa para gráfico
 ├── GET  /financeiro/categorias  → Lista de categorias
-├── GET  /estoque                → Produtos com paginação
+├── GET  /estoque                → Lotes; paginação feita no frontend
 ├── POST /estoque                → Criar produto
 ├── PUT  /estoque/<id>           → Editar produto
 ├── DELETE /estoque/<id>         → Excluir produto
-├── GET  /usuarios               → Lista de usuários
-├── POST /usuarios               → Criar usuário
+├── GET  /admin/usuarios               → Lista de usuários
+├── POST /auth/register          → Criar cadastro pendente
 ├── POST /auth/login             → Autenticar
 ├── POST /auth/register          → Cadastrar novo usuário
-└── GET  /configuracoes          → Configurações do usuário
+└── GET  /configuracoes          → Configurações globais do sistema
 """
 
 import os
 import re
 import logging
-from datetime import datetime, timezone
+import math
+import mimetypes
+import secrets
+import html
+import hashlib
+import smtplib
+import ssl
+from datetime import datetime, timezone, timedelta
+from email.message import EmailMessage
+from email.utils import formataddr
+from decimal import Decimal, InvalidOperation
 
 import bcrypt
 import pymysql
 import pymysql.cursors
 from dotenv import load_dotenv
-from flask import Flask, jsonify, request, g, send_from_directory
+from flask import Flask, jsonify, request, g, session
 from flask_cors import CORS
+from runtime_config import runtime_config
+from security import AuthLimiter, credential_stamp
+from audit import commit_audit, write_event
+from reporting import stock_report, PERIOD_START
+from product_rules import normalize_product, validate_expiry, stock_product_data, save_product
+from system_settings import read_settings, validate_settings, require_lot, require_usable_stock, active_alerts
+from settings_notifications import schedule as schedule_notifications
 
 # ─────────────────────────────────────────────
 #  Configuração inicial
 # ─────────────────────────────────────────────
-load_dotenv()
+# O servidor pode ser iniciado pela raiz do projeto ou pela pasta backend.
+# Carregar pelo caminho deste arquivo evita perder DB_PASSWORD nesse primeiro caso.
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
 
 logging.basicConfig(
     level=logging.INFO,
@@ -65,40 +84,12 @@ logging.basicConfig(
 log = logging.getLogger("farmacontrol")
 
 app = Flask(__name__)
-SECRET_KEY = os.getenv("SECRET_KEY")
-if not SECRET_KEY:
-    if os.getenv("FLASK_DEBUG", "false").lower() == "true":
-        SECRET_KEY = "dev-only-change-me"
-    else:
-        raise RuntimeError("SECRET_KEY deve ser definida no ambiente.")
-app.config["SECRET_KEY"] = SECRET_KEY
-
-# CORS — aceita as origens definidas em .env; "*" libera qualquer origem local conhecida
-# (útil ao abrir o HTML direto no navegador ou em Live Server de outra porta)
-_origins_raw = os.getenv("ALLOWED_ORIGINS", "*")
-_parsed = [o.strip() for o in _origins_raw.split(",") if o.strip()]
-if '*' in _parsed:
-    ALLOWED_ORIGINS = [
-        'http://localhost:5000',
-        'http://127.0.0.1:5000',
-        'http://localhost:5500',
-        'http://127.0.0.1:5500',
-        'http://localhost:5501',
-        'http://localhost:3000',
-        'http://localhost:5173',
-        'http://localhost:8000',
-        'http://localhost:8080',
-        'http://127.0.0.1:3000',
-        'http://127.0.0.1:5173',
-        'http://127.0.0.1:5501',
-        'null',  # páginas abertas direto como arquivo (file://)
-    ]
-else:
-    ALLOWED_ORIGINS = _parsed
-CORS(app,
-     origins=ALLOWED_ORIGINS,
-     supports_credentials=True,
-     expose_headers=['Content-Type', 'Authorization'])
+app.config.update(runtime_config(os.environ))
+if app.config["EPHEMERAL_SECRET"]:
+    log.warning("SECRET_KEY ausente ou fraca: chave temporária local; sessões expiram ao reiniciar.")
+ALLOWED_ORIGINS = app.config["ALLOWED_ORIGINS"]
+if ALLOWED_ORIGINS:
+    CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True, allow_private_network=False)
 
 BCRYPT_ROUNDS = int(os.getenv("BCRYPT_ROUNDS", 12))
 
@@ -149,17 +140,226 @@ def err(mensagem: str, status: int = 400, campo: str | None = None):
     return jsonify(body), status
 
 
+# A interface pode ocultar modulos, mas somente esta camada decide o que uma
+# sessao pode realmente consultar ou alterar.
+ALL_ROLES = PERFIS_VALIDOS
+INVENTORY_ROLES = {"proprietario", "admin", "farmaceutico", "compras", "ti"}
+REPORT_ROLES = {"proprietario", "admin", "farmaceutico", "compras", "ti"}
+FINANCE_ROLES = {"proprietario", "admin", "ti"}
+ADMIN_ROLES = {"proprietario", "admin", "ti"}
+SALES_ROLES = {"proprietario", "admin", "farmaceutico", "atendente", "ti"}
+
+# Todos os cargos usam a mesma matriz persistida de módulos exibidos na tela
+# Usuários. O PDV mantém acesso operacional fixo em SALES_ROLES.
+EDITABLE_PROFILE_SLUGS = (
+    "proprietario", "admin", "farmaceutico", "atendente",
+    "visualizador", "compras", "ti",
+)
+READ_ONLY_PROFILE_SLUGS = {"visualizador"}
+
+
+def roles_permitidos(path: str, method: str) -> set[str]:
+    """Retorna os perfis permitidos para a rota de API solicitada."""
+    read_only = method in {"GET", "HEAD", "OPTIONS"}
+    if path.startswith("/dashboard/"):
+        return ALL_ROLES
+    if path.startswith("/admin/"):
+        return ADMIN_ROLES
+    if path.startswith("/financeiro/"):
+        return FINANCE_ROLES
+    if path.startswith("/relatorios/"):
+        return REPORT_ROLES
+    # A coleção e seus itens compartilham os perfis; a fronteira "/" impede
+    # que nomes parecidos (como /compras-falso) recebam acesso por acidente.
+    if path in {"/compras", "/fornecedores"} or path.startswith(("/compras/", "/fornecedores/")):
+        return INVENTORY_ROLES
+    if path.startswith(("/alertas", "/movimentacoes-estoque")):
+        return INVENTORY_ROLES
+    if path.startswith(("/estoque", "/produtos", "/categorias-produto")):
+        return ALL_ROLES if read_only else INVENTORY_ROLES
+    if path.startswith(("/clientes", "/vendas", "/receitas")):
+        return SALES_ROLES
+    if path.startswith("/configuracoes"):
+        # Leitura e necessaria para aplicar o tema de qualquer usuario.
+        return ALL_ROLES if read_only else {"proprietario", "ti"}
+    return set()
+
+
+def modulo_da_rota(path: str) -> str | None:
+    """Associa uma rota protegida ao mesmo módulo exibido no menu."""
+    if path.startswith("/dashboard/"):
+        return "dashboard"
+    if path.startswith("/admin/"):
+        return "usuarios"
+    if path.startswith("/financeiro/"):
+        return "financeiro"
+    if path.startswith("/relatorios/"):
+        return "relatorios"
+    if path in {"/compras", "/fornecedores"} or path.startswith(("/compras/", "/fornecedores/")):
+        return "compras"
+    if path.startswith("/alertas"):
+        return "vencimentos"
+    if path.startswith(("/estoque", "/movimentacoes-estoque", "/produtos", "/categorias-produto")):
+        return "estoque"
+    if path.startswith(("/clientes", "/vendas", "/receitas")):
+        return "vendas"
+    if path.startswith("/configuracoes"):
+        return "configuracoes"
+    return None
+
+
+def permissoes_efetivas(cursor, perfil: str) -> set[str]:
+    """Lê a matriz persistida de módulos do cargo informado."""
+    if perfil not in EDITABLE_PROFILE_SLUGS:
+        return set()
+    cursor.execute(
+        """SELECT pp.modulo FROM perfil_permissoes pp
+           JOIN perfis p ON p.id = pp.perfil_id
+           WHERE p.slug = %s AND pp.permitido = 1""",
+        (perfil,),
+    )
+    return {row["modulo"] for row in cursor.fetchall()}
+
+
+PROTECTED_API_PREFIXES = (
+    "/admin/", "/clientes", "/categorias-produto", "/produtos", "/fornecedores",
+    "/estoque", "/movimentacoes-estoque", "/compras", "/vendas", "/receitas",
+    "/alertas", "/configuracoes", "/dashboard/", "/relatorios/",
+    "/financeiro/",
+)
+
+
+auth_limiter = AuthLimiter()
+
+
+@app.before_request
+def validar_entrada():
+    if request.method not in {"POST", "PUT", "PATCH", "DELETE"}:
+        return None
+    if request.path.startswith("/auth/"):
+        origin = request.headers.get("Origin")
+        if origin and origin not in {request.host_url.rstrip("/"), *ALLOWED_ORIGINS}:
+            return err("Origem da requisição não autorizada.", status=403)
+        retry = auth_limiter.check(request.remote_addr or "unknown")
+        if retry:
+            response = app.make_response(err("Muitas tentativas. Aguarde antes de tentar novamente.", status=429))
+            response.headers["Retry-After"] = str(retry)
+            return response
+    if request.is_json:
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return err("Envie um objeto JSON válido.")
+        if request.path.startswith(("/auth/", "/admin/")):
+            for key in ("nome", "sobrenome", "email", "role", "perfil", "status", "token", "convite_token", "password", "senha"):
+                if key in data and data[key] is not None:
+                    value = data[key]
+                    if not isinstance(value, str):
+                        return err("Campo deve ser texto.", campo=key)
+                    try:
+                        size = len(value.encode("utf-8"))
+                    except UnicodeEncodeError:
+                        return err("Texto inválido.", campo=key)
+                    maximum = 72 if key in {"password", "senha"} else 512
+                    if size > maximum:
+                        return err(f"Campo deve ter no máximo {maximum} bytes UTF-8.", campo=key)
+    return None
+
+
+@app.errorhandler(413)
+def payload_grande(_error):
+    return err("Corpo da requisição excede o limite de 1 MiB.", status=413)
+
+
+@app.after_request
+def security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Content-Security-Policy"] = "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+    if request.path.startswith(PROTECTED_API_PREFIXES + ("/auth/",)):
+        response.headers["Cache-Control"] = "no-store"
+    if app.config["APP_ENV"] == "production":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000"
+    return response
+
+
+@app.before_request
+def proteger_api():
+    """Exige sessao assinada, perfil autorizado e token anti-CSRF nas mutacoes."""
+    path = request.path
+    # A tela de login conhece somente as preferencias visuais publicas.
+    if path == "/configuracoes/visual" or request.method == "OPTIONS" or not path.startswith(PROTECTED_API_PREFIXES):
+        return None
+    usuario_id = session.get("usuario_id")
+    perfil = session.get("perfil")
+    if not usuario_id or perfil not in PERFIS_VALIDOS:
+        return err("Sua sessao expirou. Entre novamente para continuar.", status=401)
+    # A sessao e assinada, mas a conta pode ter sido bloqueada ou mudado de
+    # perfil depois do login. A fonte de verdade continua sendo o banco.
+    try:
+        with get_db().cursor() as cur:
+            cur.execute(
+                """SELECT u.status, u.senha_hash, p.slug AS perfil
+                   FROM usuarios u JOIN perfis p ON p.id = u.perfil_id
+                   WHERE u.id = %s LIMIT 1""",
+                (usuario_id,),
+            )
+            usuario_atual = cur.fetchone()
+            permissoes = permissoes_efetivas(cur, usuario_atual["perfil"]) if usuario_atual else set()
+    except pymysql.MySQLError as exc:
+        log.error("Nao foi possivel validar sessao do usuario %s: %s", usuario_id, exc)
+        return err("Nao foi possivel validar sua sessao. Tente novamente.", status=503)
+    if not usuario_atual or usuario_atual["status"] != "aprovado":
+        session.clear()
+        return err("Sua conta nao possui mais acesso ao sistema.", status=401)
+    stamp = session.get("credential_stamp", "")
+    password_hash = usuario_atual.get("senha_hash")
+    if (not isinstance(stamp, str) or not password_hash or not secrets.compare_digest(
+            stamp, credential_stamp(app.config["SECRET_KEY"], password_hash))):
+        session.clear()
+        return err("Sua credencial mudou. Entre novamente.", status=401)
+    perfil = usuario_atual["perfil"]
+    session["perfil"] = perfil
+    modulo = modulo_da_rota(path)
+    # O Visualizador pode consultar exclusivamente; esta proteção não depende
+    # do menu nem da configuração de módulos salva no banco.
+    if perfil in READ_ONLY_PROFILE_SLUGS and request.method not in {"GET", "HEAD", "OPTIONS"}:
+        return err("O perfil Visualizador possui acesso somente para consulta.", status=403)
+    # PDV: acesso operacional fixo, também aplicado ao menu.
+    permitido = perfil in SALES_ROLES if modulo == "vendas" else modulo in permissoes
+    if path == "/admin/logs":
+        permitido = perfil in ADMIN_ROLES
+    if not permitido:
+        log.warning("Acesso negado: usuario=%s perfil=%s rota=%s", usuario_id, perfil, path)
+        return err("Seu perfil nao tem permissao para acessar este recurso.", status=403)
+    if request.method not in {"GET", "HEAD", "OPTIONS"}:
+        recebido = request.headers.get("X-CSRF-Token", "")
+        esperado = session.get("csrf_token", "")
+        if not esperado or not secrets.compare_digest(recebido.encode(), esperado.encode()):
+            return err("Requisicao invalida. Atualize a pagina e tente novamente.", status=403)
+    g.usuario_id = usuario_id
+    g.usuario_perfil = perfil
+    g.usuario_permissoes = permissoes
+    return None
+
+
 def hash_senha(senha: str) -> str:
     return bcrypt.hashpw(senha.encode(), bcrypt.gensalt(BCRYPT_ROUNDS)).decode()
 
 
 def verificar_senha(senha: str, hash_: str) -> bool:
-    return bcrypt.checkpw(senha.encode(), hash_.encode())
+    try:
+        return bcrypt.checkpw(senha.encode(), hash_.encode())
+    except (ValueError, TypeError):
+        return False
 
 
 def registrar_acesso(cursor, usuario_id: int, sucesso: bool, motivo: str | None = None):
     """Grava log de tentativa de acesso."""
-    ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+    g.audit_actor = usuario_id
+    g.audit_description = "Entrou no sistema" if sucesso else "Falhou ao entrar: " + (motivo or "acesso negado")
+    g.audit_status = 200 if sucesso else 401
+    ip = request.remote_addr
     ua = request.headers.get("User-Agent", "")[:500]
     cursor.execute(
         """
@@ -182,6 +382,122 @@ def health():
 
 # ── Cadastro ────────────────────────────────
 
+LEGAL_DOCUMENT_VERSION = "2026-10-05"
+INVITE_EXPIRY_HOURS = 168
+PASSWORD_RESET_EXPIRY_HOURS = 1
+
+
+def hash_convite(token):
+    """Armazena somente o hash do segredo presente no link de convite."""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def hash_token_recuperacao(token):
+    """Não persiste o segredo presente no link de recuperação."""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def montar_email_html(titulo, conteudo_html, acao_principal=None, acao_secundaria=None):
+    """Monta o visual padrão dos e-mails transacionais do FarmaControl."""
+    botoes = ""
+    if acao_principal:
+        texto, url = acao_principal
+        botoes += (
+            '<p style="margin:28px 0 18px;text-align:center;">'
+            f'<a href="{html.escape(url, quote=True)}" '
+            'style="display:inline-block;background:#166534;border-radius:8px;color:#ffffff;'
+            'font-size:16px;font-weight:700;line-height:20px;padding:14px 24px;text-align:center;'
+            'text-decoration:none;">'
+            f'{html.escape(texto)}</a></p>'
+        )
+    if acao_secundaria:
+        texto, url = acao_secundaria
+        botoes += (
+            '<p style="margin:0 0 8px;text-align:center;">'
+            f'<a href="{html.escape(url, quote=True)}" '
+            'style="color:#4b5563;font-size:14px;text-decoration:underline;">'
+            f'{html.escape(texto)}</a></p>'
+        )
+    # Os convites legados já trazem seus links no conteúdo. Converte-os em
+    # CTAs visuais para que continuem bonitos sem duplicar ou alterar URLs.
+    contador_links = 0
+
+    def estilizar_link(match):
+        nonlocal contador_links
+        contador_links += 1
+        href, texto = match.groups()
+        if contador_links == 1:
+            estilo = (
+                "display:inline-block;background:#166534;border:1px solid #166534;"
+                "border-radius:8px;color:#ffffff;font-size:15px;font-weight:700;"
+                "padding:12px 18px;text-decoration:none;"
+            )
+        else:
+            estilo = (
+                "display:inline-block;background:#ffffff;border:1px solid #9ca3af;"
+                "border-radius:8px;color:#374151;font-size:15px;font-weight:700;"
+                "padding:12px 18px;text-decoration:none;"
+            )
+        return f'<a href="{href}" style="{estilo}">{texto}</a>'
+
+    conteudo_html = re.sub(
+        r'<a href="([^"]+)">(.+?)</a>', estilizar_link, conteudo_html,
+    ).replace("&nbsp;|&nbsp;", "&nbsp;")
+    return f"""<!doctype html>
+<html lang="pt-BR">
+<body style="margin:0;padding:0;background:#f3f7f4;color:#1f2937;font-family:Arial,Helvetica,sans-serif;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">{html.escape(titulo)}</div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f3f7f4;padding:32px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border-radius:14px;overflow:hidden;">
+        <tr><td style="background:#14532d;padding:24px 32px;color:#ffffff;font-size:23px;font-weight:700;letter-spacing:-0.4px;">FarmaControl</td></tr>
+        <tr><td style="padding:34px 32px 28px;">
+          <h1 style="margin:0 0 18px;color:#173321;font-size:25px;line-height:32px;">{html.escape(titulo)}</h1>
+          <div style="color:#374151;font-size:16px;line-height:25px;">{conteudo_html}</div>
+          {botoes}
+        </td></tr>
+        <tr><td style="border-top:1px solid #e5e7eb;padding:20px 32px;color:#6b7280;font-size:12px;line-height:18px;">
+          Esta é uma mensagem automática do FarmaControl. Caso não reconheça esta solicitação, entre em contato com a equipe responsável.
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>"""
+
+
+def enviar_email_brevo(destinatario, assunto, conteudo_html):
+    """Envia e-mail transacional sem deixar indisponível o fluxo principal.
+
+    A configuração vem exclusivamente do ambiente. Falhas no provedor são
+    registradas sem incluir chave, destinatário ou conteúdo sensível nos logs.
+    """
+    host = os.getenv("BREVO_SMTP_HOST", "smtp-relay.brevo.com")
+    porta = os.getenv("BREVO_SMTP_PORT", "587")
+    login = os.getenv("BREVO_SMTP_LOGIN")
+    senha = os.getenv("BREVO_SMTP_PASSWORD")
+    remetente = os.getenv("BREVO_SENDER_EMAIL")
+    nome_remetente = os.getenv("BREVO_SENDER_NAME", "FarmaControl")
+    if not login or not senha or not remetente:
+        log.info("E-mail transacional não enviado: SMTP da Brevo não configurado.")
+        return False
+    conteudo_html = montar_email_html(assunto, conteudo_html)
+    try:
+        mensagem = EmailMessage()
+        mensagem["From"] = formataddr((nome_remetente, remetente))
+        mensagem["To"] = destinatario
+        mensagem["Subject"] = assunto
+        mensagem.set_content("Abra este e-mail em um cliente compatível com HTML.")
+        mensagem.add_alternative(conteudo_html, subtype="html")
+        with smtplib.SMTP(host, int(porta), timeout=10) as smtp:
+            smtp.starttls(context=ssl.create_default_context())
+            smtp.login(login, senha)
+            smtp.send_message(mensagem)
+        return True
+    except (OSError, smtplib.SMTPException, ValueError) as exc:
+        log.warning("Não foi possível enviar e-mail transacional pela Brevo: %s", exc)
+    return False
+
 @app.post("/auth/register")
 def register():
     """
@@ -195,6 +511,31 @@ def register():
     email     = (data.get("email") or "").strip().lower()
     role      = (data.get("role") or "").strip()
     senha     = data.get("password") or ""
+    aceita_termos = data.get("accepts_terms") is True
+    aceita_privacidade = data.get("accepts_privacy") is True
+    convite_token = (data.get("convite_token") or "").strip()
+    convite_hash = None
+
+    # Convites administrativos nunca assumem consentimento. O link assinado
+    # recupera os dados definidos pelo administrador, e o convidado ainda
+    # precisa escolher senha e aceitar os documentos legais nesta requisição.
+    if convite_token:
+        convite_hash = hash_convite(convite_token)
+        try:
+            with get_db().cursor() as cur:
+                cur.execute("""
+                    SELECT c.nome, c.sobrenome, c.email, p.slug AS perfil
+                    FROM convites_cadastro c JOIN perfis p ON p.id = c.perfil_id
+                    WHERE c.token_hash = %s AND c.status = 'pendente'
+                      AND c.expira_em > NOW() FOR UPDATE
+                """, (convite_hash,))
+                convite = cur.fetchone()
+            if not convite:
+                return err("Este convite é inválido, já foi usado ou expirou.", campo="convite", status=410)
+            nome, sobrenome, email, role = convite["nome"], convite["sobrenome"], convite["email"], convite["perfil"]
+        except pymysql.MySQLError as exc:
+            log.error("Erro ao validar convite: %s", exc)
+            return err("Não foi possível validar o convite.", status=500)
 
     # ── Validações ──────────────────────────
     if len(nome) < 2:
@@ -207,9 +548,13 @@ def register():
         return err("Perfil de acesso inválido.", campo="role")
     if len(senha) < 8:
         return err("A senha deve ter pelo menos 8 caracteres.", campo="password")
+    if not aceita_termos or not aceita_privacidade:
+        return err("É necessário aceitar os Termos de Uso e a Política de Privacidade.", campo="legal")
 
-    db = get_db()
+    db = None
+    permissoes = set()
     try:
+        db = get_db()
         with db.cursor() as cur:
             # E-mail já cadastrado?
             cur.execute("SELECT id FROM usuarios WHERE email = %s", (email,))
@@ -217,23 +562,66 @@ def register():
                 return err("Este e-mail já está cadastrado.", campo="email", status=409)
 
             # Resolve perfil_id
-            cur.execute("SELECT id FROM perfis WHERE slug = %s", (role,))
+            cur.execute("SELECT id, nome FROM perfis WHERE slug = %s", (role,))
             perfil = cur.fetchone()
             if not perfil:
                 return err("Perfil não encontrado no sistema.", campo="role")
+            permissoes = permissoes_efetivas(cur, role)
 
             senha_hash = hash_senha(senha)
 
             cur.execute(
                 """
                 INSERT INTO usuarios (nome, sobrenome, email, senha_hash, perfil_id, status)
-                VALUES (%s, %s, %s, %s, %s, 'pendente')
+                VALUES (%s, %s, %s, %s, %s, %s)
                 """,
-                (nome, sobrenome, email, senha_hash, perfil["id"]),
+                (nome, sobrenome, email, senha_hash, perfil["id"], "aprovado" if convite_hash else "pendente"),
             )
-            db.commit()
+            usuario_criado_id = cur.lastrowid
+            cur.execute(
+                """
+                INSERT INTO aceites_legais (usuario_id, termos_versao, privacidade_versao, ip)
+                VALUES (%s, %s, %s, %s)
+                """,
+                (
+                    usuario_criado_id,
+                    LEGAL_DOCUMENT_VERSION,
+                    LEGAL_DOCUMENT_VERSION,
+                    (request.remote_addr or "")[:64],
+                ),
+            )
+            if convite_hash:
+                cur.execute("""
+                    UPDATE convites_cadastro
+                    SET status = 'aceito', respondido_em = NOW(), aceito_usuario_id = %s
+                    WHERE token_hash = %s AND status = 'pendente' AND expira_em > NOW()
+                """, (usuario_criado_id, convite_hash))
+                if cur.rowcount != 1:
+                    db.rollback()
+                    return err("Este convite é inválido, já foi usado ou expirou.", status=410)
+            g.audit_actor = usuario_criado_id
+            commit_audit(db, cur.lastrowid)
 
         log.info("Novo cadastro pendente: %s (%s)", email, role)
+        if convite_hash:
+            session.clear()
+            session.permanent = True
+            session["usuario_id"] = usuario_criado_id
+            session["credential_stamp"] = credential_stamp(app.config["SECRET_KEY"], senha_hash)
+            session["perfil"] = role
+            session["csrf_token"] = secrets.token_urlsafe(32)
+            return ok({
+                "mensagem": "Convite confirmado. Seu acesso já está liberado.",
+                "csrf_token": session["csrf_token"],
+                "usuario": {"id": usuario_criado_id, "nome": nome, "sobrenome": sobrenome,
+                            "email": email, "perfil": role, "perfil_nome": perfil["nome"],
+                            "permissoes": sorted(permissoes)},
+            }, status=201)
+        enviar_email_brevo(
+            email,
+            "Recebemos seu cadastro no FarmaControl",
+            "<p>Recebemos seu cadastro. Ele será liberado após a análise da equipe responsável.</p>",
+        )
         return ok(
             {
                 "mensagem": (
@@ -245,9 +633,132 @@ def register():
         )
 
     except pymysql.MySQLError as exc:
-        db.rollback()
+        if db is not None:
+            db.rollback()
         log.error("Erro DB no cadastro: %s", exc)
         return err("Erro interno. Tente novamente em instantes.", status=500)
+
+
+@app.post("/auth/recuperar-senha")
+def solicitar_recuperacao_senha():
+    """Envia um link de uso único sem revelar se o e-mail possui conta."""
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    resposta = {"mensagem": "Se houver uma conta com este e-mail, enviaremos um link para redefinir a senha."}
+    if not EMAIL_RE.match(email):
+        return ok(resposta)
+
+    db = get_db()
+    try:
+        with db.cursor() as cur:
+            cur.execute(
+                "SELECT id, nome FROM usuarios WHERE email = %s AND status = 'aprovado'",
+                (email,),
+            )
+            usuario = cur.fetchone()
+            if not usuario:
+                return ok(resposta)
+            token = secrets.token_urlsafe(32)
+            cur.execute(
+                """UPDATE usuarios
+                   SET token_reset = %s, token_expira_em = DATE_ADD(NOW(), INTERVAL %s HOUR)
+                   WHERE id = %s""",
+                (hash_token_recuperacao(token), PASSWORD_RESET_EXPIRY_HOURS, usuario["id"]),
+            )
+        g.audit_actor = usuario["id"]
+        commit_audit(db, cur.lastrowid)
+    except pymysql.MySQLError as exc:
+        db.rollback()
+        log.error("Erro ao solicitar recuperação de senha: %s", exc)
+        return err("Não foi possível processar a solicitação. Tente novamente.", status=500)
+
+    base_url = os.getenv("APP_PUBLIC_URL", "http://localhost:5000").rstrip("/")
+    link = f"{base_url}/pages/redefinir-senha/redefinir-senha.html?token={token}"
+    nome = html.escape(usuario.get("nome") or "usuário")
+    enviar_email_brevo(
+        email,
+        "Redefina sua senha do FarmaControl",
+        f"<p>Olá, {nome}.</p><p>Recebemos uma solicitação para redefinir sua senha.</p>"
+        f'<p><a href="{link}">Redefinir minha senha</a></p>'
+        "<p>Por segurança, este link expira em 1 hora e pode ser usado apenas uma vez.</p>",
+    )
+    return ok(resposta)
+
+
+@app.post("/auth/redefinir-senha")
+def redefinir_senha():
+    """Define a senha por meio de token único, válido por tempo limitado."""
+    data = request.get_json(silent=True) or {}
+    token = (data.get("token") or "").strip()
+    senha = data.get("password") or ""
+    if len(senha) < 8:
+        return err("A senha deve ter pelo menos 8 caracteres.", campo="password")
+    if not token:
+        return err("Este link de recuperação é inválido ou expirou.", status=410)
+
+    db = get_db()
+    try:
+        with db.cursor() as cur:
+            cur.execute(
+                """SELECT id FROM usuarios
+                   WHERE token_reset = %s AND token_expira_em > NOW() FOR UPDATE""",
+                (hash_token_recuperacao(token),),
+            )
+            usuario = cur.fetchone()
+            if not usuario:
+                return err("Este link de recuperação é inválido ou expirou.", status=410)
+            cur.execute(
+                """UPDATE usuarios
+                   SET senha_hash = %s, token_reset = NULL, token_expira_em = NULL
+                   WHERE id = %s""",
+                (hash_senha(senha), usuario["id"]),
+            )
+        g.audit_actor = usuario["id"]
+        commit_audit(db, cur.lastrowid)
+        return ok({"mensagem": "Senha redefinida com sucesso. Você já pode entrar."})
+    except pymysql.MySQLError as exc:
+        db.rollback()
+        log.error("Erro ao redefinir senha: %s", exc)
+        return err("Não foi possível redefinir a senha. Tente novamente.", status=500)
+
+
+@app.get("/auth/convites/<string:token>")
+def consultar_convite(token):
+    """Permite à página de cadastro preencher apenas um convite ainda válido."""
+    try:
+        with get_db().cursor() as cur:
+            cur.execute("""
+                SELECT c.nome, c.sobrenome, c.email, p.slug AS role
+                FROM convites_cadastro c JOIN perfis p ON p.id = c.perfil_id
+                WHERE c.token_hash = %s AND c.status = 'pendente' AND c.expira_em > NOW()
+            """, (hash_convite(token),))
+            convite = cur.fetchone()
+        if not convite:
+            return err("Convite inválido, já utilizado ou expirado.", status=410)
+        return ok({"convite": convite})
+    except pymysql.MySQLError as exc:
+        log.error("Erro ao consultar convite: %s", exc)
+        return err("Não foi possível consultar o convite.", status=500)
+
+
+@app.post("/auth/convites/<string:token>/recusar")
+def recusar_convite(token):
+    """Recusa um convite sem criar conta ou aceitar documentos legais."""
+    db = get_db()
+    try:
+        with db.cursor() as cur:
+            cur.execute("""
+                UPDATE convites_cadastro SET status = 'recusado', respondido_em = NOW()
+                WHERE token_hash = %s AND status = 'pendente' AND expira_em > NOW()
+            """, (hash_convite(token),))
+            if not cur.rowcount:
+                return err("Convite inválido, já utilizado ou expirado.", status=410)
+        commit_audit(db, cur.lastrowid)
+        return ok({"mensagem": "Convite recusado. Nenhuma conta foi criada."})
+    except pymysql.MySQLError as exc:
+        db.rollback()
+        log.error("Erro ao recusar convite: %s", exc)
+        return err("Não foi possível recusar o convite.", status=500)
 
 
 # ── Login ────────────────────────────────────
@@ -261,11 +772,18 @@ def login():
     data  = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
     senha = data.get("password") or ""
+    remember = data.get("remember", False)
+
+    # Uma tentativa de trocar de conta nao pode manter a sessao anterior
+    # ativa caso as novas credenciais sejam invalidas ou estejam pendentes.
+    session.clear()
 
     if not EMAIL_RE.match(email):
         return err("Informe um e-mail válido.", campo="email")
     if not senha:
         return err("Informe sua senha.", campo="password")
+    if not isinstance(remember, bool):
+        return err("Valor de lembrar acesso inválido.", campo="remember")
 
     db = get_db()
     try:
@@ -293,13 +811,13 @@ def login():
 
             if not senha_ok:
                 registrar_acesso(cur, usuario["id"], sucesso=False, motivo="senha incorreta")
-                db.commit()
+                commit_audit(db, cur.lastrowid)
                 return err("E-mail ou senha incorretos.", status=401)
 
             # Conta pendente
             if usuario["status"] == "pendente":
                 registrar_acesso(cur, usuario["id"], sucesso=False, motivo="cadastro pendente")
-                db.commit()
+                commit_audit(db, cur.lastrowid)
                 return err(
                     "Seu cadastro ainda está sendo analisado. "
                     "Aguarde a aprovação da equipe responsável.",
@@ -309,7 +827,7 @@ def login():
             # Conta rejeitada
             if usuario["status"] == "rejeitado":
                 registrar_acesso(cur, usuario["id"], sucesso=False, motivo="cadastro rejeitado")
-                db.commit()
+                commit_audit(db, cur.lastrowid)
                 return err(
                     "Seu cadastro foi recusado. "
                     "Entre em contato com o administrador do sistema.",
@@ -317,17 +835,28 @@ def login():
                 )
 
             # ── Login bem-sucedido ───────────────────
+            permissoes = permissoes_efetivas(cur, usuario["perfil"])
             cur.execute(
                 "UPDATE usuarios SET ultimo_login = NOW() WHERE id = %s",
                 (usuario["id"],),
             )
             registrar_acesso(cur, usuario["id"], sucesso=True)
-            db.commit()
+            commit_audit(db, cur.lastrowid)
 
+        # Cookie assinado e HttpOnly: o cliente nao escolhe seu id/perfil.
+        # Sem a opcao, o cookie expira ao fechar o navegador. Com ela marcada,
+        # usa o prazo de PERMANENT_SESSION_LIFETIME configurado no ambiente.
+        session.clear()
+        session.permanent = remember
+        session["usuario_id"] = usuario["id"]
+        session["credential_stamp"] = credential_stamp(app.config["SECRET_KEY"], usuario["senha_hash"])
+        session["perfil"] = usuario["perfil"]
+        session["csrf_token"] = secrets.token_urlsafe(32)
         log.info("Login OK: %s (%s)", email, usuario["perfil"])
         return ok(
             {
                 "mensagem": f"Bem-vindo, {usuario['nome']}!",
+                "csrf_token": session["csrf_token"],
                 "usuario": {
                     "id":          usuario["id"],
                     "nome":        usuario["nome"],
@@ -335,6 +864,10 @@ def login():
                     "email":       usuario["email"],
                     "perfil":      usuario["perfil"],
                     "perfil_nome": usuario["perfil_nome"],
+                    # Ausência preserva o fallback visual dos perfis que não
+                    # participam do editor; para os editáveis, inclusive uma
+                    # lista vazia é uma decisão explícita.
+                    "permissoes":  sorted(permissoes) if usuario["perfil"] in EDITABLE_PROFILE_SLUGS else None,
                 },
             }
         )
@@ -343,6 +876,23 @@ def login():
         db.rollback()
         log.error("Erro DB no login: %s", exc)
         return err("Erro interno. Tente novamente em instantes.", status=500)
+
+
+@app.post("/auth/logout")
+def logout():
+    """Invalida a sessao atual no navegador."""
+    esperado = session.get("csrf_token")
+    recebido = request.headers.get("X-CSRF-Token", "")
+    if esperado and not secrets.compare_digest(recebido.encode(), esperado.encode()):
+        return err("Requisicao invalida.", status=403)
+    if session.get("usuario_id"):
+        try:
+            commit_audit(get_db())
+        except pymysql.MySQLError:
+            get_db().rollback()
+            return err("Não foi possível registrar a saída. Tente novamente.", status=503)
+    session.clear()
+    return ok({"mensagem": "Sessao encerrada."})
 
 
 # ── Admin: listar pendentes ──────────────────
@@ -392,62 +942,114 @@ def listar_usuarios():
 
 @app.get("/admin/logs")
 def listar_logs():
-    """
-    Lista os últimos registros de atividade do sistema (log de acessos)
-    com o nome do usuário, a ação realizada e os detalhes. Usado pelo
-    painel de Usuários do proprietário.
-    Query params: limit (opcional, padrão 10)
-    """
-    limit = request.args.get("limit", "10")
+    """Histórico somente para consulta, com paginação por cursor estável."""
     try:
-        limit = max(1, min(100, int(limit)))
-    except (TypeError, ValueError):
-        limit = 10
-
-    db = get_db()
+        limit = max(1, min(100, int(request.args.get("limit", "50"))))
+        before = int(request.args.get("antes", "0"))
+        if before < 0:
+            raise ValueError
+    except (ValueError, TypeError):
+        return err("Paginação inválida.")
+    conditions, params = [], []
+    if before:
+        conditions.append("id < %s")
+        params.append(before)
     try:
-        with db.cursor() as cur:
+        user_id = request.args.get("usuario_id", "")
+        if user_id:
+            if int(user_id) < 1:
+                raise ValueError
+            conditions.append("usuario_id = %s")
+            params.append(int(user_id))
+        dates = {}
+        for key in ("data_inicio", "data_fim"):
+            value = request.args.get(key, "")
+            if value:
+                if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+                    raise ValueError
+                dates[key] = datetime.strptime(value, "%Y-%m-%d")
+        if len(dates) == 2 and dates["data_inicio"] > dates["data_fim"]:
+            raise ValueError
+        today = datetime.now(timezone(timedelta(hours=-3))).date()
+        if any(value.date() > today for value in dates.values()):
+            return err("Não é possível consultar atividades em datas futuras. Escolha uma data até hoje.")
+        # O filtro usa o mesmo horário de Brasília exibido pela tela (UTC-3).
+        if "data_inicio" in dates:
+            conditions.append("criado_em >= %s")
+            params.append(dates["data_inicio"] + timedelta(hours=3))
+        if "data_fim" in dates:
+            conditions.append("criado_em < %s")
+            params.append(dates["data_fim"] + timedelta(days=1, hours=3))
+    except (ValueError, TypeError, OverflowError):
+        return err("Informe um usuário válido e um período de datas válido.")
+    search = request.args.get("busca", "").strip()
+    activity = request.args.get("atividade", "")
+    if len(search) > 120 or activity not in {"", "alteracoes", "consultas"}:
+        return err("Informe uma busca de até 120 caracteres e uma atividade válida.")
+    if search:
+        conditions.append("(LOCATE(%s, acao) > 0 OR LOCATE(%s, detalhes) > 0 OR LOCATE(%s, usuario_nome) > 0)")
+        params.extend([search] * 3)
+    if activity:
+        conditions.append("detalhes " + ("NOT LIKE" if activity == "alteracoes" else "LIKE") + " %s")
+        params.append("GET %")
+    try:
+        users = None
+        with get_db().cursor() as cur:
+            if request.args.get("incluir_usuarios") == "1":
+                # Todos os cadastros, mesmo sem atividade, e autores já excluídos.
+                cur.execute("""SELECT u.id, TRIM(CONCAT(u.nome, ' ', COALESCE(u.sobrenome, ''))) AS nome
+                               FROM usuarios u
+                               UNION ALL
+                               SELECT l.usuario_id AS id, MAX(l.usuario_nome) AS nome
+                               FROM log_atividades l
+                               WHERE l.usuario_id IS NOT NULL
+                                 AND NOT EXISTS (SELECT 1 FROM usuarios u WHERE u.id = l.usuario_id)
+                               GROUP BY l.usuario_id ORDER BY nome, id""")
+                users = cur.fetchall()
             cur.execute(
-                """
-                SELECT l.id,
-                       CONCAT(u.nome, ' ', COALESCE(u.sobrenome, '')) AS usuario_nome,
-                       l.sucesso,
-                       l.motivo_falha,
-                       l.criado_em
-                FROM   log_acessos l
-                JOIN   usuarios u ON u.id = l.usuario_id
-                ORDER  BY l.criado_em DESC
-                LIMIT  %s
-                """,
-                (limit,),
+                """SELECT id, usuario_id, usuario_nome, perfil, acao, detalhes, status_http, criado_em
+                   FROM log_atividades """ + ("WHERE " + " AND ".join(conditions) + " " if conditions else "") +
+                "ORDER BY id DESC LIMIT %s",
+                tuple(params) + (limit + 1,),
             )
             rows = cur.fetchall()
-
-        logs = []
+        more = len(rows) > limit
+        rows = rows[:limit]
         for row in rows:
-            nome = (row.get("usuario_nome") or "").strip() or "Usuário"
-            logs.append(
-                {
-                    "id": row["id"],
-                    "usuario_nome": nome,
-                    "acao": "fez login no sistema" if row["sucesso"] else "falhou ao entrar",
-                    "detalhes": (row.get("motivo_falha") or "") or ("acesso realizado com sucesso" if row["sucesso"] else ""),
-                    "criado_em": row["criado_em"].isoformat() if isinstance(row["criado_em"], datetime) else str(row["criado_em"]),
-                }
-            )
-
-        return ok({"logs": logs})
-
+            if isinstance(row.get("criado_em"), datetime):
+                row["criado_em"] = row["criado_em"].replace(tzinfo=timezone.utc).isoformat()
+        result = {"logs": rows, "proximo": rows[-1]["id"] if more else None,
+                  "filtros": {key: request.args.get(key, "") for key in ("usuario_id", "data_inicio", "data_fim", "busca", "atividade")}}
+        if users is not None:
+            result["usuarios"] = users
+        return ok(result)
     except pymysql.MySQLError as exc:
-        log.error("Erro DB ao listar logs: %s", exc)
-        return err("Erro interno.", status=500)
+        log.error("Erro ao consultar histórico: %s", exc)
+        return err("Não foi possível carregar o log. Verifique a migração 016.", status=503)
+
+
+@app.after_request
+def auditar_consultas(response):
+    # Mutações já foram auditadas atomicamente no commit. Não grava arquivos,
+    # polling visual público, preflight ou a própria leitura do histórico.
+    if (getattr(g, "usuario_id", None) and not getattr(g, "audit_written", False)
+            and request.method == "GET" and request.path != "/admin/logs"
+            and response.status_code < 400):
+        try:
+            write_event(get_db(), response.status_code)
+            get_db().commit()
+        except pymysql.MySQLError as exc:
+            get_db().rollback()
+            log.error("Falha ao registrar consulta: %s", exc)
+            return app.make_response(err("Não foi possível registrar a consulta no log.", status=503))
+    return response
 
 
 @app.get("/admin/pendentes")
 def listar_pendentes():
     """
     Lista todos os cadastros aguardando análise.
-    Em produção, proteja esta rota com autenticação de admin.
+    A sessão, o perfil administrativo e o CSRF são verificados em proteger_api.
     """
     db = get_db()
     try:
@@ -477,32 +1079,111 @@ def listar_pendentes():
         return err("Erro interno. Tente novamente em instantes.", status=500)
 
 
+PERMISSION_MODULES = (
+    "dashboard", "estoque", "vencimentos", "relatorios",
+    "compras", "financeiro", "usuarios", "configuracoes",
+)
+
+
+def require_profile_permissions_table(db):
+    """Valida a migração permanente de permissões, sem alterar o schema em produção."""
+    with db.cursor() as cur:
+        cur.execute("SELECT 1 FROM perfil_permissoes LIMIT 1")
+
+
+@app.get("/admin/perfis/permissoes")
+def listar_permissoes_perfis():
+    db = get_db()
+    try:
+        require_profile_permissions_table(db)
+        with db.cursor() as cur:
+            cur.execute("""
+                SELECT p.slug, p.nome, pp.modulo, pp.permitido
+                FROM perfis p
+                LEFT JOIN perfil_permissoes pp ON pp.perfil_id = p.id
+                WHERE p.slug IN (%s, %s, %s, %s, %s, %s, %s)
+                ORDER BY FIELD(p.slug, 'proprietario', 'admin', 'farmaceutico', 'atendente', 'visualizador', 'compras', 'ti'), pp.modulo
+            """, EDITABLE_PROFILE_SLUGS)
+            rows = cur.fetchall()
+        profiles = {}
+        for row in rows:
+            profile = profiles.setdefault(row["slug"], {"slug": row["slug"], "nome": row["nome"], "permissoes": []})
+            if row["modulo"] and row["permitido"]:
+                profile["permissoes"].append(row["modulo"])
+        return ok({"perfis": list(profiles.values()), "modulos": list(PERMISSION_MODULES)})
+    except pymysql.MySQLError as exc:
+        db.rollback()
+        log.error("Erro ao listar permissões de perfil: %s", exc)
+        return err("Não foi possível carregar as permissões.", status=500)
+
+
+@app.put("/admin/perfis/permissoes")
+def atualizar_permissoes_perfis():
+    data = request.get_json(silent=True) or {}
+    changes = data.get("perfis")
+    if not isinstance(changes, dict):
+        return err("Informe as permissões por perfil.", campo="perfis")
+    invalid_profiles = set(changes) - set(EDITABLE_PROFILE_SLUGS)
+    if invalid_profiles:
+        return err("Perfil inválido.", campo="perfis")
+    for permissions in changes.values():
+        if (not isinstance(permissions, list)
+                or any(not isinstance(module, str) for module in permissions)
+                or set(permissions) - set(PERMISSION_MODULES)):
+            return err("Módulo de permissão inválido.", campo="perfis")
+    db = get_db()
+    try:
+        require_profile_permissions_table(db)
+        with db.cursor() as cur:
+            for slug, permissions in changes.items():
+                cur.execute("SELECT id FROM perfis WHERE slug = %s", (slug,))
+                profile = cur.fetchone()
+                if not profile:
+                    return err("Perfil não encontrado.", campo="perfis", status=404)
+                cur.execute("DELETE FROM perfil_permissoes WHERE perfil_id = %s", (profile["id"],))
+                cur.executemany(
+                    "INSERT INTO perfil_permissoes (perfil_id, modulo, permitido) VALUES (%s, %s, 1)",
+                    [(profile["id"], module) for module in permissions],
+                )
+        g.audit_permissions = changes
+        commit_audit(db)
+        return ok({"mensagem": "Permissões atualizadas com sucesso."})
+    except pymysql.MySQLError as exc:
+        db.rollback()
+        log.error("Erro ao atualizar permissões de perfil: %s", exc)
+        return err("Não foi possível salvar as permissões.", status=500)
+
+
 @app.put("/admin/usuarios/<int:usuario_id>")
 def editar_usuario(usuario_id):
     """
     Atualiza dados de um usuário existente (nome, e-mail, perfil e senha).
-    Em produção, proteja esta rota com autenticação de admin.
+    A sessão, o perfil administrativo e o CSRF são verificados em proteger_api.
     Payload: { nome, email, perfil, senha, status }
     `status` aceita 'ativo' (aprovado) ou 'inativo' (rejeitado).
     """
     data = request.get_json(silent=True) or {}
 
-    nome      = (data.get("nome") or "").strip()
-    email     = (data.get("email") or "").strip().lower()
-    role      = (data.get("perfil") or "").strip()
+    nome      = (data.get("nome") or "").strip() if "nome" in data else None
+    email     = (data.get("email") or "").strip().lower() if "email" in data else None
+    role      = (data.get("perfil") or "").strip() if "perfil" in data else None
     senha     = data.get("senha")
     status    = data.get("status")  # 'ativo' ou 'inativo'
 
-    if len(nome) < 2:
+    if nome is not None and len(nome) < 2:
         return err("Nome deve ter pelo menos 2 caracteres.", campo="nome")
-    if not EMAIL_RE.match(email):
+    if email is not None and not EMAIL_RE.match(email):
         return err("Informe um e-mail válido.", campo="email")
-    if role and role not in PERFIS_VALIDOS:
+    if role is not None and role not in PERFIS_VALIDOS:
         return err("Perfil de acesso inválido.", campo="perfil")
     if status and status not in ("ativo", "inativo"):
         return err("Status inválido. Use 'ativo' ou 'inativo'.", campo="status")
     if senha is not None and len(senha) < 8:
         return err("A senha deve ter pelo menos 8 caracteres.", campo="senha")
+    if nome is None and email is None and role is None and senha is None and status is None:
+        return err("Informe ao menos um campo para atualizar.")
+    if usuario_id == g.usuario_id and status == "inativo":
+        return err("Você não pode desativar sua própria conta enquanto estiver conectado.", status=409)
 
     # Mapeia o status amigável para o valor real do banco
     status_db = {"ativo": "aprovado", "inativo": "rejeitado"}.get(status)
@@ -510,15 +1191,25 @@ def editar_usuario(usuario_id):
     db = get_db()
     try:
         with db.cursor() as cur:
+            cur.execute("SELECT id FROM usuarios WHERE id = %s", (usuario_id,))
+            if not cur.fetchone():
+                return err("Usuário não encontrado.", status=404)
             # E-mail já em uso por outro usuário?
-            cur.execute("SELECT id FROM usuarios WHERE email = %s AND id != %s", (email, usuario_id))
-            if cur.fetchone():
-                return err("Este e-mail já está em uso por outro usuário.", campo="email", status=409)
+            if email is not None:
+                cur.execute("SELECT id FROM usuarios WHERE email = %s AND id != %s", (email, usuario_id))
+                if cur.fetchone():
+                    return err("Este e-mail já está em uso por outro usuário.", campo="email", status=409)
 
-            set_parts = ["nome = %s", "email = %s"]
-            values = [nome, email]
+            set_parts = []
+            values = []
+            if nome is not None:
+                set_parts.append("nome = %s")
+                values.append(nome)
+            if email is not None:
+                set_parts.append("email = %s")
+                values.append(email)
 
-            if role:
+            if role is not None:
                 cur.execute("SELECT id FROM perfis WHERE slug = %s", (role,))
                 perfil = cur.fetchone()
                 if not perfil:
@@ -531,7 +1222,7 @@ def editar_usuario(usuario_id):
                 values.append(status_db)
 
             if senha is not None and senha:
-                set_parts.append("senha_hash = %s")
+                set_parts.extend(["senha_hash = %s", "token_reset = NULL", "token_expira_em = NULL"])
                 values.append(hash_senha(senha))
 
             values.append(usuario_id)
@@ -539,7 +1230,7 @@ def editar_usuario(usuario_id):
                 f"UPDATE usuarios SET {', '.join(set_parts)} WHERE id = %s",
                 tuple(values),
             )
-            db.commit()
+            commit_audit(db, cur.lastrowid)
 
         log.info("Usuário %s atualizado", usuario_id)
         return ok({"mensagem": "Usuário atualizado com sucesso."})
@@ -552,11 +1243,101 @@ def editar_usuario(usuario_id):
 
 # ── Admin: aprovar/rejeitar cadastro ─────────
 
+@app.post("/admin/convites")
+def criar_convite():
+    """Cria convite pendente e envia ao destinatário links de aceitar/recusar."""
+    data = request.get_json(silent=True) or {}
+    nome = (data.get("nome") or "").strip()
+    sobrenome = (data.get("sobrenome") or "").strip()
+    email = (data.get("email") or "").strip().lower()
+    role = (data.get("role") or "").strip()
+    if len(nome) < 2 or len(sobrenome) < 2:
+        return err("Informe nome e sobrenome.", campo="nome", status=400)
+    if not EMAIL_RE.match(email):
+        return err("Informe um e-mail válido.", campo="email", status=400)
+    if role not in PERFIS_VALIDOS or role == "proprietario":
+        return err("Perfil de convite inválido.", campo="role", status=400)
+
+    token = secrets.token_urlsafe(32)
+    db = get_db()
+    try:
+        with db.cursor() as cur:
+            cur.execute("SELECT id FROM usuarios WHERE email = %s", (email,))
+            if cur.fetchone():
+                return err("Este e-mail já possui uma conta.", campo="email", status=409)
+            cur.execute("SELECT id FROM perfis WHERE slug = %s", (role,))
+            perfil = cur.fetchone()
+            if not perfil:
+                return err("Perfil não encontrado.", campo="role", status=400)
+            # Substitui convite pendente anterior para o mesmo e-mail, sem
+            # expor nem reutilizar o token anterior.
+            cur.execute("UPDATE convites_cadastro SET status = 'expirado', respondido_em = NOW() WHERE email = %s AND status = 'pendente'", (email,))
+            cur.execute("""
+                INSERT INTO convites_cadastro
+                    (nome, sobrenome, email, perfil_id, convidado_por_usuario_id, token_hash, expira_em)
+                VALUES (%s, %s, %s, %s, %s, %s, DATE_ADD(NOW(), INTERVAL %s HOUR))
+            """, (nome, sobrenome, email, perfil["id"], g.usuario_id, hash_convite(token), INVITE_EXPIRY_HOURS))
+        commit_audit(db, cur.lastrowid)
+    except pymysql.MySQLError as exc:
+        db.rollback()
+        log.error("Erro ao criar convite: %s", exc)
+        return err("Não foi possível criar o convite.", status=500)
+
+    base_url = os.getenv("APP_PUBLIC_URL", "http://localhost:5000").rstrip("/")
+    aceitar_url = f"{base_url}/pages/convite/convite.html?convite={token}"
+    recusar_url = f"{base_url}/pages/convite/convite.html?convite={token}&recusar=1"
+    nome_seguro = html.escape(nome)
+    enviado = enviar_email_brevo(
+        email,
+        "Convite para o FarmaControl",
+        f"""<p>Olá, {nome_seguro}.</p>
+        <p>Você recebeu um convite para criar seu acesso ao FarmaControl.</p>
+        <p><a href=\"{aceitar_url}\">Aceitar convite</a> &nbsp;|&nbsp; <a href=\"{recusar_url}\">Recusar convite</a></p>
+        <p>O convite expira em 7 dias. Ao aceitar, você definirá sua senha e confirmará os documentos legais.</p>""",
+    )
+    if not enviado:
+        return err("O convite foi salvo, mas o e-mail não pôde ser enviado. Verifique o SMTP da Brevo antes de reenviar.", status=503)
+    return ok({"mensagem": "Convite enviado por e-mail. A conta será criada somente se a pessoa aceitar os documentos legais.", "email": email}, status=201)
+
+@app.delete("/admin/usuarios/<int:usuario_id>")
+def excluir_usuario(usuario_id):
+    """Remove uma conta sem permitir a autoexclusao da sessao atual."""
+    if usuario_id == g.usuario_id:
+        return err("Voce nao pode excluir a propria conta enquanto estiver conectado.", status=409)
+
+    db = get_db()
+    try:
+        with db.cursor() as cur:
+            cur.execute("SELECT id FROM usuarios WHERE id = %s", (usuario_id,))
+            if not cur.fetchone():
+                return err("Usuario nao encontrado.", status=404)
+            # Aceites pertencem exclusivamente à conta. Ao excluir uma conta
+            # sem histórico operacional, remove-se também esse dado pessoal;
+            # movimentações e documentos operacionais continuam protegidos
+            # pelas demais FKs RESTRICT.
+            cur.execute("DELETE FROM aceites_legais WHERE usuario_id = %s", (usuario_id,))
+            cur.execute("DELETE FROM usuarios WHERE id = %s", (usuario_id,))
+            commit_audit(db, cur.lastrowid)
+        log.info("Usuario %s excluido por %s", usuario_id, g.usuario_id)
+        return ok({"mensagem": "Conta excluida com sucesso."})
+    except pymysql.IntegrityError:
+        db.rollback()
+        return err(
+            "Esta conta possui movimentacoes ou documentos vinculados e nao pode ser excluida. "
+            "Desative a conta para preservar o historico.",
+            status=409,
+        )
+    except pymysql.MySQLError as exc:
+        db.rollback()
+        log.error("Erro DB ao excluir usuario %s: %s", usuario_id, exc)
+        return err("Erro interno ao excluir a conta.", status=500)
+
+
 @app.post("/admin/analisar-cadastro")
 def analisar_cadastro():
     """
     Aprova ou rejeita um cadastro pendente.
-    Em produção, proteja esta rota com autenticação de admin.
+    A sessão, o perfil administrativo e o CSRF são verificados em proteger_api.
     """
     data = request.get_json(silent=True) or {}
     usuario_id = data.get("usuario_id")
@@ -572,7 +1353,7 @@ def analisar_cadastro():
     try:
         with db.cursor() as cur:
             # Verifica se o usuário existe e está pendente
-            cur.execute("SELECT id, status FROM usuarios WHERE id = %s", (usuario_id,))
+            cur.execute("SELECT id, nome, email, status FROM usuarios WHERE id = %s", (usuario_id,))
             usuario = cur.fetchone()
             if not usuario:
                 return err("Usuário não encontrado.", status=404)
@@ -591,11 +1372,19 @@ def analisar_cadastro():
                 INSERT INTO analises_cadastro (usuario_id, analisado_por, decisao, motivo)
                 VALUES (%s, %s, %s, %s)
                 """,
-                (usuario_id, None, decisao, motivo),
+                (usuario_id, g.usuario_id, decisao, motivo),
             )
-            db.commit()
+            commit_audit(db, cur.lastrowid)
 
         log.info("Cadastro %s para usuário %s", decisao, usuario_id)
+        nome_usuario = html.escape(usuario.get("nome") or "usuário")
+        if decisao == "aprovado":
+            assunto = "Seu acesso ao FarmaControl foi aprovado"
+            corpo = f"<p>Olá, {nome_usuario}. Seu cadastro foi aprovado e seu acesso já está disponível.</p>"
+        else:
+            assunto = "Atualização sobre seu cadastro no FarmaControl"
+            corpo = f"<p>Olá, {nome_usuario}. Seu cadastro não foi aprovado. Entre em contato com a equipe responsável para mais informações.</p>"
+        enviar_email_brevo(usuario["email"], assunto, corpo)
         return ok({"mensagem": f"Cadastro {decisao} com sucesso."})
 
     except pymysql.MySQLError as exc:
@@ -658,7 +1447,7 @@ def create_cliente():
                 """,
                 (nome, sobrenome, cpf, telefone, email, endereco, data_nascimento)
             )
-            db.commit()
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Cliente criado com sucesso.", "id": cur.lastrowid}, status=201)
     except pymysql.IntegrityError as exc:
         db.rollback()
@@ -698,7 +1487,7 @@ def update_cliente(cliente_id):
                 """,
                 (nome, sobrenome, cpf, telefone, email, endereco, data_nascimento, cliente_id)
             )
-            db.commit()
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Cliente atualizado com sucesso."})
     except pymysql.IntegrityError as exc:
         db.rollback()
@@ -723,7 +1512,7 @@ def delete_cliente(cliente_id):
                 return err("Cliente não encontrado.", status=404)
 
             cur.execute("DELETE FROM clientes WHERE id = %s", (cliente_id,))
-            db.commit()
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Cliente excluído com sucesso."})
     except pymysql.MySQLError as exc:
         db.rollback()
@@ -780,7 +1569,7 @@ def create_categoria_produto():
                 """,
                 (nome, descricao)
             )
-            db.commit()
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Categoria de produto criada com sucesso.", "id": cur.lastrowid}, status=201)
     except pymysql.IntegrityError as exc:
         db.rollback()
@@ -813,7 +1602,7 @@ def update_categoria_produto(categoria_id):
                 """,
                 (nome, descricao, categoria_id)
             )
-            db.commit()
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Categoria de produto atualizada com sucesso."})
     except pymysql.IntegrityError as exc:
         db.rollback()
@@ -836,7 +1625,7 @@ def delete_categoria_produto(categoria_id):
                 return err("Categoria de produto não encontrada.", status=404)
 
             cur.execute("DELETE FROM categorias_produto WHERE id = %s", (categoria_id,))
-            db.commit()
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Categoria de produto excluída com sucesso."})
     except pymysql.MySQLError as exc:
         db.rollback()
@@ -877,39 +1666,22 @@ def get_produto(produto_id):
 @app.post("/produtos")
 def create_produto():
     data = request.get_json(silent=True) or {}
-    nome = data.get("nome")
-    nome_generico = data.get("nome_generico")
-    descricao = data.get("descricao")
-    fabricante = data.get("fabricante")
-    preco_custo = data.get("preco_custo")
-    preco_venda = data.get("preco_venda")
-    codigo_barras = data.get("codigo_barras")
-    categoria_id = data.get("categoria_id")
-    requer_receita = data.get("requer_receita", False)
-    ativo = data.get("ativo", True)
-
-    if not nome or not preco_custo or not preco_venda:
-        return err("Nome, preço de custo e preço de venda são obrigatórios.", status=400)
-    if preco_custo <= 0 or preco_venda <= 0:
-        return err("Preço de custo e venda devem ser maiores que zero.", status=400)
+    try:
+        product = normalize_product(data)
+    except ValueError as exc:
+        return err(str(exc), status=400)
 
     db = get_db()
     try:
         with db.cursor() as cur:
-            if categoria_id:
-                cur.execute("SELECT id FROM categorias_produto WHERE id = %s", (categoria_id,))
-                if not cur.fetchone():
-                    return err("Categoria não encontrada.", campo="categoria_id", status=400)
-
-            cur.execute(
-                """
-                INSERT INTO produtos (nome, nome_generico, descricao, fabricante, preco_custo, preco_venda, codigo_barras, categoria_id, requer_receita, ativo)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-                (nome, nome_generico, descricao, fabricante, preco_custo, preco_venda, codigo_barras, categoria_id, requer_receita, ativo)
-            )
-            db.commit()
-            return ok({"mensagem": "Produto criado com sucesso.", "id": cur.lastrowid}, status=201)
+            if "estoque_minimo" not in data:
+                product["estoque_minimo"] = int(read_settings(cur)["estoque_minimo_padrao"])
+            product_id = save_product(cur, product)
+            commit_audit(db, cur.lastrowid)
+            return ok({"mensagem": "Produto criado com sucesso.", "id": product_id}, status=201)
+    except ValueError as exc:
+        db.rollback()
+        return err(str(exc), status=400)
     except pymysql.IntegrityError as exc:
         db.rollback()
         if "Duplicate entry" in str(exc) and "codigo_barras" in str(exc):
@@ -924,38 +1696,21 @@ def create_produto():
 @app.put("/produtos/<int:produto_id>")
 def update_produto(produto_id):
     data = request.get_json(silent=True) or {}
-    nome = data.get("nome")
-    nome_generico = data.get("nome_generico")
-    descricao = data.get("descricao")
-    fabricante = data.get("fabricante")
-    preco_custo = data.get("preco_custo")
-    preco_venda = data.get("preco_venda")
-    codigo_barras = data.get("codigo_barras")
-    categoria_id = data.get("categoria_id")
-    requer_receita = data.get("requer_receita", False)
-    ativo = data.get("ativo", True)
 
     db = get_db()
     try:
         with db.cursor() as cur:
-            cur.execute("SELECT id FROM produtos WHERE id = %s", (produto_id,))
-            if not cur.fetchone():
+            cur.execute("SELECT * FROM produtos WHERE id = %s FOR UPDATE", (produto_id,))
+            current = cur.fetchone()
+            if not current:
                 return err("Produto não encontrado.", status=404)
-
-            if categoria_id:
-                cur.execute("SELECT id FROM categorias_produto WHERE id = %s", (categoria_id,))
-                if not cur.fetchone():
-                    return err("Categoria não encontrada.", campo="categoria_id", status=400)
-
-            cur.execute(
-                """
-                UPDATE produtos SET nome = %s, nome_generico = %s, descricao = %s, fabricante = %s, preco_custo = %s, preco_venda = %s, codigo_barras = %s, categoria_id = %s, requer_receita = %s, ativo = %s
-                WHERE id = %s
-                """,
-                (nome, nome_generico, descricao, fabricante, preco_custo, preco_venda, codigo_barras, categoria_id, requer_receita, ativo, produto_id)
-            )
-            db.commit()
+            product = normalize_product(data, current)
+            save_product(cur, product, produto_id)
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Produto atualizado com sucesso."})
+    except ValueError as exc:
+        db.rollback()
+        return err(str(exc), status=400)
     except pymysql.IntegrityError as exc:
         db.rollback()
         if "Duplicate entry" in str(exc) and "codigo_barras" in str(exc):
@@ -977,7 +1732,7 @@ def delete_produto(produto_id):
                 return err("Produto não encontrado.", status=404)
 
             cur.execute("DELETE FROM produtos WHERE id = %s", (produto_id,))
-            db.commit()
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Produto excluído com sucesso."})
     except pymysql.MySQLError as exc:
         db.rollback()
@@ -1039,7 +1794,7 @@ def create_fornecedor():
                 """,
                 (nome_fantasia, razao_social, cnpj, contato_nome, contato_telefone, contato_email, endereco)
             )
-            db.commit()
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Fornecedor criado com sucesso.", "id": cur.lastrowid}, status=201)
     except pymysql.IntegrityError as exc:
         db.rollback()
@@ -1079,7 +1834,7 @@ def update_fornecedor(fornecedor_id):
                 """,
                 (nome_fantasia, razao_social, cnpj, contato_nome, contato_telefone, contato_email, endereco, fornecedor_id)
             )
-            db.commit()
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Fornecedor atualizado com sucesso."})
     except pymysql.IntegrityError as exc:
         db.rollback()
@@ -1104,7 +1859,7 @@ def delete_fornecedor(fornecedor_id):
                 return err("Fornecedor não encontrado.", status=404)
 
             cur.execute("DELETE FROM fornecedores WHERE id = %s", (fornecedor_id,))
-            db.commit()
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Fornecedor excluído com sucesso."})
     except pymysql.IntegrityError as exc:
         db.rollback()
@@ -1135,6 +1890,8 @@ def get_estoque():
             cur.execute("""
                 SELECT e.*,
                        p.nome                        AS produto_nome,
+                       p.tipo_produto, p.exige_validade, p.requer_receita,
+                       p.preco_venda, p.categoria_id,
                        p.nome_generico               AS principio_ativo,
                        p.fabricante                  AS produto_fabricante,
                        COALESCE(p.preco_custo, 0)    AS preco_custo,
@@ -1169,6 +1926,19 @@ def get_estoque():
         log.error("Erro DB ao buscar estoque: %s", exc)
         return err("Erro interno ao buscar estoque.", status=500)
 
+@app.get("/estoque/parametros")
+def get_parametros_estoque():
+    db = get_db()
+    try:
+        with db.cursor() as cur:
+            settings = read_settings(cur)
+        keys = ('estoque_minimo_padrao', 'estoque_maximo_padrao', 'ponto_reposicao',
+                'controle_lote_obrigatorio', 'bloquear_produtos_vencidos', 'unidade_medida_padrao')
+        return ok({'parametros': {key: settings[key] for key in keys}})
+    except pymysql.MySQLError:
+        return err('Erro ao carregar parâmetros de estoque.', status=500)
+
+
 @app.get("/estoque/<int:estoque_id>")
 def get_item_estoque(estoque_id):
     db = get_db()
@@ -1177,6 +1947,8 @@ def get_item_estoque(estoque_id):
             cur.execute("""
                 SELECT e.*,
                        p.nome          AS produto_nome,
+                       p.tipo_produto, p.exige_validade, p.requer_receita,
+                       p.preco_venda, p.categoria_id, p.fornecedor_id, p.estoque_minimo,
                        p.nome_generico AS produto_principio,
                        p.fabricante    AS produto_fabricante,
                        p.preco_custo   AS produto_preco_custo,
@@ -1212,45 +1984,35 @@ def create_item_estoque():
     quantidade    = data.get("quantidade")
     data_validade = data.get("data_validade")
     localizacao   = data.get("localizacao")
-    usuario_id    = data.get("usuario_id")
-    # Campos opcionais de produto (usados ao criar produto novo)
-    produto_principio = (data.get("produto_principio") or "").strip()
-    produto_categoria = data.get("produto_categoria_id")
-    produto_custo     = data.get("produto_preco_custo") or 0.01
-    produto_venda     = data.get("produto_preco_venda") or 0.01
-    produto_fornecedor = data.get("produto_fornecedor_id")
+    usuario_id    = g.usuario_id
 
     if not produto_id and not produto_nome:
         return err("Informe produto_id ou produto_nome.", status=400)
-    if not quantidade or quantidade <= 0:
+    if isinstance(quantidade, bool) or not isinstance(quantidade, int) or quantidade <= 0:
         return err("Quantidade deve ser maior que zero.", status=400)
-    if not data_validade:
-        return err("Data de validade é obrigatória.", status=400)
-    if produto_fornecedor and not str(produto_fornecedor).isdigit():
-        produto_fornecedor = None
 
     db = get_db()
     try:
         with db.cursor() as cur:
-            # Resolve produto_id a partir do nome se não foi fornecido
-            if not produto_id:
-                cur.execute("SELECT id FROM produtos WHERE nome = %s LIMIT 1", (produto_nome,))
+            if produto_id:
+                cur.execute("SELECT * FROM produtos WHERE id = %s FOR UPDATE", (produto_id,))
                 prod = cur.fetchone()
-                if prod:
-                    produto_id = prod["id"]
-                else:
-                    # Cria produto mínimo
-                    cur.execute(
-                        """
-                        INSERT INTO produtos (nome, nome_generico, preco_custo, preco_venda, categoria_id, fornecedor_id)
-                        VALUES (%s, %s, %s, %s, %s, %s)
-                        """,
-                        (produto_nome, produto_principio or None,
-                         produto_custo, produto_venda, produto_categoria or None,
-                         produto_fornecedor if produto_fornecedor and produto_fornecedor.isdigit() else None)
-                    )
-                    produto_id = cur.lastrowid
-                    log.info("Produto criado automaticamente: %s (id=%s)", produto_nome, produto_id)
+                if not prod:
+                    return err("Produto não encontrado.", status=404)
+            else:
+                # Evita que itens homônimos sejam silenciosamente fundidos.
+                cur.execute("SELECT id FROM produtos WHERE nome = %s LIMIT 1", (produto_nome,))
+                if cur.fetchone():
+                    return err("Já existe um produto com esse nome. Informe produto_id para adicionar um lote ao cadastro existente.", status=409)
+                fields = stock_product_data(data)
+                fields.setdefault("preco_custo", 0.01)
+                fields.setdefault("preco_venda", 0.01)
+                fields.setdefault("estoque_minimo", int(read_settings(cur)["estoque_minimo_padrao"]))
+                prod = normalize_product(fields)
+            require_lot(read_settings(cur), lote)
+            data_validade = validate_expiry(data_validade, prod)
+            if not produto_id:
+                produto_id = save_product(cur, prod)
 
             cur.execute(
                 """
@@ -1261,20 +2023,22 @@ def create_item_estoque():
             )
             estoque_id = cur.lastrowid
 
-            # Registra movimentação de entrada se usuario_id fornecido
-            if usuario_id:
-                cur.execute(
-                    """
-                    INSERT INTO movimentacoes_estoque
-                           (estoque_id, usuario_id, tipo_movimentacao, quantidade, observacao)
-                    VALUES (%s, %s, 'entrada', %s, %s)
-                    """,
-                    (estoque_id, usuario_id, quantidade, "Cadastro inicial de estoque")
-                )
+            cur.execute(
+                """
+                INSERT INTO movimentacoes_estoque
+                       (estoque_id, usuario_id, tipo_movimentacao, quantidade, observacao)
+                VALUES (%s, %s, 'entrada', %s, %s)
+                """,
+                (estoque_id, usuario_id, quantidade, "Cadastro inicial de estoque")
+            )
 
-            db.commit()
+            g.audit_values = {"produto_id": produto_id}
+            commit_audit(db, estoque_id)
             return ok({"mensagem": "Item de estoque criado com sucesso.",
                        "id": estoque_id, "produto_id": produto_id}, status=201)
+    except ValueError as exc:
+        db.rollback()
+        return err(str(exc), status=400)
     except pymysql.IntegrityError as exc:
         db.rollback()
         if "Duplicate entry" in str(exc) and "uk_produto_lote" in str(exc):
@@ -1290,8 +2054,8 @@ def create_item_estoque():
 def update_item_estoque(estoque_id):
     """
     Atualiza item de estoque. Aceita campos do produto (nome, principio, categoria)
-    para atualizar o produto associado. Registra ajuste de movimentação se
-    a quantidade mudar e usuario_id for fornecido.
+    para atualizar o produto associado. Registra ajuste de movimentação com
+    a autoria da sessão quando a quantidade muda.
     """
     data = request.get_json(silent=True) or {}
     produto_id        = data.get("produto_id")
@@ -1299,56 +2063,46 @@ def update_item_estoque(estoque_id):
     quantidade        = data.get("quantidade")
     data_validade     = data.get("data_validade")
     localizacao       = data.get("localizacao")
-    usuario_id        = data.get("usuario_id")
-    # Campos do produto para atualizar
-    produto_nome      = (data.get("produto_nome") or "").strip()
-    produto_principio = (data.get("produto_principio") or "").strip()
-    produto_custo     = data.get("produto_preco_custo")
-    produto_fornecedor = data.get("produto_fornecedor_id")
+    usuario_id        = g.usuario_id
+
+    if quantidade is not None:
+        if not isinstance(quantidade, int) or isinstance(quantidade, bool) or quantidade < 0:
+            return err("Quantidade deve ser um número inteiro igual ou maior que zero.", campo="quantidade", status=400)
 
     db = get_db()
     try:
         with db.cursor() as cur:
-            cur.execute("SELECT id, produto_id, quantidade FROM estoque WHERE id = %s", (estoque_id,))
+            # O bloqueio protege o cálculo do ajuste contra outra baixa/entrada
+            # concorrente no mesmo lote até o commit desta transação.
+            cur.execute("SELECT id, produto_id, quantidade, data_validade FROM estoque WHERE id = %s FOR UPDATE", (estoque_id,))
             item_atual = cur.fetchone()
             if not item_atual:
                 return err("Item de estoque não encontrado.", status=404)
 
+            if lote is not None:
+                require_lot(read_settings(cur), lote.strip())
             pid = produto_id or item_atual["produto_id"]
 
-            # Atualiza campos do produto se fornecidos
-            if produto_nome or produto_principio or produto_custo is not None:
-                updates, vals = [], []
-                if produto_nome:
-                    updates.append("nome = %s")
-                    vals.append(produto_nome)
-                if produto_principio:
-                    updates.append("nome_generico = %s")
-                    vals.append(produto_principio)
-                if produto_custo is not None:
-                    updates.append("preco_custo = %s")
-                    vals.append(produto_custo)
-                if produto_fornecedor and str(produto_fornecedor).isdigit():
-                    updates.append("fornecedor_id = %s")
-                    vals.append(int(produto_fornecedor))
-                elif produto_fornecedor in ("", None):
-                    updates.append("fornecedor_id = NULL")
-                if updates:
-                    vals.append(pid)
-                    cur.execute(
-                        f"UPDATE produtos SET {', '.join(updates)} WHERE id = %s",
-                        vals
-                    )
+            cur.execute("SELECT * FROM produtos WHERE id = %s FOR UPDATE", (pid,))
+            current = cur.fetchone()
+            if not current:
+                return err("Produto não encontrado.", status=404)
+            product_fields = stock_product_data(data)
+            product = normalize_product(product_fields, current)
+            if "data_validade" in data or "exige_validade" in product_fields or produto_id is not None:
+                data_validade = validate_expiry(data.get("data_validade", item_atual["data_validade"]), product)
+            if product_fields:
+                save_product(cur, product, pid)
 
             # Monta campos de estoque a atualizar
             campos, valores = [], []
             if produto_id is not None:
                 campos.append("produto_id = %s"); valores.append(produto_id)
             if lote is not None:
-                campos.append("lote = %s"); valores.append(lote)
+                campos.append("lote = %s"); valores.append(lote.strip() or "SEM-LOTE")
             if quantidade is not None:
                 campos.append("quantidade = %s"); valores.append(quantidade)
-            if data_validade is not None:
+            if "data_validade" in data:
                 campos.append("data_validade = %s"); valores.append(data_validade)
             if localizacao is not None:
                 campos.append("localizacao = %s"); valores.append(localizacao)
@@ -1361,7 +2115,7 @@ def update_item_estoque(estoque_id):
                 )
 
             # Registra ajuste de movimentação se quantidade mudou
-            if usuario_id and quantidade is not None:
+            if quantidade is not None:
                 delta = quantidade - item_atual["quantidade"]
                 if delta != 0:
                     cur.execute(
@@ -1374,8 +2128,11 @@ def update_item_estoque(estoque_id):
                          f"Ajuste manual: {'entrada' if delta > 0 else 'saída'} de {abs(delta)} unidades")
                     )
 
-            db.commit()
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Item de estoque atualizado com sucesso."})
+    except ValueError as exc:
+        db.rollback()
+        return err(str(exc), status=400)
     except pymysql.IntegrityError as exc:
         db.rollback()
         if "Duplicate entry" in str(exc) and "uk_produto_lote" in str(exc):
@@ -1392,15 +2149,17 @@ def delete_item_estoque(estoque_id):
     db = get_db()
     try:
         with db.cursor() as cur:
-            cur.execute("SELECT id FROM estoque WHERE id = %s", (estoque_id,))
+            cur.execute("SELECT id FROM estoque WHERE id = %s FOR UPDATE", (estoque_id,))
             if not cur.fetchone():
                 return err("Item de estoque não encontrado.", status=404)
 
-            # A FK de movimentacoes_estoque é RESTRICT: registrar a baixa como
-            # movimentação de saída e remover o histórico vinculado antes de excluir.
-            cur.execute("DELETE FROM movimentacoes_estoque WHERE estoque_id = %s", (estoque_id,))
+            # Histórico de estoque é trilha de auditoria: um lote que já teve
+            # movimentação não pode ser apagado silenciosamente.
+            cur.execute("SELECT 1 FROM movimentacoes_estoque WHERE estoque_id = %s LIMIT 1", (estoque_id,))
+            if cur.fetchone():
+                return err("Não é possível excluir um item com movimentações. Zere o saldo por ajuste e mantenha o histórico.", status=409)
             cur.execute("DELETE FROM estoque WHERE id = %s", (estoque_id,))
-            db.commit()
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Item de estoque excluído com sucesso."})
     except pymysql.MySQLError as exc:
         db.rollback()
@@ -1442,6 +2201,43 @@ def get_historico_estoque(estoque_id):
 
 @app.get("/movimentacoes-estoque")
 def get_movimentacoes_estoque():
+    produto_id = request.args.get("produto_id", type=int)
+    tipo = request.args.get("tipo")
+    periodo_dias = request.args.get("periodo_dias", type=int)
+    limite = request.args.get("limite", default=1000, type=int)
+    offset = request.args.get('offset', default=0, type=int)
+    period = request.args.get('periodo')
+    search = request.args.get('busca', '').strip()
+    if offset is None or offset < 0:
+        return err('Página inválida.', campo='offset', status=400)
+    if period is not None and period not in PERIOD_START:
+        return err('Período inválido.', campo='periodo', status=400)
+    tipos_validos = {"entrada", "saida", "ajuste", "transferencia"}
+    if tipo and tipo not in tipos_validos:
+        return err("Tipo de movimentação inválido.", campo="tipo", status=400)
+    if produto_id is not None and produto_id <= 0:
+        return err("Produto inválido.", campo="produto_id", status=400)
+    if periodo_dias is not None and not 1 <= periodo_dias <= 3650:
+        return err("Período deve estar entre 1 e 3650 dias.", campo="periodo_dias", status=400)
+    if limite is None or not 1 <= limite <= 5000:
+        return err("Limite deve estar entre 1 e 5000.", campo="limite", status=400)
+
+    filtros, parametros = [], []
+    if produto_id is not None:
+        filtros.append("e.produto_id = %s")
+        parametros.append(produto_id)
+    if tipo:
+        filtros.append("me.tipo_movimentacao = %s")
+        parametros.append(tipo)
+    if periodo_dias is not None:
+        filtros.append("me.data_movimentacao >= DATE_SUB(CURDATE(), INTERVAL %s DAY)")
+        parametros.append(periodo_dias)
+    if period:
+        filtros.append(f"me.data_movimentacao >= {PERIOD_START[period]} AND me.data_movimentacao < CURDATE() + INTERVAL 1 DAY")
+    if search:
+        filtros.append("p.nome LIKE %s")
+        parametros.append('%' + search + '%')
+    where = f"WHERE {' AND '.join(filtros)}" if filtros else ""
     db = get_db()
     try:
         with db.cursor() as cur:
@@ -1455,16 +2251,23 @@ def get_movimentacoes_estoque():
                 JOIN   produtos p  ON e.produto_id  = p.id
                 LEFT JOIN categorias_produto cp ON p.categoria_id = cp.id
                 JOIN   usuarios u  ON me.usuario_id = u.id
-                ORDER  BY me.data_movimentacao DESC
-                LIMIT  200
-            """)
+                {where}
+                ORDER  BY me.data_movimentacao DESC, me.id DESC
+                LIMIT  %s OFFSET %s
+            """.format(where=where), (*parametros, limite, offset))
             movimentacoes = cur.fetchall()
+            total = None
+            if 'offset' in request.args:
+                cur.execute(f"""SELECT COUNT(*) AS total FROM movimentacoes_estoque me
+                    JOIN estoque e ON me.estoque_id=e.id JOIN produtos p ON e.produto_id=p.id
+                    JOIN usuarios u ON me.usuario_id=u.id {where}""", tuple(parametros))
+                total = int(cur.fetchone()['total'])
         for row in movimentacoes:
             if row.get("data_movimentacao") and hasattr(row["data_movimentacao"], "isoformat"):
                 row["data_movimentacao"] = row["data_movimentacao"].isoformat()
             if row.get("valor_unitario") is not None:
                 row["valor_unitario"] = float(row["valor_unitario"])
-        return ok({"movimentacoes": movimentacoes})
+        return ok({"movimentacoes": movimentacoes, **({"total": total} if total is not None else {})})
     except pymysql.MySQLError as exc:
         log.error("Erro DB ao buscar movimentações de estoque: %s", exc)
         return err("Erro interno ao buscar movimentações de estoque.", status=500)
@@ -1487,30 +2290,56 @@ def get_movimentacao_estoque(movimentacao_id):
 def create_movimentacao_estoque():
     data = request.get_json(silent=True) or {}
     estoque_id = data.get("estoque_id")
-    usuario_id = data.get("usuario_id")
+    usuario_id = g.usuario_id
     tipo_movimentacao = data.get("tipo_movimentacao")
     quantidade = data.get("quantidade")
     observacao = data.get("observacao")
+    estoque_destino_id = data.get("estoque_destino_id")
 
-    if not estoque_id or not usuario_id or not tipo_movimentacao or not quantidade:
-        return err("ID do estoque, ID do usuário, tipo de movimentação e quantidade são obrigatórios.", status=400)
-    if quantidade <= 0:
-        return err("Quantidade deve ser maior que zero.", status=400)
+    if not estoque_id or not tipo_movimentacao or not quantidade:
+        return err("ID do estoque, tipo de movimentação e quantidade são obrigatórios.", status=400)
+    if not isinstance(quantidade, int) or isinstance(quantidade, bool):
+        return err("Quantidade deve ser um número inteiro.", campo="quantidade", status=400)
     if tipo_movimentacao not in ["entrada", "saida", "ajuste", "transferencia"]:
         return err("Tipo de movimentação inválido.", status=400)
+    if tipo_movimentacao == "ajuste":
+        if quantidade == 0:
+            return err("Ajuste deve ser diferente de zero.", campo="quantidade", status=400)
+    elif quantidade <= 0:
+        return err("Quantidade deve ser maior que zero.", campo="quantidade", status=400)
+    if tipo_movimentacao == "transferencia":
+        if not isinstance(estoque_destino_id, int) or isinstance(estoque_destino_id, bool) or estoque_destino_id <= 0:
+            return err("Informe o estoque de destino para a transferência.", campo="estoque_destino_id", status=400)
+        if estoque_destino_id == estoque_id:
+            return err("O estoque de destino deve ser diferente da origem.", campo="estoque_destino_id", status=400)
 
     db = get_db()
     try:
         with db.cursor() as cur:
-            cur.execute("SELECT id, quantidade FROM estoque WHERE id = %s", (estoque_id,))
-            item_estoque = cur.fetchone()
+            # Em transferências, a ordem fixa evita deadlock quando dois lotes
+            # são transferidos simultaneamente em sentidos opostos.
+            ids_bloqueio = sorted({estoque_id, estoque_destino_id}) if tipo_movimentacao == "transferencia" else [estoque_id]
+            cur.execute(
+                "SELECT id, produto_id, quantidade, lote, data_validade FROM estoque WHERE id IN (" + ", ".join(["%s"] * len(ids_bloqueio)) + ") FOR UPDATE",
+                ids_bloqueio,
+            )
+            itens = {item["id"]: item for item in cur.fetchall()}
+            item_estoque = itens.get(estoque_id)
             if not item_estoque:
                 return err("Item de estoque não encontrado.", campo="estoque_id", status=400)
+            item_destino = itens.get(estoque_destino_id) if tipo_movimentacao == "transferencia" else None
+            if tipo_movimentacao == "transferencia" and not item_destino:
+                return err("Item de estoque de destino não encontrado.", campo="estoque_destino_id", status=400)
+            if tipo_movimentacao == "transferencia" and item_destino["produto_id"] != item_estoque["produto_id"]:
+                return err("A transferência deve ocorrer entre lotes do mesmo produto.", campo="estoque_destino_id", status=400)
 
-            cur.execute("SELECT id FROM usuarios WHERE id = %s", (usuario_id,))
-            if not cur.fetchone():
-                return err("Usuário não encontrado.", campo="usuario_id", status=400)
-
+            settings = read_settings(cur)
+            if tipo_movimentacao == 'saida':
+                require_usable_stock(settings, item_estoque)
+            elif tipo_movimentacao in ('entrada', 'transferencia'):
+                require_lot(settings, item_estoque.get('lote'))
+                if item_destino:
+                    require_lot(settings, item_destino.get('lote'))
             nova_quantidade_estoque = item_estoque["quantidade"]
             if tipo_movimentacao == "entrada":
                 nova_quantidade_estoque += quantidade
@@ -1519,18 +2348,10 @@ def create_movimentacao_estoque():
                     return err("Quantidade em estoque insuficiente para saída.", status=400)
                 nova_quantidade_estoque -= quantidade
             elif tipo_movimentacao == "ajuste":
-                # Para ajuste, a quantidade pode ser positiva ou negativa, mas aqui simplificamos como entrada/saída
-                # Uma implementação mais robusta permitiria definir a quantidade final ou um delta.
-                # Por simplicidade, vamos tratar como entrada/saída dependendo do sinal da quantidade.
-                if quantidade > 0:
-                    nova_quantidade_estoque += quantidade
-                else:
-                    if nova_quantidade_estoque < abs(quantidade):
-                        return err("Quantidade em estoque insuficiente para ajuste de saída.", status=400)
-                    nova_quantidade_estoque += quantidade # quantidade é negativa, então subtrai
+                if nova_quantidade_estoque + quantidade < 0:
+                    return err("Quantidade em estoque insuficiente para ajuste de saída.", status=400)
+                nova_quantidade_estoque += quantidade
             elif tipo_movimentacao == "transferencia":
-                # Transferência requer lógica mais complexa com outro estoque_id de destino
-                # Por simplicidade, trataremos como saída do estoque atual.
                 if nova_quantidade_estoque < quantidade:
                     return err("Quantidade em estoque insuficiente para transferência.", status=400)
                 nova_quantidade_estoque -= quantidade
@@ -1540,6 +2361,9 @@ def create_movimentacao_estoque():
                 (nova_quantidade_estoque, estoque_id)
             )
 
+            if tipo_movimentacao == "transferencia":
+                cur.execute("UPDATE estoque SET quantidade = quantidade + %s WHERE id = %s", (quantidade, estoque_destino_id))
+
             cur.execute(
                 """
                 INSERT INTO movimentacoes_estoque (estoque_id, usuario_id, tipo_movimentacao, quantidade, observacao)
@@ -1547,8 +2371,19 @@ def create_movimentacao_estoque():
                 """,
                 (estoque_id, usuario_id, tipo_movimentacao, quantidade, observacao)
             )
-            db.commit()
+            if tipo_movimentacao == "transferencia":
+                cur.execute(
+                    """
+                    INSERT INTO movimentacoes_estoque (estoque_id, usuario_id, tipo_movimentacao, quantidade, observacao)
+                    VALUES (%s, %s, 'transferencia', %s, %s)
+                    """,
+                    (estoque_destino_id, usuario_id, quantidade, observacao or f"Transferência recebida do lote {estoque_id}"),
+                )
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Movimentação de estoque criada com sucesso.", "id": cur.lastrowid}, status=201)
+    except ValueError as exc:
+        db.rollback()
+        return err(str(exc), status=400)
     except pymysql.MySQLError as exc:
         db.rollback()
         log.error("Erro DB ao criar movimentação de estoque: %s", exc)
@@ -1586,7 +2421,7 @@ def get_compras():
         if ids:
             with db.cursor() as cur2:
                 cur2.execute("""
-                    SELECT ic.*, p.nome AS produto_nome
+                    SELECT ic.*, p.nome AS produto_nome, p.exige_validade
                     FROM   itens_compra ic
                     JOIN   produtos p ON ic.produto_id = p.id
                     WHERE  ic.compra_id IN (%s)
@@ -1594,12 +2429,15 @@ def get_compras():
                 for item in cur2.fetchall():
                     itens_map.setdefault(item["compra_id"], []).append(item)
         for row in compras:
-            for k in ("criado_em", "data_recebimento", "atualizado_em", "data_entrega_prevista"):
+            for k in ("criado_em", "data_pedido", "data_recebimento", "atualizado_em", "data_entrega_prevista"):
                 if row.get(k) and hasattr(row[k], "isoformat"):
                     row[k] = row[k].isoformat()
             if row.get("valor_total") is not None:
                 row["valor_total"] = float(row["valor_total"])
             row["itens"] = itens_map.get(row["id"], [])
+            for item in row["itens"]:
+                if item.get("data_validade_recebida") and hasattr(item["data_validade_recebida"], "isoformat"):
+                    item["data_validade_recebida"] = item["data_validade_recebida"].isoformat()
         return ok({"compras": compras})
     except pymysql.MySQLError as exc:
         log.error("Erro DB ao buscar compras: %s", exc)
@@ -1643,13 +2481,13 @@ def get_compra(compra_id):
 def create_compra():
     data = request.get_json(silent=True) or {}
     fornecedor_id = data.get("fornecedor_id")
-    usuario_id = data.get("usuario_id")
+    usuario_id = g.usuario_id
     valor_total = data.get("valor_total")
     status = data.get("status", "pendente")
     itens = data.get("itens", []) # Lista de dicionários com produto_id, quantidade, preco_unitario, lote_recebido, data_validade_recebida
 
-    if not fornecedor_id or not usuario_id or not valor_total:
-        return err("Fornecedor, usuário e valor total são obrigatórios.", status=400)
+    if not fornecedor_id or not valor_total:
+        return err("Fornecedor e valor total são obrigatórios.", status=400)
     if valor_total <= 0:
         return err("Valor total deve ser maior que zero.", status=400)
     if status not in ["pendente", "recebido", "cancelado"]:
@@ -1661,10 +2499,6 @@ def create_compra():
             cur.execute("SELECT id FROM fornecedores WHERE id = %s", (fornecedor_id,))
             if not cur.fetchone():
                 return err("Fornecedor não encontrado.", campo="fornecedor_id", status=400)
-
-            cur.execute("SELECT id FROM usuarios WHERE id = %s", (usuario_id,))
-            if not cur.fetchone():
-                return err("Usuário não encontrado.", campo="usuario_id", status=400)
 
             cur.execute(
                 """
@@ -1679,17 +2513,21 @@ def create_compra():
                 produto_id = item.get("produto_id")
                 quantidade = item.get("quantidade")
                 preco_unitario = item.get("preco_unitario")
-                lote_recebido = item.get("lote_recebido")
+                lote_recebido = (item.get("lote_recebido") or "").strip() or "SEM-LOTE"
                 data_validade_recebida = item.get("data_validade_recebida")
 
                 if not produto_id or not quantidade or not preco_unitario:
                     db.rollback()
                     return err("Dados incompletos para item de compra.", status=400)
 
-                cur.execute("SELECT id FROM produtos WHERE id = %s", (produto_id,))
-                if not cur.fetchone():
+                cur.execute("SELECT id, exige_validade FROM produtos WHERE id = %s", (produto_id,))
+                product = cur.fetchone()
+                if not product:
                     db.rollback()
                     return err(f"Produto com ID {produto_id} não encontrado.", status=400)
+
+                data_validade_recebida = validate_expiry(
+                    data_validade_recebida, product if status == "recebido" else {"exige_validade": False})
 
                 cur.execute(
                     """
@@ -1701,7 +2539,8 @@ def create_compra():
 
                 # Se a compra foi recebida, atualiza o estoque
                 if status == "recebido":
-                    cur.execute("SELECT id FROM estoque WHERE produto_id = %s AND lote = %s", (produto_id, lote_recebido))
+                    require_lot(read_settings(cur), lote_recebido)
+                    cur.execute("SELECT id FROM estoque WHERE produto_id = %s AND lote = %s FOR UPDATE", (produto_id, lote_recebido))
                     estoque_item = cur.fetchone()
                     if estoque_item:
                         cur.execute("UPDATE estoque SET quantidade = quantidade + %s WHERE id = %s", (quantidade, estoque_item["id"]))
@@ -1722,8 +2561,12 @@ def create_compra():
                         (cur.lastrowid if not estoque_item else estoque_item["id"], usuario_id, "entrada", quantidade, f"Entrada por compra {compra_id}")
                     )
 
-            db.commit()
+            g.audit_values = {"status": status}
+            commit_audit(db, compra_id)
             return ok({"mensagem": "Compra criada com sucesso.", "id": compra_id}, status=201)
+    except ValueError as exc:
+        db.rollback()
+        return err(str(exc), status=400)
     except pymysql.MySQLError as exc:
         db.rollback()
         log.error("Erro DB ao criar compra: %s", exc)
@@ -1733,7 +2576,7 @@ def create_compra():
 def update_compra(compra_id):
     data = request.get_json(silent=True) or {}
     fornecedor_id = data.get("fornecedor_id")
-    usuario_id = data.get("usuario_id")
+    usuario_id = g.usuario_id
     valor_total = data.get("valor_total")
     status = data.get("status")
     data_recebimento = data.get("data_recebimento")
@@ -1741,7 +2584,7 @@ def update_compra(compra_id):
     db = get_db()
     try:
         with db.cursor() as cur:
-            cur.execute("SELECT id, status, usuario_id, valor_total, fornecedor_id FROM compras WHERE id = %s", (compra_id,))
+            cur.execute("SELECT id, status, usuario_id, valor_total, fornecedor_id FROM compras WHERE id = %s FOR UPDATE", (compra_id,))
             compra_existente = cur.fetchone()
             if not compra_existente:
                 return err("Compra não encontrada.", status=404)
@@ -1751,28 +2594,46 @@ def update_compra(compra_id):
                 if not cur.fetchone():
                     return err("Fornecedor não encontrado.", campo="fornecedor_id", status=400)
 
-            if usuario_id:
-                cur.execute("SELECT id FROM usuarios WHERE id = %s", (usuario_id,))
-                if not cur.fetchone():
-                    return err("Usuário não encontrado.", campo="usuario_id", status=400)
-
             if status and status not in ["pendente", "recebido", "cancelado"]:
                 return err("Status de compra inválido.", status=400)
+            if status and status != compra_existente["status"] and compra_existente["status"] == "recebido":
+                return err("Uma compra recebida não pode voltar de status; registre uma devolução de estoque para preservar a auditoria.", campo="status", status=409)
 
             # Lógica para atualizar estoque se o status mudar para 'recebido'
             if status == "recebido" and compra_existente["status"] != "recebido":
-                cur.execute("SELECT produto_id, quantidade, lote_recebido, data_validade_recebida FROM itens_compra WHERE compra_id = %s", (compra_id,))
+                cur.execute("SELECT id, produto_id, quantidade, lote_recebido, data_validade_recebida FROM itens_compra WHERE compra_id = %s", (compra_id,))
                 itens_compra = cur.fetchall()
-                # Usuário que confirma o recebimento: enviado no payload ou o dono da compra
-                usuario_recebimento = usuario_id if usuario_id else compra_existente["usuario_id"]
+                recebimentos = data.get("itens_recebimento", [])
+                if not isinstance(recebimentos, list):
+                    raise ValueError("Informe uma lista de itens para recebimento.")
+                recebimentos_por_id = {}
+                ids_compra = {item["id"] for item in itens_compra}
+                for recebido in recebimentos:
+                    if not isinstance(recebido, dict) or recebido.get("id") not in ids_compra:
+                        raise ValueError("Item de recebimento não pertence a esta compra.")
+                    if recebido["id"] in recebimentos_por_id:
+                        raise ValueError("Item de recebimento duplicado.")
+                    recebimentos_por_id[recebido["id"]] = recebido
+                # A confirmação é sempre atribuída à sessão que a executou.
+                usuario_recebimento = g.usuario_id
                 for item in itens_compra:
                     produto_id = item["produto_id"]
                     quantidade = item["quantidade"]
                     lote_recebido = item["lote_recebido"]
                     data_validade_recebida = item["data_validade_recebida"]
+                    recebido = recebimentos_por_id.get(item["id"], {})
+                    lote_recebido = recebido.get("lote_recebido", lote_recebido)
+                    data_validade_recebida = recebido.get("data_validade_recebida", data_validade_recebida)
 
-                    lote_estoque = lote_recebido or "SEM-LOTE"
-                    cur.execute("SELECT id FROM estoque WHERE produto_id = %s AND lote = %s", (produto_id, lote_estoque))
+                    cur.execute("SELECT id, exige_validade FROM produtos WHERE id = %s", (produto_id,))
+                    product = cur.fetchone()
+                    data_validade_recebida = validate_expiry(data_validade_recebida, product or {})
+
+                    lote_estoque = (lote_recebido or "").strip() or "SEM-LOTE"
+                    require_lot(read_settings(cur), lote_estoque)
+                    cur.execute("UPDATE itens_compra SET lote_recebido = %s, data_validade_recebida = %s WHERE id = %s",
+                                (lote_estoque, data_validade_recebida, item["id"]))
+                    cur.execute("SELECT id FROM estoque WHERE produto_id = %s AND lote = %s FOR UPDATE", (produto_id, lote_estoque))
                     estoque_item = cur.fetchone()
                     if estoque_item:
                         cur.execute("UPDATE estoque SET quantidade = quantidade + %s WHERE id = %s", (quantidade, estoque_item["id"]))
@@ -1805,8 +2666,6 @@ def update_compra(compra_id):
             params = []
             if fornecedor_id is not None:
                 set_parts.append("fornecedor_id = %s"); params.append(fornecedor_id)
-            if usuario_id is not None:
-                set_parts.append("usuario_id = %s"); params.append(usuario_id)
             if valor_total is not None:
                 set_parts.append("valor_total = %s"); params.append(valor_total)
             if status is not None:
@@ -1819,8 +2678,12 @@ def update_compra(compra_id):
             if set_parts:
                 params.append(compra_id)
                 cur.execute(f"UPDATE compras SET {', '.join(set_parts)} WHERE id = %s", params)
-            db.commit()
+            g.audit_previous_status = compra_existente["status"]
+            commit_audit(db)
             return ok({"mensagem": "Compra atualizada com sucesso."})
+    except ValueError as exc:
+        db.rollback()
+        return err(str(exc), status=400)
     except pymysql.MySQLError as exc:
         db.rollback()
         log.error("Erro DB ao atualizar compra: %s", exc)
@@ -1836,7 +2699,7 @@ def delete_compra(compra_id):
                 return err("Compra não encontrada.", status=404)
 
             cur.execute("DELETE FROM compras WHERE id = %s", (compra_id,))
-            db.commit()
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Compra excluída com sucesso."})
     except pymysql.MySQLError as exc:
         db.rollback()
@@ -1860,6 +2723,106 @@ def get_vendas():
         log.error("Erro DB ao buscar vendas: %s", exc)
         return err("Erro interno ao buscar vendas.", status=500)
 
+
+@app.get("/vendas/catalogo")
+def catalogo_pdv():
+    """Consulta comercial independente da permissão de edição de estoque."""
+    try:
+        with get_db().cursor() as cur:
+            cur.execute("""SELECT p.id AS produto_id, p.nome, p.nome_generico,
+                p.nome_generico AS principio_ativo,
+                p.fabricante, p.codigo_barras, p.tipo_produto, p.requer_receita,
+                p.preco_venda, c.nome AS categoria, e.id AS estoque_id,
+                e.lote, e.quantidade, e.data_validade,
+                (e.data_validade IS NULL OR e.data_validade >= CURDATE()) AS valido
+                FROM produtos p LEFT JOIN categorias_produto c ON c.id=p.categoria_id
+                LEFT JOIN estoque e ON e.produto_id=p.id WHERE p.ativo=1
+                ORDER BY p.nome, e.data_validade""")
+            rows = cur.fetchall()
+        for row in rows:
+            row['preco_venda'] = str(row['preco_venda'])
+            if row.get('data_validade'):
+                row['data_validade'] = row['data_validade'].isoformat()
+        return ok({'produtos': rows})
+    except pymysql.MySQLError:
+        return err('Não foi possível consultar o catálogo.', status=503)
+
+
+@app.post("/vendas/balcao")
+def concluir_pdv():
+    """Saldo, preço, receita e financeiro validados na mesma transação."""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return err('Venda inválida.')
+    items = data.get('itens')
+    payment = data.get('tipo_pagamento')
+    if payment not in {'dinheiro', 'pix', 'cartao_credito', 'cartao_debito'}:
+        return err('Selecione a forma de pagamento.')
+    if not isinstance(items, list) or not 1 <= len(items) <= 100:
+        return err('Adicione de 1 a 100 lotes à venda.')
+    seen = set()
+    for item in items:
+        if (not isinstance(item, dict) or type(item.get('estoque_id')) is not int
+                or type(item.get('quantidade')) is not int
+                or not 1 <= item['quantidade'] <= 100000
+                or item['estoque_id'] in seen):
+            return err('Quantidade ou lote inválido/duplicado.')
+        seen.add(item['estoque_id'])
+    db = get_db()
+    try:
+        with db.cursor() as cur:
+            validated, total = [], Decimal('0.00')
+            for item in sorted(items, key=lambda value: value['estoque_id']):
+                cur.execute("""SELECT e.*, p.nome, p.preco_venda, p.requer_receita,
+                    (e.data_validade IS NULL OR e.data_validade >= CURDATE()) AS valido
+                    FROM estoque e JOIN produtos p ON p.id=e.produto_id
+                    WHERE e.id=%s FOR UPDATE""", (item['estoque_id'],))
+                row = cur.fetchone()
+                if not row or not row['valido'] or row['quantidade'] < item['quantidade']:
+                    raise ValueError('Saldo indisponível ou lote vencido. Atualize o catálogo e revise a venda.')
+                price = Decimal(str(row['preco_venda']))
+                quoted = Decimal(str(item.get('preco_unitario', 'NaN')))
+                if not price.is_finite() or price <= 0 or not quoted.is_finite() or quoted != price:
+                    raise ValueError('O preço mudou ou está inválido. Atualize o catálogo e revise a venda.')
+                if row['requer_receita'] and data.get('receita_conferida') is not True:
+                    raise ValueError('Confirme a conferência da receita antes de concluir.')
+                total += price * item['quantidade']
+                validated.append((row, item['quantidade'], price))
+            if total > Decimal('9999999999.99'):
+                raise ValueError('Total acima do limite permitido.')
+            cur.execute("SELECT id FROM financeiro_categorias WHERE slug='venda_medicamentos' AND tipo='receita'")
+            category = cur.fetchone()
+            if not category:
+                raise ValueError('Categoria financeira de vendas não configurada.')
+            cur.execute("""INSERT INTO vendas (usuario_id, valor_total, tipo_pagamento, status)
+                VALUES (%s,%s,%s,'concluida')""", (g.usuario_id, total, payment))
+            sale_id = cur.lastrowid
+            for row, qty, price in validated:
+                cur.execute('UPDATE estoque SET quantidade=quantidade-%s WHERE id=%s', (qty, row['id']))
+                cur.execute("""INSERT INTO itens_venda
+                    (venda_id,produto_id,quantidade,preco_unitario,desconto,lote_vendido)
+                    VALUES (%s,%s,%s,%s,0,%s)""", (sale_id,row['produto_id'],qty,price,row['lote']))
+                cur.execute("""INSERT INTO movimentacoes_estoque
+                    (estoque_id,usuario_id,tipo_movimentacao,quantidade,observacao)
+                    VALUES (%s,%s,'saida',%s,%s)""", (row['id'],g.usuario_id,qty,f'Venda PDV {sale_id}'))
+            cur.execute("""INSERT INTO financeiro_transacoes
+                (categoria_id,usuario_id,venda_id,descricao,valor,status,metodo_pagamento)
+                VALUES (%s,%s,%s,%s,%s,'pago',%s)""",
+                (category['id'],g.usuario_id,sale_id,f'Venda PDV {sale_id}',total,payment))
+            g.audit_values = {"status": "concluida", "valor_total": str(total), "itens": [
+                {"produto_id": row["produto_id"], "estoque_id": row["id"],
+                 "quantidade": qty, "preco_unitario": str(price), "lote_vendido": row["lote"]}
+                for row, qty, price in validated]}
+            commit_audit(db, sale_id)
+        return ok({'id': sale_id, 'valor_total': str(total)}, status=201)
+    except (ValueError, InvalidOperation) as exc:
+        db.rollback()
+        return err(str(exc) if isinstance(exc, ValueError) else 'Preço inválido.', status=409)
+    except pymysql.MySQLError:
+        db.rollback()
+        log.exception('Falha ao concluir PDV')
+        return err('Não foi possível concluir a venda.', status=503)
+
 @app.get("/vendas/<int:venda_id>")
 def get_venda(venda_id):
     db = get_db()
@@ -1874,18 +2837,40 @@ def get_venda(venda_id):
         log.error("Erro DB ao buscar venda: %s", exc)
         return err("Erro interno ao buscar venda.", status=500)
 
+def sync_venda_financeiro(cur, venda_id):
+    """Mantém a receita vinculada na mesma transação da venda (inclusive na API antiga)."""
+    cur.execute("SELECT id FROM financeiro_categorias WHERE slug='venda_medicamentos' AND tipo='receita'")
+    category = cur.fetchone()
+    if not category:
+        raise ValueError('Categoria financeira de vendas não configurada.')
+    cur.execute("""UPDATE financeiro_transacoes t JOIN vendas v ON v.id=t.venda_id
+        SET t.valor=v.valor_total, t.metodo_pagamento=v.tipo_pagamento,
+            t.status=CASE v.status WHEN 'concluida' THEN 'pago'
+                WHEN 'cancelada' THEN 'cancelado' ELSE 'pendente' END,
+            t.data_transacao=CASE WHEN v.status='concluida' THEN v.data_venda ELSE t.data_transacao END
+        WHERE v.id=%s""", (venda_id,))
+    cur.execute("""INSERT INTO financeiro_transacoes
+        (categoria_id,usuario_id,venda_id,descricao,valor,data_transacao,status,metodo_pagamento)
+        SELECT %s,v.usuario_id,v.id,CONCAT('Venda #',v.id),v.valor_total,v.data_venda,
+            CASE v.status WHEN 'concluida' THEN 'pago'
+                WHEN 'cancelada' THEN 'cancelado' ELSE 'pendente' END,v.tipo_pagamento
+        FROM vendas v WHERE v.id=%s AND NOT EXISTS
+            (SELECT 1 FROM financeiro_transacoes t WHERE t.venda_id=v.id)""",
+        (category['id'], venda_id))
+
+
 @app.post("/vendas")
 def create_venda():
     data = request.get_json(silent=True) or {}
     cliente_id = data.get("cliente_id")
-    usuario_id = data.get("usuario_id")
+    usuario_id = g.usuario_id
     valor_total = data.get("valor_total")
     tipo_pagamento = data.get("tipo_pagamento")
     status = data.get("status", "pendente")
     itens = data.get("itens", []) # Lista de dicionários com produto_id, quantidade, preco_unitario, desconto, lote_vendido
 
-    if not usuario_id or not valor_total or not tipo_pagamento:
-        return err("Usuário, valor total e tipo de pagamento são obrigatórios.", status=400)
+    if not valor_total or not tipo_pagamento:
+        return err("Valor total e tipo de pagamento são obrigatórios.", status=400)
     if valor_total <= 0:
         return err("Valor total deve ser maior que zero.", status=400)
     if tipo_pagamento not in ["dinheiro", "cartao_credito", "cartao_debito", "pix"]:
@@ -1901,10 +2886,6 @@ def create_venda():
                 if not cur.fetchone():
                     return err("Cliente não encontrado.", campo="cliente_id", status=400)
 
-            cur.execute("SELECT id FROM usuarios WHERE id = %s", (usuario_id,))
-            if not cur.fetchone():
-                return err("Usuário não encontrado.", campo="usuario_id", status=400)
-
             cur.execute(
                 """
                 INSERT INTO vendas (cliente_id, usuario_id, valor_total, tipo_pagamento, status)
@@ -1919,7 +2900,7 @@ def create_venda():
                 quantidade = item.get("quantidade")
                 preco_unitario = item.get("preco_unitario")
                 desconto = item.get("desconto", 0.00)
-                lote_vendido = item.get("lote_vendido")
+                lote_vendido = (item.get("lote_vendido") or "").strip() or "SEM-LOTE"
 
                 if not produto_id or not quantidade or not preco_unitario:
                     db.rollback()
@@ -1932,12 +2913,13 @@ def create_venda():
 
                 # Verifica e atualiza estoque
                 if status == "concluida":
-                    cur.execute("SELECT id, quantidade FROM estoque WHERE produto_id = %s AND lote = %s", (produto_id, lote_vendido))
+                    cur.execute("SELECT id, quantidade, lote, data_validade FROM estoque WHERE produto_id = %s AND lote = %s FOR UPDATE", (produto_id, lote_vendido))
                     estoque_item = cur.fetchone()
                     if not estoque_item or estoque_item["quantidade"] < quantidade:
                         db.rollback()
                         return err(f"Estoque insuficiente para o produto {produto_id} no lote {lote_vendido}.", status=400)
 
+                    require_usable_stock(read_settings(cur), estoque_item)
                     cur.execute("UPDATE estoque SET quantidade = quantidade - %s WHERE id = %s", (quantidade, estoque_item["id"]))
                     # Registrar movimentação de estoque
                     cur.execute(
@@ -1956,8 +2938,13 @@ def create_venda():
                     (venda_id, produto_id, quantidade, preco_unitario, desconto, lote_vendido)
                 )
 
-            db.commit()
+            sync_venda_financeiro(cur, venda_id)
+            g.audit_values = {"status": status}
+            commit_audit(db, venda_id)
             return ok({"mensagem": "Venda criada com sucesso.", "id": venda_id}, status=201)
+    except ValueError as exc:
+        db.rollback()
+        return err(str(exc), status=400)
     except pymysql.MySQLError as exc:
         db.rollback()
         log.error("Erro DB ao criar venda: %s", exc)
@@ -1967,7 +2954,7 @@ def create_venda():
 def update_venda(venda_id):
     data = request.get_json(silent=True) or {}
     cliente_id = data.get("cliente_id")
-    usuario_id = data.get("usuario_id")
+    usuario_id = g.usuario_id
     valor_total = data.get("valor_total")
     tipo_pagamento = data.get("tipo_pagamento")
     status = data.get("status")
@@ -1975,7 +2962,7 @@ def update_venda(venda_id):
     db = get_db()
     try:
         with db.cursor() as cur:
-            cur.execute("SELECT id, status FROM vendas WHERE id = %s", (venda_id,))
+            cur.execute("SELECT id, status FROM vendas WHERE id = %s FOR UPDATE", (venda_id,))
             venda_existente = cur.fetchone()
             if not venda_existente:
                 return err("Venda não encontrada.", status=404)
@@ -1985,15 +2972,12 @@ def update_venda(venda_id):
                 if not cur.fetchone():
                     return err("Cliente não encontrado.", campo="cliente_id", status=400)
 
-            if usuario_id:
-                cur.execute("SELECT id FROM usuarios WHERE id = %s", (usuario_id,))
-                if not cur.fetchone():
-                    return err("Usuário não encontrado.", campo="usuario_id", status=400)
-
             if tipo_pagamento and tipo_pagamento not in ["dinheiro", "cartao_credito", "cartao_debito", "pix"]:
                 return err("Tipo de pagamento inválido.", status=400)
             if status and status not in ["concluida", "cancelada", "pendente"]:
                 return err("Status de venda inválido.", status=400)
+            if status and status != venda_existente["status"] and venda_existente["status"] == "concluida":
+                return err("Uma venda concluída não pode voltar de status; registre uma devolução de estoque para preservar a auditoria.", campo="status", status=409)
 
             # Lógica para atualizar estoque se o status mudar para 'concluida' e antes não era
             if status == "concluida" and venda_existente["status"] != "concluida":
@@ -2002,14 +2986,15 @@ def update_venda(venda_id):
                 for item in itens_venda:
                     produto_id = item["produto_id"]
                     quantidade = item["quantidade"]
-                    lote_vendido = item["lote_vendido"]
+                    lote_vendido = item["lote_vendido"] or "SEM-LOTE"
 
-                    cur.execute("SELECT id, quantidade FROM estoque WHERE produto_id = %s AND lote = %s", (produto_id, lote_vendido))
+                    cur.execute("SELECT id, quantidade, lote, data_validade FROM estoque WHERE produto_id = %s AND lote = %s FOR UPDATE", (produto_id, lote_vendido))
                     estoque_item = cur.fetchone()
                     if not estoque_item or estoque_item["quantidade"] < quantidade:
                         db.rollback()
                         return err(f"Estoque insuficiente para o produto {produto_id} no lote {lote_vendido}.", status=400)
 
+                    require_usable_stock(read_settings(cur), estoque_item)
                     cur.execute("UPDATE estoque SET quantidade = quantidade - %s WHERE id = %s", (quantidade, estoque_item["id"]))
                     # Registrar movimentação de estoque
                     cur.execute(
@@ -2022,13 +3007,20 @@ def update_venda(venda_id):
 
             cur.execute(
                 """
-                UPDATE vendas SET cliente_id = %s, usuario_id = %s, valor_total = %s, tipo_pagamento = %s, status = %s
+                UPDATE vendas SET data_venda = CASE
+                    WHEN status <> 'concluida' AND %s = 'concluida' THEN NOW() ELSE data_venda END,
+                    cliente_id = %s, valor_total = %s, tipo_pagamento = %s, status = %s
                 WHERE id = %s
                 """,
-                (cliente_id, usuario_id, valor_total, tipo_pagamento, status, venda_id)
+                (status, cliente_id, valor_total, tipo_pagamento, status, venda_id)
             )
-            db.commit()
+            sync_venda_financeiro(cur, venda_id)
+            g.audit_previous_status = venda_existente["status"]
+            commit_audit(db, venda_id)
             return ok({"mensagem": "Venda atualizada com sucesso."})
+    except ValueError as exc:
+        db.rollback()
+        return err(str(exc), status=400)
     except pymysql.MySQLError as exc:
         db.rollback()
         log.error("Erro DB ao atualizar venda: %s", exc)
@@ -2044,7 +3036,7 @@ def delete_venda(venda_id):
                 return err("Venda não encontrada.", status=404)
 
             cur.execute("DELETE FROM vendas WHERE id = %s", (venda_id,))
-            db.commit()
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Venda excluída com sucesso."})
     except pymysql.MySQLError as exc:
         db.rollback()
@@ -2136,7 +3128,7 @@ def create_receita():
                     (receita_id, produto_id, quantidade, dosagem, instrucoes_uso)
                 )
 
-            db.commit()
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Receita criada com sucesso.", "id": receita_id}, status=201)
     except pymysql.MySQLError as exc:
         db.rollback()
@@ -2173,7 +3165,7 @@ def update_receita(receita_id):
                 """,
                 (cliente_id, medico_nome, crm, data_prescricao, data_validade, observacoes, arquivo_receita_url, receita_id)
             )
-            db.commit()
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Receita atualizada com sucesso."})
     except pymysql.MySQLError as exc:
         db.rollback()
@@ -2190,7 +3182,7 @@ def delete_receita(receita_id):
                 return err("Receita não encontrada.", status=404)
 
             cur.execute("DELETE FROM receitas WHERE id = %s", (receita_id,))
-            db.commit()
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Receita excluída com sucesso."})
     except pymysql.MySQLError as exc:
         db.rollback()
@@ -2251,7 +3243,7 @@ def create_alerta():
                 """,
                 (tipo_alerta, referencia_id, mensagem, status)
             )
-            db.commit()
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Alerta criado com sucesso.", "id": cur.lastrowid}, status=201)
     except pymysql.MySQLError as exc:
         db.rollback()
@@ -2265,7 +3257,6 @@ def update_alerta(alerta_id):
     referencia_id = data.get("referencia_id")
     mensagem = data.get("mensagem")
     status = data.get("status")
-    resolvido_por_usuario_id = data.get("resolvido_por_usuario_id")
 
     db = get_db()
     try:
@@ -2285,16 +3276,21 @@ def update_alerta(alerta_id):
             if referencia_id: update_fields.append("referencia_id = %s"); update_values.append(referencia_id)
             if mensagem: update_fields.append("mensagem = %s"); update_values.append(mensagem)
             if status: update_fields.append("status = %s"); update_values.append(status)
-            if resolvido_por_usuario_id: update_fields.append("resolvido_por_usuario_id = %s"); update_values.append(resolvido_por_usuario_id)
-            if status == "resolvido" and "resolvido_em" not in update_fields:
-                update_fields.append("resolvido_em = NOW()");
+            if status == "resolvido":
+                # A autoria vem da sessão autenticada, nunca do corpo enviado
+                # pelo cliente; a migração 007 fornece ambas as colunas.
+                update_fields.append("resolvido_por_usuario_id = %s"); update_values.append(g.usuario_id)
+                update_fields.append("resolvido_em = NOW()")
+            elif status == "ativo":
+                update_fields.append("resolvido_por_usuario_id = NULL")
+                update_fields.append("resolvido_em = NULL")
 
             if not update_fields:
                 return err("Nenhum dado para atualizar.", status=400)
 
             query = f"UPDATE alertas SET {', '.join(update_fields)} WHERE id = %s"
             cur.execute(query, (*update_values, alerta_id))
-            db.commit()
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Alerta atualizado com sucesso."})
     except pymysql.MySQLError as exc:
         db.rollback()
@@ -2311,53 +3307,81 @@ def delete_alerta(alerta_id):
                 return err("Alerta não encontrado.", status=404)
 
             cur.execute("DELETE FROM alertas WHERE id = %s", (alerta_id,))
-            db.commit()
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Alerta excluído com sucesso."})
     except pymysql.MySQLError as exc:
         db.rollback()
         log.error("Erro DB ao excluir alerta: %s", exc)
         return err("Erro interno ao excluir alerta.", status=500)
 
-
-
-def ensure_configuracoes_table(db):
-    """Garante a tabela de configurações para ambientes existentes sem migração aplicada."""
-    with db.cursor() as cur:
-        cur.execute(
-            """
-            CREATE TABLE IF NOT EXISTS configuracoes_sistema (
-              chave VARCHAR(120) PRIMARY KEY,
-              valor TEXT NULL,
-              descricao VARCHAR(255) NULL,
-              criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-              atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-            )
-            """
-        )
-    db.commit()
-
 # ─────────────────────────────────────────────
 #  Rotas para Configurações do Sistema
 # ─────────────────────────────────────────────
+
+@app.get("/configuracoes/visual")
+def get_configuracoes_visuais():
+    """Preferencias seguras usadas pelo login antes de existir uma sessao."""
+    chaves = ("cor_destaque", "densidade_interface", "animacoes_interface")
+    db = get_db()
+    try:
+        with db.cursor() as cur:
+            placeholders = ", ".join(["%s"] * len(chaves))
+            cur.execute(
+                f"SELECT chave, valor FROM configuracoes_sistema WHERE chave IN ({placeholders})",
+                chaves,
+            )
+            configuracoes = cur.fetchall()
+        return ok({"configuracoes": configuracoes})
+    except pymysql.MySQLError as exc:
+        log.error("Erro DB ao buscar configuracoes visuais: %s", exc)
+        return err("Erro interno ao buscar configuracoes visuais.", status=500)
+
 
 @app.get("/configuracoes")
 def get_configuracoes():
     db = get_db()
     try:
-        ensure_configuracoes_table(db)
         with db.cursor() as cur:
             cur.execute("SELECT * FROM configuracoes_sistema")
             configuracoes = cur.fetchall()
-        return ok({"configuracoes": configuracoes})
+        # Preferências aposentadas podem existir em instalações anteriores.
+        configuracoes = [item for item in configuracoes if item["chave"] not in {"tema", "tema_efetivo"}]
+        return ok({"configuracoes": configuracoes, "email_disponivel": all(os.getenv(k) for k in ("BREVO_SMTP_LOGIN", "BREVO_SMTP_PASSWORD", "BREVO_SENDER_EMAIL"))})
     except pymysql.MySQLError as exc:
         log.error("Erro DB ao buscar configurações: %s", exc)
         return err("Erro interno ao buscar configurações.", status=500)
 
-@app.get("/configuracoes/<string:chave>")
-def get_configuracao(chave):
+@app.put("/configuracoes")
+def save_configuracoes():
+    """Salva o formulário inteiro em uma única transação, incluindo auditoria."""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return err("Informe as configurações para salvar.", status=400)
     db = get_db()
     try:
-        ensure_configuracoes_table(db)
+        with db.cursor() as cur:
+            values = validate_settings(data.get('configuracoes'), read_settings(cur))
+            for chave, valor in values.items():
+                cur.execute("""INSERT INTO configuracoes_sistema (chave, valor, descricao)
+                    VALUES (%s, %s, 'Configurações do sistema')
+                    ON DUPLICATE KEY UPDATE valor = VALUES(valor)""", (chave, valor))
+            commit_audit(db)
+        return ok({"mensagem": "Configurações salvas com sucesso.", "valores": values})
+    except ValueError as exc:
+        db.rollback()
+        return err(str(exc), status=400)
+    except pymysql.MySQLError:
+        db.rollback()
+        log.exception("Erro ao salvar configurações")
+        return err("Não foi possível salvar as configurações. Tente novamente.", status=500)
+
+
+@app.get("/configuracoes/<string:chave>")
+def get_configuracao(chave):
+    if chave in {"tema", "tema_efetivo"}:
+        return err("Esta preferência visual foi removida.", status=410)
+    db = get_db()
+    try:
         with db.cursor() as cur:
             cur.execute("SELECT * FROM configuracoes_sistema WHERE chave = %s", (chave,))
             configuracao = cur.fetchone()
@@ -2375,12 +3399,14 @@ def create_configuracao():
     valor = data.get("valor")
     descricao = data.get("descricao")
 
+    if chave in ("tema", "tema_efetivo"):
+        return err("Esta preferência visual foi removida.", campo="chave", status=410)
+
     if not chave or not valor:
         return err("Chave e valor são obrigatórios.", status=400)
 
     db = get_db()
     try:
-        ensure_configuracoes_table(db)
         with db.cursor() as cur:
             cur.execute(
                 """
@@ -2389,7 +3415,7 @@ def create_configuracao():
                 """,
                 (chave, valor, descricao)
             )
-            db.commit()
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Configuração criada com sucesso."}, status=201)
     except pymysql.IntegrityError as exc:
         db.rollback()
@@ -2405,13 +3431,14 @@ def create_configuracao():
 @app.put("/configuracoes/<string:chave>")
 def update_configuracao(chave):
     """Atualiza ou cria (upsert) uma configuração do sistema."""
+    if chave in {"tema", "tema_efetivo"}:
+        return err("Esta preferência visual foi removida.", campo="chave", status=410)
     data = request.get_json(silent=True) or {}
     valor     = data.get("valor")
     descricao = data.get("descricao")
 
     db = get_db()
     try:
-        ensure_configuracoes_table(db)
         with db.cursor() as cur:
             # INSERT ... ON DUPLICATE KEY UPDATE (upsert)
             cur.execute(
@@ -2423,7 +3450,7 @@ def update_configuracao(chave):
                 """,
                 (chave, valor, descricao)
             )
-            db.commit()
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Configuração salva com sucesso."})
     except pymysql.MySQLError as exc:
         db.rollback()
@@ -2434,14 +3461,13 @@ def update_configuracao(chave):
 def delete_configuracao(chave):
     db = get_db()
     try:
-        ensure_configuracoes_table(db)
         with db.cursor() as cur:
             cur.execute("SELECT chave FROM configuracoes_sistema WHERE chave = %s", (chave,))
             if not cur.fetchone():
                 return err("Configuração não encontrada.", status=404)
 
             cur.execute("DELETE FROM configuracoes_sistema WHERE chave = %s", (chave,))
-            db.commit()
+            commit_audit(db, cur.lastrowid)
             return ok({"mensagem": "Configuração excluída com sucesso."})
     except pymysql.MySQLError as exc:
         db.rollback()
@@ -2478,7 +3504,7 @@ def get_dashboard_stats():
                 SELECT COUNT(*) AS total
                 FROM   estoque e
                 JOIN   produtos p ON e.produto_id = p.id
-                WHERE  e.quantidade > 0
+                WHERE  e.quantidade >= 0
                   AND  e.quantidade <= COALESCE(p.estoque_minimo, 10)
             """)
             estoque_critico = cur.fetchone()["total"] or 0
@@ -2583,30 +3609,52 @@ def get_dashboard_stats():
 
             # Produtos Críticos para a tabela do dashboard
             cur.execute("""
-                SELECT p.nome, 
+                SELECT e.id AS estoque_id, p.id AS produto_id, p.nome, 
                        COALESCE(cp.nome, 'Sem Categoria') as categoria,
                        e.lote, 
                        e.quantidade, 
                        COALESCE(p.estoque_minimo, 10) AS estoque_minimo, 
                        e.data_validade,
                        CASE 
-                         WHEN e.quantidade <= 0 THEN 'crit'
-                         WHEN e.quantidade <= COALESCE(p.estoque_minimo, 10) THEN 'crit'
+                         WHEN e.quantidade <= COALESCE(p.estoque_minimo, 10)
+                           OR (e.data_validade IS NOT NULL
+                               AND e.data_validade <= CURDATE() + INTERVAL 30 DAY) THEN 'crit'
                          ELSE 'low'
                        END as status_classe
                 FROM   estoque e
                 JOIN   produtos p ON e.produto_id = p.id
                 LEFT JOIN categorias_produto cp ON p.categoria_id = cp.id
-                WHERE  e.quantidade <= COALESCE(p.estoque_minimo, 10) * 1.5
-                ORDER  BY e.quantidade ASC
-                LIMIT 10
+                WHERE  e.quantidade <= COALESCE(p.estoque_minimo, 10) * 2
+                   OR (e.data_validade IS NOT NULL
+                       AND e.data_validade <= CURDATE() + INTERVAL 30 DAY)
+                ORDER  BY CASE
+                            WHEN e.data_validade IS NULL THEN 1
+                            ELSE 0
+                          END,
+                          e.data_validade ASC,
+                          e.quantidade ASC,
+                          p.nome ASC
             """)
             produtos_criticos = cur.fetchall()
             for row in produtos_criticos:
                 if row.get("data_validade") and hasattr(row["data_validade"], "isoformat"):
                     row["data_validade"] = row["data_validade"].isoformat()
 
+            cur.execute("""
+                SELECT e.id, p.nome, e.lote, e.quantidade, e.data_validade,
+                       DATEDIFF(e.data_validade, CURDATE()) AS dias
+                FROM estoque e JOIN produtos p ON p.id=e.produto_id
+                WHERE e.quantidade > 0 AND e.data_validade BETWEEN CURDATE() AND CURDATE() + INTERVAL 60 DAY
+                ORDER BY e.data_validade, p.nome, e.id
+            """)
+            vencimentos_proximos = cur.fetchall()
+            for row in vencimentos_proximos:
+                row['data_validade'] = row['data_validade'].isoformat()
+
+            alertas_ativos = active_alerts(cur, read_settings(cur))
+
         return ok({
+            "alertas_ativos": alertas_ativos,
             "kpis": {
                 "total_itens":        int(total_itens),
                 "valor_estoque":      round(valor_estoque, 2),
@@ -2623,6 +3671,7 @@ def get_dashboard_stats():
             "movimentacoes_semana": movs_semana,
             "top_produtos":         top_produtos,
             "produtos_criticos":    produtos_criticos,
+            "vencimentos_proximos": vencimentos_proximos,
         })
     except pymysql.MySQLError as exc:
         log.error("Erro DB ao buscar estatísticas do dashboard: %s", exc)
@@ -2636,85 +3685,14 @@ def get_dashboard_stats():
 @app.get("/relatorios/estoque")
 def relatorio_estoque():
     """Relatório completo de posição de estoque com KPIs e listagem."""
+    period = request.args.get('periodo', 'month')
+    if period not in PERIOD_START:
+        return err('Período inválido.', campo='periodo', status=400)
     db = get_db()
     try:
         with db.cursor() as cur:
-            # KPIs
-            cur.execute("SELECT COUNT(*) AS total FROM estoque WHERE quantidade > 0")
-            total_saidas = cur.fetchone()["total"] or 0
-
-            cur.execute("""
-                SELECT COALESCE(SUM(e.quantidade * p.preco_custo), 0) AS valor
-                FROM estoque e JOIN produtos p ON e.produto_id = p.id
-            """)
-            valor_estoque = float(cur.fetchone()["valor"] or 0)
-
-            cur.execute("""
-                SELECT COUNT(*) AS total FROM estoque e JOIN produtos p ON e.produto_id = p.id
-                WHERE e.quantidade <= COALESCE(p.estoque_minimo, 10)
-            """)
-            itens_alerta = cur.fetchone()["total"] or 0
-
-            cur.execute("""
-                SELECT COUNT(*) AS total FROM estoque
-                WHERE data_validade < DATE_ADD(CURDATE(), INTERVAL 60 DAY) AND quantidade > 0
-            """)
-            vencendo = cur.fetchone()["total"] or 0
-
-            # Giro de estoque (saídas últimos 30 dias / valor médio estoque)
-            cur.execute("""
-                SELECT COALESCE(SUM(me.quantidade), 0) AS saidas
-                FROM movimentacoes_estoque me
-                WHERE me.tipo_movimentacao = 'saida'
-                  AND me.data_movimentacao >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-            """)
-            saidas_30 = float(cur.fetchone()["saidas"] or 0)
-            giro = round(saidas_30 / max(total_saidas, 1), 2)
-
-            # Listagem por categoria
-            cur.execute("""
-                SELECT cp.nome AS categoria,
-                       COUNT(DISTINCT e.produto_id) AS qtd_produtos,
-                       SUM(e.quantidade) AS qtd_total,
-                       SUM(e.quantidade * p.preco_custo) AS valor_total
-                FROM   estoque e
-                JOIN   produtos p ON e.produto_id = p.id
-                LEFT JOIN categorias_produto cp ON p.categoria_id = cp.id
-                GROUP  BY cp.id, cp.nome
-                ORDER  BY valor_total DESC
-            """)
-            por_categoria = cur.fetchall()
-            for row in por_categoria:
-                if row.get("valor_total"):
-                    row["valor_total"] = float(row["valor_total"])
-
-            # Top produtos por valor em estoque
-            cur.execute("""
-                SELECT p.nome,
-                       SUM(e.quantidade) AS quantidade,
-                       COALESCE(SUM(e.quantidade * p.preco_custo), 0) AS valor_total
-                FROM   estoque e
-                JOIN   produtos p ON e.produto_id = p.id
-                WHERE  e.quantidade > 0
-                GROUP  BY p.id, p.nome
-                ORDER  BY valor_total DESC
-                LIMIT  10
-            """)
-            top_produtos = cur.fetchall()
-            for row in top_produtos:
-                row["quantidade"] = int(row["quantidade"] or 0)
-                row["valor_total"] = float(row["valor_total"] or 0)
-
-        return ok({
-            "kpis": {
-                "total_saidas":  int(total_saidas),
-                "valor_estoque": round(valor_estoque, 2),
-                "itens_alerta":  int(itens_alerta),
-                "giro_estoque":  giro,
-            },
-            "por_categoria": por_categoria,
-            "top_produtos":   top_produtos,
-        })
+            report = stock_report(cur, period)
+        return ok(report)
     except pymysql.MySQLError as exc:
         log.error("Erro DB ao gerar relatório de estoque: %s", exc)
         return err("Erro interno ao gerar relatório de estoque.", status=500)
@@ -2771,19 +3749,23 @@ def relatorio_vencimentos():
 @app.get("/relatorios/compras")
 def relatorio_compras():
     """Relatório de compras com KPIs e movimentações."""
+    period = request.args.get('periodo', 'month')
+    if period not in PERIOD_START:
+        return err('Período inválido.', campo='periodo', status=400)
+    scope = f"data_pedido >= {PERIOD_START[period]} AND data_pedido < CURDATE() + INTERVAL 1 DAY"
     db = get_db()
     try:
         with db.cursor() as cur:
-            cur.execute("SELECT COUNT(*) AS total FROM compras")
+            cur.execute(f"SELECT COUNT(*) AS total FROM compras WHERE {scope}")
             total_pedidos = cur.fetchone()["total"] or 0
 
-            cur.execute("""
+            cur.execute(f"""
                 SELECT COALESCE(SUM(valor_total), 0) AS valor FROM compras
-                WHERE status = 'recebido'
+                WHERE status = 'recebido' AND {scope}
             """)
             valor_comprado = float(cur.fetchone()["valor"] or 0)
 
-            cur.execute("SELECT COUNT(*) AS total FROM compras WHERE status = 'pendente'")
+            cur.execute(f"SELECT COUNT(*) AS total FROM compras WHERE status = 'pendente' AND {scope}")
             pendentes = cur.fetchone()["total"] or 0
 
             # Fornecedores ativos por perfil de compra
@@ -2791,13 +3773,14 @@ def relatorio_compras():
             fornecedores = cur.fetchone()["total"] or 0
 
             # Fornecedores com pedidos registrados (usados nas compras)
-            cur.execute("""
+            cur.execute(f"""
                 SELECT f.id, f.nome_fantasia, f.cnpj, COUNT(c.id) AS total_pedidos,
                        COALESCE(SUM(c.valor_total), 0) AS valor_total
                 FROM   fornecedores f
                 JOIN   compras c ON c.fornecedor_id = f.id
+                WHERE {scope} AND c.status <> 'cancelado'
                 GROUP  BY f.id, f.nome_fantasia, f.cnpj
-                ORDER  BY total_pedidos DESC
+                ORDER  BY valor_total DESC, f.id
             """)
             fornecedores_rank = cur.fetchall()
             for row in fornecedores_rank:
@@ -2805,12 +3788,12 @@ def relatorio_compras():
                 row["total_pedidos"] = int(row["total_pedidos"] or 0)
 
             # Pedidos por categoria (classificação por fornecedor)
-            cur.execute("""
+            cur.execute(f"""
                 SELECT DATE_FORMAT(c.data_pedido, '%Y-%m') AS mes,
                        COUNT(*) AS total,
                        COALESCE(SUM(c.valor_total), 0) AS valor
                 FROM   compras c
-                WHERE  c.data_pedido >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+                WHERE  {scope} AND c.status <> 'cancelado'
                 GROUP  BY mes
                 ORDER  BY mes ASC
             """)
@@ -2820,7 +3803,7 @@ def relatorio_compras():
                 row["valor"] = float(row["valor"] or 0)
 
             # Categorias mais compradas (via categorias de produtos dos itens)
-            cur.execute("""
+            cur.execute(f"""
                 SELECT COALESCE(cp.nome, 'Sem Categoria') AS categoria,
                        COUNT(DISTINCT ic.compra_id) AS total_pedidos,
                        COALESCE(SUM(ic.quantidade * ic.preco_unitario), 0) AS valor
@@ -2828,7 +3811,7 @@ def relatorio_compras():
                 JOIN   produtos p        ON ic.produto_id = p.id
                 LEFT JOIN categorias_produto cp ON p.categoria_id = cp.id
                 JOIN   compras c         ON ic.compra_id = c.id
-                WHERE  c.data_pedido >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+                WHERE  {scope} AND c.status <> 'cancelado'
                 GROUP  BY cp.id, cp.nome
                 ORDER  BY valor DESC
             """)
@@ -2853,162 +3836,70 @@ def relatorio_compras():
         return err("Erro interno ao gerar relatório de compras.", status=500)
 
 
-# ─────────────────────────────────────────────
-#  Rota de Previsão de Reposición
-# ─────────────────────────────────────────────
-
-@app.get("/previsao/reposicao")
-def previsao_reposicao():
-    """
-    Calcula previsão de reposición baseada no consumo médio diário dos
-    últimos 30 dias e no estoque atual.
-    Retorna lista de produtos com dias restantes estimados.
-    """
-    db = get_db()
-    try:
-        with db.cursor() as cur:
-            cur.execute("""
-                SELECT p.id,
-                       p.nome,
-                       p.nome_generico,
-                       COALESCE(p.estoque_minimo, 10) AS estoque_minimo,
-                       SUM(e.quantidade)              AS estoque_atual,
-                       COALESCE(
-                           (
-                               SELECT SUM(me.quantidade) / 30.0
-                               FROM   movimentacoes_estoque me
-                               JOIN   estoque e2 ON me.estoque_id = e2.id
-                               WHERE  e2.produto_id = p.id
-                                 AND  me.tipo_movimentacao = 'saida'
-                                 AND  me.data_movimentacao >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                           ), 0
-                       ) AS consumo_diario
-                FROM   produtos p
-                JOIN   estoque e ON e.produto_id = p.id
-                WHERE  e.quantidade > 0
-                GROUP  BY p.id, p.nome, p.nome_generico, p.estoque_minimo
-                HAVING (SUM(e.quantidade) > 0) AND
-                       ((COALESCE(
-                           (SELECT SUM(me.quantidade) / 30.0
-                            FROM   movimentacoes_estoque me
-                            JOIN   estoque e2 ON me.estoque_id = e2.id
-                            WHERE  e2.produto_id = p.id
-                              AND  me.tipo_movimentacao = 'saida'
-                              AND  me.data_movimentacao >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                           ), 0) > 0) OR
-                        (SUM(e.quantidade) <= COALESCE(p.estoque_minimo, 10)))
-                ORDER  BY (SUM(e.quantidade) / GREATEST(COALESCE(
-                             (SELECT SUM(me.quantidade) / 30.0
-                              FROM   movimentacoes_estoque me
-                              JOIN   estoque e2 ON me.estoque_id = e2.id
-                              WHERE  e2.produto_id = p.id
-                                AND  me.tipo_movimentacao = 'saida'
-                                AND  me.data_movimentacao >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                             ), 0), 0.01)) ASC
-                LIMIT  50
-            """)
-            produtos = cur.fetchall()
-
-        resultado = []
-        for p in produtos:
-            consumo = float(p["consumo_diario"] or 0)
-            atual   = int(p["estoque_atual"] or 0)
-            minimo  = int(p["estoque_minimo"] or 10)
-            dias_restantes = round(atual / consumo, 1) if consumo > 0 else None
-            resultado.append({
-                "produto_id":      p["id"],
-                "nome":            p["nome"],
-                "nome_generico":   p["nome_generico"],
-                "estoque_atual":   atual,
-                "estoque_minimo":  minimo,
-                "consumo_diario":  round(consumo, 2),
-                "dias_restantes":  dias_restantes,
-                "reposicao_urgente": atual <= minimo,
-            })
-
-        return ok({"previsao": resultado})
-    except Exception as exc:  # noqa: BLE001
-        log.exception("Erro ao calcular previsão de reposição: %s", exc)
-        return err("Erro interno ao calcular previsão de reposição.", status=500)
+# Caminhos físicos independem do diretório usado para iniciar o servidor.
+FRONTEND_ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'frontend', 'src')
+FRONTEND_SRC = os.path.join(FRONTEND_ASSETS, 'pages', 'sistema')
+PAGE_ASSET_EXTENSIONS = ('.html', '.css', '.js', '.png', '.jpg', '.jpeg', '.svg', '.woff', '.woff2', '.json')
 
 
-FRONTEND_SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'frontend', 'src', 'pages', 'proprietario')
+def _serve_frontend_file(directory, filename, allowed_extensions=None):
+    """Entrega estáticos com o mesmo MIME/cache das rotas canônica e legada.
 
-@app.route('/pages/proprietario/<path:filename>')
-def serve_proprietario_page(filename):
-    """Serve arquivos estáticos do frontend do proprietário.
-
-    Permite abrir o sistema por http://localhost:5000 e mantém a navegação
-    SPA (páginas trocadas via fetch) no mesmo origin da API — sem CORS e
-    sem os flashes de recarga do browser.
+    commonpath compara diretórios completos, evitando confundir uma pasta
+    irmã de mesmo prefixo com um recurso dentro da raiz permitida.
     """
     safe = re.sub(r'[<>:"|?*]', '', filename)
     if not safe or '..' in safe:
         return err('Recurso não disponível.', status=404)
-    base = os.path.realpath(FRONTEND_SRC)
-    target = os.path.realpath(os.path.join(FRONTEND_SRC, safe))
-    if not target.startswith(base) or not os.path.isfile(target):
+    base = os.path.realpath(directory)
+    target = os.path.realpath(os.path.join(base, safe))
+    try:
+        inside = os.path.commonpath((base, target)) == base
+    except ValueError:
+        inside = False  # Unidades diferentes no Windows não têm raiz comum.
+    if not inside or not os.path.isfile(target):
         return err('Recurso não encontrado.', status=404)
-    if not safe.lower().endswith(('.html', '.css', '.js', '.png', '.jpg', '.jpeg', '.svg', '.woff', '.woff2', '.json')):
+    if allowed_extensions and not safe.lower().endswith(allowed_extensions):
         return err('Tipo de arquivo não suportado.', status=404)
-    # Envio direto do conteúdo (send_from_directory não aceita diretório
-    # absoluto fora do root_path do Flask) com MIME correto por extensão
-    import mimetypes as _mimetypes
-    mime, _ = _mimetypes.guess_type(target)
+    mime, _ = mimetypes.guess_type(target)
     with open(target, 'rb') as fh:
         data = fh.read()
     resp = app.response_class(data, mimetype=mime or 'application/octet-stream')
-    # HTML das páginas nunca é cacheado pelo browser (é o conteúdo que o
-    # SPA busca via fetch a cada navegação — precisa sempre revalidar).
-    # CSS/JS/imagens podem ser cacheados por um período curto: o motor
-    # SPA já mantém seu próprio cache em memória (cssTextCache/pageCache),
-    # então isto só acelera reloads de aba/sessão nova.
-    if safe.lower().endswith('.html'):
-        resp.headers['Cache-Control'] = 'no-cache'
-    else:
-        resp.headers['Cache-Control'] = 'public, max-age=300'
+    resp.headers['Cache-Control'] = (
+        'no-cache' if safe.lower().endswith(('.html', '.css', '.js'))
+        else 'public, max-age=300'
+    )
     return resp
 
-# Base para os estáticos compartilhados do frontend (utilitários, estilos, assets)
-FRONTEND_ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'frontend', 'src')
+
+@app.route('/pages/sistema/<path:filename>')
+@app.route('/pages/proprietario/<path:filename>')  # Mantém favoritos e links antigos.
+def serve_sistema_page(filename):
+    """Serve as telas compartilhadas por perfil nas duas URLs compatíveis."""
+    return _serve_frontend_file(FRONTEND_SRC, filename, PAGE_ASSET_EXTENSIONS)
+
 
 @app.route('/<path:filename>')
 def serve_frontend_asset(filename):
-    """Serve qualquer arquivo estático do frontend por URL absoluta.
+    """Entrega utilitários, estilos, login e imagens relativos a frontend/src.
 
-    Necessário porque as páginas referenciam utilitários e estilos por
-    caminho relativo (ex.: ../../../utils/global-settings.js); quando o
-    sistema é aberto via http://localhost:5000, o browser resolve essas
-    referências contra a raiz e esta rota as entrega. As rotas de API
-    têm prioridade por especificidade.
+    Rotas de API mais específicas continuam tendo precedência sobre este
+    caminho genérico; suas permissões são verificadas em proteger_api.
     """
-    safe = re.sub(r'[<>:"|?*]', '', filename)
-    if not safe or '..' in safe:
-        return err('Recurso não disponível.', status=404)
-    base = os.path.realpath(FRONTEND_ASSETS)
-    target = os.path.realpath(os.path.join(FRONTEND_ASSETS, safe))
-    if not target.startswith(base) or not os.path.isfile(target):
-        return err('Recurso não encontrado.', status=404)
-    import mimetypes as _mimetypes
-    mime, _ = _mimetypes.guess_type(target)
-    with open(target, 'rb') as fh:
-        data = fh.read()
-    resp = app.response_class(data, mimetype=mime or 'application/octet-stream')
-    if safe.lower().endswith('.html'):
-        resp.headers['Cache-Control'] = 'no-cache'
-    else:
-        resp.headers['Cache-Control'] = 'public, max-age=300'
-    return resp
+    return _serve_frontend_file(FRONTEND_ASSETS, filename)
 
 
 def _fin_tables_exist():
-    """Verifica se as tabelas de financeiro existem no banco."""
+    """Verifica se as duas tabelas requeridas pelo módulo financeiro existem."""
     try:
         db = get_db()
         with db.cursor() as cur:
             cur.execute("SHOW TABLES LIKE 'financeiro_transacoes'")
-            return cur.fetchone() is not None
-    except Exception:
+            transacoes = cur.fetchone() is not None
+            cur.execute("SHOW TABLES LIKE 'financeiro_categorias'")
+            return transacoes and cur.fetchone() is not None
+    except pymysql.MySQLError as exc:
+        log.error("Erro ao verificar tabelas financeiras: %s", exc)
         return False
 # ═══════════════════════════════════════════════════════════════
 #  Financeiro Routes
@@ -3018,8 +3909,7 @@ def _fin_tables_exist():
 def financeiro_stats():
     """Retorna KPIs financeiros para o período selecionado."""
     if not _fin_tables_exist():
-        return jsonify({'ok': True, 'saldo': 0, 'receitas': 0, 'despesas': 0,
-                        'ticket_medio': 0, 'delta_receitas': 0, 'delta_despesas': 0, 'spark': []})
+        return err('Tabelas financeiras não configuradas. Execute a migração 005_tabela_financeiro.sql', status=503)
     days = request.args.get('days', '30', type=int)
     if days not in (7, 30, 90):
         days = 30
@@ -3032,7 +3922,8 @@ def financeiro_stats():
                        COALESCE(SUM(CASE WHEN fc.tipo = 'despesa' THEN t.valor ELSE 0 END), 0) AS despesas
                 FROM financeiro_transacoes t
                 JOIN financeiro_categorias fc ON fc.id = t.categoria_id
-                WHERE t.data_transacao >= DATE_SUB(NOW(), INTERVAL %s DAY)
+                WHERE t.data_transacao >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
+                  AND t.data_transacao < CURDATE() + INTERVAL 1 DAY
                   AND t.status = 'pago'
             """, (days,))
             row = cur.fetchone()
@@ -3044,7 +3935,8 @@ def financeiro_stats():
             cur.execute("""
                 SELECT AVG(valor_total) AS ticket
                 FROM vendas
-                WHERE data_venda >= DATE_SUB(NOW(), INTERVAL %s DAY)
+                WHERE data_venda >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
+                  AND data_venda < CURDATE() + INTERVAL 1 DAY
                   AND status = 'concluida'
             """, (days,))
             ticket = float(cur.fetchone()['ticket'] or 0)
@@ -3054,8 +3946,8 @@ def financeiro_stats():
                 SELECT COALESCE(SUM(CASE WHEN fc.tipo = 'receita' THEN t.valor ELSE 0 END), 0) AS receitas_ant
                 FROM financeiro_transacoes t
                 JOIN financeiro_categorias fc ON fc.id = t.categoria_id
-                WHERE t.data_transacao BETWEEN DATE_SUB(NOW(), INTERVAL %s DAY)
-                                           AND DATE_SUB(NOW(), INTERVAL %s DAY)
+                WHERE t.data_transacao >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
+                  AND t.data_transacao < DATE_SUB(CURDATE(), INTERVAL %s DAY)
                   AND t.status = 'pago'
             """, (days * 2, days))
             receitas_ant = float(cur.fetchone()['receitas_ant'] or 0)
@@ -3065,8 +3957,8 @@ def financeiro_stats():
                 SELECT COALESCE(SUM(CASE WHEN fc.tipo = 'despesa' THEN t.valor ELSE 0 END), 0) AS despesas_ant
                 FROM financeiro_transacoes t
                 JOIN financeiro_categorias fc ON fc.id = t.categoria_id
-                WHERE t.data_transacao BETWEEN DATE_SUB(NOW(), INTERVAL %s DAY)
-                                           AND DATE_SUB(NOW(), INTERVAL %s DAY)
+                WHERE t.data_transacao >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
+                  AND t.data_transacao < DATE_SUB(CURDATE(), INTERVAL %s DAY)
                   AND t.status = 'pago'
             """, (days * 2, days))
             despesas_ant = float(cur.fetchone()['despesas_ant'] or 0)
@@ -3078,7 +3970,8 @@ def financeiro_stats():
                        SUM(CASE WHEN fc.tipo = 'receita' THEN t.valor ELSE -t.valor END) AS liquido
                 FROM financeiro_transacoes t
                 JOIN financeiro_categorias fc ON fc.id = t.categoria_id
-                WHERE t.data_transacao >= DATE_SUB(NOW(), INTERVAL 14 DAY)
+                WHERE t.data_transacao >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+                  AND t.data_transacao < CURDATE() + INTERVAL 1 DAY
                   AND t.status = 'pago'
                 GROUP BY DATE(t.data_transacao)
                 ORDER BY dia ASC
@@ -3095,70 +3988,103 @@ def financeiro_stats():
             'delta_despesas': delta_despesas,
             'spark': spark
         })
-    except Exception as exc:
+    except pymysql.MySQLError as exc:
         log.error("Erro DB em financeiro/stats: %s", exc)
-        return jsonify({'ok': True, 'saldo': 0, 'receitas': 0, 'despesas': 0,
-                        'ticket_medio': 0, 'delta_receitas': 0, 'delta_despesas': 0, 'spark': []})
+        return err('Erro interno ao consultar indicadores financeiros.', status=500)
 
 
 @app.get("/financeiro/fluxo")
 def financeiro_fluxo():
     """Retorna dados para o gráfico de fluxo de caixa (receitas vs despesas por dia)."""
     if not _fin_tables_exist():
-        return jsonify({'ok': True, 'labels': [], 'receitas': [], 'despesas': []})
+        return err('Tabelas financeiras não configuradas. Execute a migração 005_tabela_financeiro.sql', status=503)
     days = request.args.get('days', '7', type=int)
     if days not in (7, 30, 90):
         days = 7
+    start_date = request.args.get('start_date', '').strip()
+    end_date = request.args.get('end_date', '').strip()
+    if bool(start_date) != bool(end_date):
+        return err('Informe data inicial e final juntas.', campo='start_date', status=400)
+    if start_date and end_date:
+        try:
+            start_day = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_day = datetime.strptime(end_date, '%Y-%m-%d').date()
+        except ValueError:
+            return err('Datas inválidas. Use o formato AAAA-MM-DD.', campo='start_date', status=400)
+        if start_day > end_day:
+            return err('A data inicial deve ser anterior à final.', campo='start_date', status=400)
+    else:
+        end_day = datetime.now().date()
+        start_day = end_day - timedelta(days=days)
     db = get_db()
     try:
         with db.cursor() as cur:
-            cur.execute("""
+            query = """
                 SELECT DATE(t.data_transacao) AS dia,
                        SUM(CASE WHEN fc.tipo = 'receita' THEN t.valor ELSE 0 END) AS receitas,
                        SUM(CASE WHEN fc.tipo = 'despesa' THEN t.valor ELSE 0 END) AS despesas
                 FROM financeiro_transacoes t
                 JOIN financeiro_categorias fc ON fc.id = t.categoria_id
-                WHERE t.data_transacao >= DATE_SUB(NOW(), INTERVAL %s DAY)
+                WHERE t.data_transacao >= {start_clause}
+                  AND t.data_transacao < {end_clause}
                   AND t.status = 'pago'
                 GROUP BY DATE(t.data_transacao)
                 ORDER BY dia ASC
-            """, (days,))
+            """
+            if start_date and end_date:
+                cur.execute(query.format(start_clause='%s', end_clause='DATE_ADD(%s, INTERVAL 1 DAY)'), (start_day, end_day))
+            else:
+                cur.execute(query.format(start_clause='DATE_SUB(CURDATE(), INTERVAL %s DAY)', end_clause='CURDATE() + INTERVAL 1 DAY'), (days,))
             rows = cur.fetchall()
 
-        labels = []
-        receitas = []
-        despesas = []
-        for r in rows:
-            labels.append(r['dia'].strftime('%d/%m') if r['dia'] else '—')
-            receitas.append(float(r['receitas'] or 0))
-            despesas.append(float(r['despesas'] or 0))
+        # O gráfico representa o calendário, e não apenas os dias que tiveram
+        # movimento. Assim, a coluna de hoje já existe e cresce durante o dia.
+        by_day = {r['dia']: r for r in rows if r.get('dia')}
+        days_in_range = (end_day - start_day).days + 1
+        calendar_days = [start_day + timedelta(days=offset) for offset in range(days_in_range)]
+        labels = [day.strftime('%d/%m') for day in calendar_days]
+        receitas = [float((by_day.get(day) or {}).get('receitas') or 0) for day in calendar_days]
+        despesas = [float((by_day.get(day) or {}).get('despesas') or 0) for day in calendar_days]
 
-        return jsonify({'ok': True, 'labels': labels, 'receitas': receitas, 'despesas': despesas})
-    except Exception as exc:
+        return jsonify({
+            'ok': True,
+            'labels': labels,
+            'dias': [day.isoformat() for day in calendar_days],
+            'receitas': receitas,
+            'despesas': despesas,
+            'periodo': {'inicio': start_day.isoformat(), 'fim': end_day.isoformat()},
+        })
+    except pymysql.MySQLError as exc:
         log.error("Erro DB em financeiro/fluxo: %s", exc)
-        return jsonify({'ok': True, 'labels': [], 'receitas': [], 'despesas': []})
+        return err('Erro interno ao consultar fluxo de caixa.', status=500)
 
 
 @app.get("/financeiro/categorias")
 def financeiro_categorias():
     """Retorna categorias financeiras com totais agrupados."""
     if not _fin_tables_exist():
-        return jsonify({'ok': True, 'categorias': []})
+        return err('Tabelas financeiras não configuradas. Execute a migração 005_tabela_financeiro.sql', status=503)
     days = request.args.get('days', '30', type=int)
     tipo = request.args.get('tipo', None)
+    if days not in (7, 30, 90):
+        days = 30
+    if tipo not in (None, 'receita', 'despesa'):
+        return err('Tipo inválido.', campo='tipo', status=400)
     db = get_db()
     try:
         with db.cursor() as cur:
-            tipo_clause = "AND fc.tipo = %s" if tipo else ""
+            tipo_clause = "WHERE fc.tipo = %s" if tipo else ""
             params = (days,) + ((tipo,) if tipo else ())
             cur.execute(f"""
                 SELECT fc.id, fc.nome, fc.tipo,
-                       COALESCE(SUM(t.valor), 0) AS valor,
+                       COALESCE(SUM(IF(t.status='pago', t.valor, 0)), 0) AS valor,
+                       COALESCE(SUM(IF(t.status='pendente', t.valor, 0)), 0) AS pendente,
                        COUNT(t.id) AS qtd
                 FROM financeiro_categorias fc
                 LEFT JOIN financeiro_transacoes t ON t.categoria_id = fc.id
-                    AND t.data_transacao >= DATE_SUB(NOW(), INTERVAL %s DAY)
-                    AND t.status = 'pago'
+                    AND t.data_transacao >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
+                    AND t.data_transacao < CURDATE() + INTERVAL 1 DAY
+                    AND t.status IN ('pago', 'pendente')
                 {tipo_clause}
                 GROUP BY fc.id, fc.nome, fc.tipo
                 ORDER BY valor DESC
@@ -3166,23 +4092,24 @@ def financeiro_categorias():
             rows = cur.fetchall()
 
         categorias = [{'id': r['id'], 'nome': r['nome'], 'tipo': r['tipo'],
-                       'valor': float(r['valor'] or 0), 'qtd': r['qtd']} for r in rows]
+                       'valor': float(r['valor'] or 0), 'pendente': float(r.get('pendente') or 0), 'qtd': r['qtd']} for r in rows]
 
         return jsonify({'ok': True, 'categorias': categorias})
-    except Exception as exc:
+    except pymysql.MySQLError as exc:
         log.error("Erro DB em financeiro/categorias: %s", exc)
-        return jsonify({'ok': True, 'categorias': []})
+        return err('Erro interno ao consultar categorias financeiras.', status=500)
 
 
 @app.get("/financeiro/transacoes")
 def financeiro_transacoes():
     """Retorna lista de transações do período."""
     if not _fin_tables_exist():
-        return jsonify({'ok': True, 'transacoes': []})
+        return err('Tabelas financeiras não configuradas. Execute a migração 005_tabela_financeiro.sql', status=503)
     days = request.args.get('days', '30', type=int)
     if days not in (7, 30, 90):
         days = 30
     limit = request.args.get('limit', 50, type=int)
+    limit = min(max(limit, 1), 500)
     db = get_db()
     try:
         with db.cursor() as cur:
@@ -3192,7 +4119,8 @@ def financeiro_transacoes():
                        fc.tipo, fc.nome AS categoria_nome
                 FROM financeiro_transacoes t
                 JOIN financeiro_categorias fc ON fc.id = t.categoria_id
-                WHERE t.data_transacao >= DATE_SUB(NOW(), INTERVAL %s DAY)
+                WHERE t.data_transacao >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
+                  AND t.data_transacao < CURDATE() + INTERVAL 1 DAY
                 ORDER BY t.data_transacao DESC
                 LIMIT %s
             """, (days, limit))
@@ -3210,9 +4138,9 @@ def financeiro_transacoes():
         } for r in rows]
 
         return jsonify({'ok': True, 'transacoes': transacoes})
-    except Exception as exc:
+    except pymysql.MySQLError as exc:
         log.error("Erro DB em financeiro/transacoes: %s", exc)
-        return jsonify({'ok': True, 'transacoes': []})
+        return err('Erro interno ao consultar transações financeiras.', status=500)
 
 
 @app.post("/financeiro/transacoes")
@@ -3234,10 +4162,23 @@ def create_financeiro_transacao():
         return jsonify({'ok': False, 'mensagem': 'Selecione uma categoria.'}), 400
     if not descricao:
         return jsonify({'ok': False, 'mensagem': 'Informe uma descrição.'}), 400
-    if not valor or float(valor) <= 0:
+    # Mantém números e strings numéricas aceitos pela API, mas impede que
+    # conversões inválidas escapem como HTTP 500 ou levem NaN/Infinity ao SQL.
+    try:
+        valor = float(valor)
+    except (TypeError, ValueError, OverflowError):
+        return jsonify({'ok': False, 'mensagem': 'Informe um valor válido.'}), 400
+    if not math.isfinite(valor) or valor <= 0:
         return jsonify({'ok': False, 'mensagem': 'Informe um valor válido.'}), 400
     if metodo not in ('dinheiro', 'pix', 'cartao_credito', 'cartao_debito', 'boleto', 'transferencia'):
         return jsonify({'ok': False, 'mensagem': 'Método de pagamento inválido.'}), 400
+    if data_transacao:
+        try:
+            # O formulário envia somente a data; armazenamos o início desse dia
+            # para que os agrupamentos de fluxo e categoria a considerem nele.
+            data_transacao = datetime.strptime(data_transacao, '%Y-%m-%d').strftime('%Y-%m-%d 00:00:00')
+        except ValueError:
+            return jsonify({'ok': False, 'mensagem': 'Informe uma data válida no formato AAAA-MM-DD.'}), 400
 
     db = get_db()
     try:
@@ -3250,31 +4191,13 @@ def create_financeiro_transacao():
             if cat['tipo'] != tipo:
                 return jsonify({'ok': False, 'mensagem': 'Categoria não corresponde ao tipo.'}), 400
 
-            # Pega o primeiro usuário (temporário - em produção usar session)
-            cur.execute("SELECT id FROM usuarios LIMIT 1")
-            user = cur.fetchone()
-            if not user:
-                return jsonify({'ok': False, 'mensagem': 'Usuário não encontrado.'}), 404
-
-            if data_transacao:
-                cur.execute(
-                    """
-                    INSERT INTO financeiro_transacoes
-                        (categoria_id, usuario_id, descricao, valor, data_transacao, metodo_pagamento, status)
-                    VALUES (%s, %s, %s, %s, %s, %s, 'pago')
-                    """,
-                    (categoria_id, user['id'], descricao, float(valor), data_transacao, metodo),
-                )
-            else:
-                cur.execute(
-                    """
-                    INSERT INTO financeiro_transacoes
-                        (categoria_id, usuario_id, descricao, valor, data_transacao, metodo_pagamento, status)
-                    VALUES (%s, %s, %s, %s, NOW(), %s, 'pago')
-                    """,
-                    (categoria_id, user['id'], descricao, float(valor), metodo),
-                )
-            db.commit()
+            # A data é um parâmetro, nunca um fragmento SQL. Ausência mantém
+            # o horário do banco (NOW), como no contrato anterior.
+            cur.execute("""
+                INSERT INTO financeiro_transacoes (categoria_id, usuario_id, descricao, valor, data_transacao, metodo_pagamento, status)
+                VALUES (%s, %s, %s, %s, COALESCE(%s, NOW()), %s, 'pago')
+            """, (categoria_id, g.usuario_id, descricao, valor, data_transacao or None, metodo))
+            commit_audit(db, cur.lastrowid)
 
         log.info("Nova transação financeira: %s %s", tipo, descricao)
         return jsonify({'ok': True, 'mensagem': 'Transação registrada com sucesso.'}), 201
@@ -3284,5 +4207,18 @@ def create_financeiro_transacao():
         return jsonify({'ok': False, 'mensagem': 'Erro ao salvar transação.'}), 400
 
 
+@app.after_request
+def check_scheduled_notifications(response):
+    if (not app.testing and response.status_code < 400 and request.method == 'GET'
+            and request.path == '/dashboard/stats' and getattr(g, 'usuario_id', None)):
+        if all(os.getenv(k) for k in ('BREVO_SMTP_LOGIN', 'BREVO_SMTP_PASSWORD', 'BREVO_SENDER_EMAIL')):
+            schedule_notifications(app, get_db, enviar_email_brevo)
+    return response
+
+
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    if app.config["APP_ENV"] == "production":
+        raise RuntimeError("Em produção, inicie app:app com um servidor WSGI atrás de HTTPS.")
+    app.run(host="127.0.0.1", debug=app.config["DEBUG"], port=5000)
+
+

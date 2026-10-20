@@ -1,0 +1,442 @@
+[
+  {
+    "method": "GET",
+    "path": "/vendas/catalogo",
+    "function": "catalogo_pdv"
+  },
+  {
+    "method": "POST",
+    "path": "/vendas/balcao",
+    "function": "concluir_pdv"
+  },
+  {
+    "method": "GET",
+    "path": "/health",
+    "function": "health"
+  },
+  {
+    "method": "POST",
+    "path": "/auth/register",
+    "function": "register"
+  },
+  {
+    "method": "GET",
+    "path": "/auth/convites/<string:token>",
+    "function": "consultar_convite"
+  },
+  {
+    "method": "POST",
+    "path": "/auth/convites/<string:token>/recusar",
+    "function": "recusar_convite"
+  },
+  {
+    "method": "POST",
+    "path": "/auth/login",
+    "function": "login"
+  },
+  {
+    "method": "POST",
+    "path": "/auth/recuperar-senha",
+    "function": "solicitar_recuperacao_senha"
+  },
+  {
+    "method": "POST",
+    "path": "/auth/redefinir-senha",
+    "function": "redefinir_senha"
+  },
+  {
+    "method": "POST",
+    "path": "/auth/logout",
+    "function": "logout"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/usuarios",
+    "function": "listar_usuarios"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/convites",
+    "function": "criar_convite"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/logs",
+    "function": "listar_logs"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/pendentes",
+    "function": "listar_pendentes"
+  },
+  {
+    "method": "GET",
+    "path": "/admin/perfis/permissoes",
+    "function": "listar_permissoes_perfis"
+  },
+  {
+    "method": "PUT",
+    "path": "/admin/perfis/permissoes",
+    "function": "atualizar_permissoes_perfis"
+  },
+  {
+    "method": "PUT",
+    "path": "/admin/usuarios/<int:usuario_id>",
+    "function": "editar_usuario"
+  },
+  {
+    "method": "DELETE",
+    "path": "/admin/usuarios/<int:usuario_id>",
+    "function": "excluir_usuario"
+  },
+  {
+    "method": "POST",
+    "path": "/admin/analisar-cadastro",
+    "function": "analisar_cadastro"
+  },
+  {
+    "method": "GET",
+    "path": "/clientes",
+    "function": "get_clientes"
+  },
+  {
+    "method": "GET",
+    "path": "/clientes/<int:cliente_id>",
+    "function": "get_cliente"
+  },
+  {
+    "method": "POST",
+    "path": "/clientes",
+    "function": "create_cliente"
+  },
+  {
+    "method": "PUT",
+    "path": "/clientes/<int:cliente_id>",
+    "function": "update_cliente"
+  },
+  {
+    "method": "DELETE",
+    "path": "/clientes/<int:cliente_id>",
+    "function": "delete_cliente"
+  },
+  {
+    "method": "GET",
+    "path": "/categorias-produto",
+    "function": "get_categorias_produto"
+  },
+  {
+    "method": "GET",
+    "path": "/categorias-produto/<int:categoria_id>",
+    "function": "get_categoria_produto"
+  },
+  {
+    "method": "POST",
+    "path": "/categorias-produto",
+    "function": "create_categoria_produto"
+  },
+  {
+    "method": "PUT",
+    "path": "/categorias-produto/<int:categoria_id>",
+    "function": "update_categoria_produto"
+  },
+  {
+    "method": "DELETE",
+    "path": "/categorias-produto/<int:categoria_id>",
+    "function": "delete_categoria_produto"
+  },
+  {
+    "method": "GET",
+    "path": "/produtos",
+    "function": "get_produtos"
+  },
+  {
+    "method": "GET",
+    "path": "/produtos/<int:produto_id>",
+    "function": "get_produto"
+  },
+  {
+    "method": "POST",
+    "path": "/produtos",
+    "function": "create_produto"
+  },
+  {
+    "method": "PUT",
+    "path": "/produtos/<int:produto_id>",
+    "function": "update_produto"
+  },
+  {
+    "method": "DELETE",
+    "path": "/produtos/<int:produto_id>",
+    "function": "delete_produto"
+  },
+  {
+    "method": "GET",
+    "path": "/fornecedores",
+    "function": "get_fornecedores"
+  },
+  {
+    "method": "GET",
+    "path": "/fornecedores/<int:fornecedor_id>",
+    "function": "get_fornecedor"
+  },
+  {
+    "method": "POST",
+    "path": "/fornecedores",
+    "function": "create_fornecedor"
+  },
+  {
+    "method": "PUT",
+    "path": "/fornecedores/<int:fornecedor_id>",
+    "function": "update_fornecedor"
+  },
+  {
+    "method": "DELETE",
+    "path": "/fornecedores/<int:fornecedor_id>",
+    "function": "delete_fornecedor"
+  },
+  {
+    "method": "GET",
+    "path": "/estoque",
+    "function": "get_estoque"
+  },
+  {
+    "method": "GET",
+    "path": "/estoque/<int:estoque_id>",
+    "function": "get_item_estoque"
+  },
+  {
+    "method": "POST",
+    "path": "/estoque",
+    "function": "create_item_estoque"
+  },
+  {
+    "method": "PUT",
+    "path": "/estoque/<int:estoque_id>",
+    "function": "update_item_estoque"
+  },
+  {
+    "method": "DELETE",
+    "path": "/estoque/<int:estoque_id>",
+    "function": "delete_item_estoque"
+  },
+  {
+    "method": "GET",
+    "path": "/estoque/<int:estoque_id>/historico",
+    "function": "get_historico_estoque"
+  },
+  {
+    "method": "GET",
+    "path": "/movimentacoes-estoque",
+    "function": "get_movimentacoes_estoque"
+  },
+  {
+    "method": "GET",
+    "path": "/movimentacoes-estoque/<int:movimentacao_id>",
+    "function": "get_movimentacao_estoque"
+  },
+  {
+    "method": "POST",
+    "path": "/movimentacoes-estoque",
+    "function": "create_movimentacao_estoque"
+  },
+  {
+    "method": "GET",
+    "path": "/compras",
+    "function": "get_compras"
+  },
+  {
+    "method": "GET",
+    "path": "/compras/<int:compra_id>",
+    "function": "get_compra"
+  },
+  {
+    "method": "POST",
+    "path": "/compras",
+    "function": "create_compra"
+  },
+  {
+    "method": "PUT",
+    "path": "/compras/<int:compra_id>",
+    "function": "update_compra"
+  },
+  {
+    "method": "DELETE",
+    "path": "/compras/<int:compra_id>",
+    "function": "delete_compra"
+  },
+  {
+    "method": "GET",
+    "path": "/vendas",
+    "function": "get_vendas"
+  },
+  {
+    "method": "GET",
+    "path": "/vendas/<int:venda_id>",
+    "function": "get_venda"
+  },
+  {
+    "method": "POST",
+    "path": "/vendas",
+    "function": "create_venda"
+  },
+  {
+    "method": "PUT",
+    "path": "/vendas/<int:venda_id>",
+    "function": "update_venda"
+  },
+  {
+    "method": "DELETE",
+    "path": "/vendas/<int:venda_id>",
+    "function": "delete_venda"
+  },
+  {
+    "method": "GET",
+    "path": "/receitas",
+    "function": "get_receitas"
+  },
+  {
+    "method": "GET",
+    "path": "/receitas/<int:receita_id>",
+    "function": "get_receita"
+  },
+  {
+    "method": "POST",
+    "path": "/receitas",
+    "function": "create_receita"
+  },
+  {
+    "method": "PUT",
+    "path": "/receitas/<int:receita_id>",
+    "function": "update_receita"
+  },
+  {
+    "method": "DELETE",
+    "path": "/receitas/<int:receita_id>",
+    "function": "delete_receita"
+  },
+  {
+    "method": "GET",
+    "path": "/alertas",
+    "function": "get_alertas"
+  },
+  {
+    "method": "GET",
+    "path": "/alertas/<int:alerta_id>",
+    "function": "get_alerta"
+  },
+  {
+    "method": "POST",
+    "path": "/alertas",
+    "function": "create_alerta"
+  },
+  {
+    "method": "PUT",
+    "path": "/alertas/<int:alerta_id>",
+    "function": "update_alerta"
+  },
+  {
+    "method": "DELETE",
+    "path": "/alertas/<int:alerta_id>",
+    "function": "delete_alerta"
+  },
+  {
+    "method": "GET",
+    "path": "/configuracoes/visual",
+    "function": "get_configuracoes_visuais"
+  },
+  {
+    "method": "GET",
+    "path": "/configuracoes",
+    "function": "get_configuracoes"
+  },
+  {
+    "method": "GET",
+    "path": "/configuracoes/<string:chave>",
+    "function": "get_configuracao"
+  },
+  {
+    "method": "POST",
+    "path": "/configuracoes",
+    "function": "create_configuracao"
+  },
+  {
+    "method": "PUT",
+    "path": "/configuracoes/<string:chave>",
+    "function": "update_configuracao"
+  },
+  {
+    "method": "DELETE",
+    "path": "/configuracoes/<string:chave>",
+    "function": "delete_configuracao"
+  },
+  {
+    "method": "GET",
+    "path": "/dashboard/stats",
+    "function": "get_dashboard_stats"
+  },
+  {
+    "method": "GET",
+    "path": "/relatorios/estoque",
+    "function": "relatorio_estoque"
+  },
+  {
+    "method": "GET",
+    "path": "/relatorios/vencimentos",
+    "function": "relatorio_vencimentos"
+  },
+  {
+    "method": "GET",
+    "path": "/relatorios/compras",
+    "function": "relatorio_compras"
+  },
+  {
+    "method": "GET",
+    "path": "/pages/sistema/<path:filename>",
+    "function": "serve_sistema_page"
+  },
+  {
+    "method": "GET",
+    "path": "/pages/proprietario/<path:filename>",
+    "function": "serve_sistema_page"
+  },
+  {
+    "method": "GET",
+    "path": "/<path:filename>",
+    "function": "serve_frontend_asset"
+  },
+  {
+    "method": "GET",
+    "path": "/financeiro/stats",
+    "function": "financeiro_stats"
+  },
+  {
+    "method": "GET",
+    "path": "/financeiro/fluxo",
+    "function": "financeiro_fluxo"
+  },
+  {
+    "method": "GET",
+    "path": "/financeiro/categorias",
+    "function": "financeiro_categorias"
+  },
+  {
+    "method": "GET",
+    "path": "/financeiro/transacoes",
+    "function": "financeiro_transacoes"
+  },
+  {
+    "method": "POST",
+    "path": "/financeiro/transacoes",
+    "function": "create_financeiro_transacao"
+  },
+  {
+    "method": "PUT",
+    "path": "/configuracoes",
+    "function": "save_configuracoes"
+  },
+  {
+    "method": "GET",
+    "path": "/estoque/parametros",
+    "function": "get_parametros_estoque"
+  }
+]

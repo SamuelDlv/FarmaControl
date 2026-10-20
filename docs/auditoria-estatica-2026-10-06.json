@@ -1,0 +1,312 @@
+{
+  "html_files": 12,
+  "missing_assets": [],
+  "duplicate_html_ids": [],
+  "unused_backend_imports": [],
+  "shared_css_blocks": 513,
+  "shared_css_examples": [
+    {
+      "selector": ".kpi-grid",
+      "occurrences": 20,
+      "files": [
+        "frontend/src/pages/sistema/compras/compras.css",
+        "frontend/src/pages/sistema/configuracoes/configuracoes.css",
+        "frontend/src/pages/sistema/dashboard/dashboard.css",
+        "frontend/src/pages/sistema/estoque/estoque.css",
+        "frontend/src/pages/sistema/financeiro/financeiro.css",
+        "frontend/src/pages/sistema/relatorios/relatorios.css",
+        "frontend/src/pages/sistema/usuarios/usuarios.css",
+        "frontend/src/pages/sistema/vencimentos/vencimentos.css"
+      ]
+    },
+    {
+      "selector": ".sidebar.collapsed .sb-collapse svg",
+      "occurrences": 18,
+      "files": [
+        "frontend/src/pages/sistema/compras/compras.css",
+        "frontend/src/pages/sistema/configuracoes/configuracoes.css",
+        "frontend/src/pages/sistema/dashboard/dashboard.css",
+        "frontend/src/pages/sistema/estoque/estoque.css",
+        "frontend/src/pages/sistema/financeiro/financeiro.css",
+        "frontend/src/pages/sistema/relatorios/relatorios.css",
+        "frontend/src/pages/sistema/usuarios/usuarios.css",
+        "frontend/src/pages/sistema/vencimentos/vencimentos.css"
+      ]
+    },
+    {
+      "selector": ".app",
+      "occurrences": 9,
+      "files": [
+        "frontend/src/pages/sistema/compras/compras.css",
+        "frontend/src/pages/sistema/configuracoes/configuracoes.css",
+        "frontend/src/pages/sistema/dashboard/dashboard.css",
+        "frontend/src/pages/sistema/estoque/estoque.css",
+        "frontend/src/pages/sistema/financeiro/financeiro.css",
+        "frontend/src/pages/sistema/relatorios/relatorios.css",
+        "frontend/src/pages/sistema/usuarios/usuarios.css",
+        "frontend/src/pages/sistema/vencimentos/vencimentos.css"
+      ]
+    },
+    {
+      "selector": ".sidebar",
+      "occurrences": 9,
+      "files": [
+        "frontend/src/pages/sistema/compras/compras.css",
+        "frontend/src/pages/sistema/configuracoes/configuracoes.css",
+        "frontend/src/pages/sistema/dashboard/dashboard.css",
+        "frontend/src/pages/sistema/estoque/estoque.css",
+        "frontend/src/pages/sistema/financeiro/financeiro.css",
+        "frontend/src/pages/sistema/relatorios/relatorios.css",
+        "frontend/src/pages/sistema/usuarios/usuarios.css",
+        "frontend/src/pages/sistema/vencimentos/vencimentos.css"
+      ]
+    },
+    {
+      "selector": ".sidebar.collapsed",
+      "occurrences": 9,
+      "files": [
+        "frontend/src/pages/sistema/compras/compras.css",
+        "frontend/src/pages/sistema/configuracoes/configuracoes.css",
+        "frontend/src/pages/sistema/dashboard/dashboard.css",
+        "frontend/src/pages/sistema/estoque/estoque.css",
+        "frontend/src/pages/sistema/financeiro/financeiro.css",
+        "frontend/src/pages/sistema/relatorios/relatorios.css",
+        "frontend/src/pages/sistema/usuarios/usuarios.css",
+        "frontend/src/pages/sistema/vencimentos/vencimentos.css"
+      ]
+    },
+    {
+      "selector": ".sb-head",
+      "occurrences": 9,
+      "files": [
+        "frontend/src/pages/sistema/compras/compras.css",
+        "frontend/src/pages/sistema/configuracoes/configuracoes.css",
+        "frontend/src/pages/sistema/dashboard/dashboard.css",
+        "frontend/src/pages/sistema/estoque/estoque.css",
+        "frontend/src/pages/sistema/financeiro/financeiro.css",
+        "frontend/src/pages/sistema/relatorios/relatorios.css",
+        "frontend/src/pages/sistema/usuarios/usuarios.css",
+        "frontend/src/pages/sistema/vencimentos/vencimentos.css"
+      ]
+    },
+    {
+      "selector": ".sb-brand",
+      "occurrences": 9,
+      "files": [
+        "frontend/src/pages/sistema/compras/compras.css",
+        "frontend/src/pages/sistema/configuracoes/configuracoes.css",
+        "frontend/src/pages/sistema/dashboard/dashboard.css",
+        "frontend/src/pages/sistema/estoque/estoque.css",
+        "frontend/src/pages/sistema/financeiro/financeiro.css",
+        "frontend/src/pages/sistema/relatorios/relatorios.css",
+        "frontend/src/pages/sistema/usuarios/usuarios.css",
+        "frontend/src/pages/sistema/vencimentos/vencimentos.css"
+      ]
+    },
+    {
+      "selector": ".sb-logo",
+      "occurrences": 9,
+      "files": [
+        "frontend/src/pages/sistema/compras/compras.css",
+        "frontend/src/pages/sistema/configuracoes/configuracoes.css",
+        "frontend/src/pages/sistema/dashboard/dashboard.css",
+        "frontend/src/pages/sistema/estoque/estoque.css",
+        "frontend/src/pages/sistema/financeiro/financeiro.css",
+        "frontend/src/pages/sistema/relatorios/relatorios.css",
+        "frontend/src/pages/sistema/usuarios/usuarios.css",
+        "frontend/src/pages/sistema/vencimentos/vencimentos.css"
+      ]
+    },
+    {
+      "selector": ".sb-brand-text",
+      "occurrences": 9,
+      "files": [
+        "frontend/src/pages/sistema/compras/compras.css",
+        "frontend/src/pages/sistema/configuracoes/configuracoes.css",
+        "frontend/src/pages/sistema/dashboard/dashboard.css",
+        "frontend/src/pages/sistema/estoque/estoque.css",
+        "frontend/src/pages/sistema/financeiro/financeiro.css",
+        "frontend/src/pages/sistema/relatorios/relatorios.css",
+        "frontend/src/pages/sistema/usuarios/usuarios.css",
+        "frontend/src/pages/sistema/vencimentos/vencimentos.css"
+      ]
+    },
+    {
+      "selector": ".sb-name",
+      "occurrences": 9,
+      "files": [
+        "frontend/src/pages/sistema/compras/compras.css",
+        "frontend/src/pages/sistema/configuracoes/configuracoes.css",
+        "frontend/src/pages/sistema/dashboard/dashboard.css",
+        "frontend/src/pages/sistema/estoque/estoque.css",
+        "frontend/src/pages/sistema/financeiro/financeiro.css",
+        "frontend/src/pages/sistema/relatorios/relatorios.css",
+        "frontend/src/pages/sistema/usuarios/usuarios.css",
+        "frontend/src/pages/sistema/vencimentos/vencimentos.css"
+      ]
+    },
+    {
+      "selector": ".sb-ver",
+      "occurrences": 9,
+      "files": [
+        "frontend/src/pages/sistema/compras/compras.css",
+        "frontend/src/pages/sistema/configuracoes/configuracoes.css",
+        "frontend/src/pages/sistema/dashboard/dashboard.css",
+        "frontend/src/pages/sistema/estoque/estoque.css",
+        "frontend/src/pages/sistema/financeiro/financeiro.css",
+        "frontend/src/pages/sistema/relatorios/relatorios.css",
+        "frontend/src/pages/sistema/usuarios/usuarios.css",
+        "frontend/src/pages/sistema/vencimentos/vencimentos.css"
+      ]
+    },
+    {
+      "selector": ".sb-collapse",
+      "occurrences": 9,
+      "files": [
+        "frontend/src/pages/sistema/compras/compras.css",
+        "frontend/src/pages/sistema/configuracoes/configuracoes.css",
+        "frontend/src/pages/sistema/dashboard/dashboard.css",
+        "frontend/src/pages/sistema/estoque/estoque.css",
+        "frontend/src/pages/sistema/financeiro/financeiro.css",
+        "frontend/src/pages/sistema/relatorios/relatorios.css",
+        "frontend/src/pages/sistema/usuarios/usuarios.css",
+        "frontend/src/pages/sistema/vencimentos/vencimentos.css"
+      ]
+    },
+    {
+      "selector": ".sidebar.collapsed .sb-brand-text, .sidebar.collapsed .sb-group-label, .sidebar.collapsed .sb-label, .sidebar.collapsed .sb-badge, .sidebar.collapsed .sb-user-info, .sidebar.collapsed .sb-logout",
+      "occurrences": 9,
+      "files": [
+        "frontend/src/pages/sistema/compras/compras.css",
+        "frontend/src/pages/sistema/configuracoes/configuracoes.css",
+        "frontend/src/pages/sistema/dashboard/dashboard.css",
+        "frontend/src/pages/sistema/estoque/estoque.css",
+        "frontend/src/pages/sistema/financeiro/financeiro.css",
+        "frontend/src/pages/sistema/relatorios/relatorios.css",
+        "frontend/src/pages/sistema/usuarios/usuarios.css",
+        "frontend/src/pages/sistema/vencimentos/vencimentos.css"
+      ]
+    },
+    {
+      "selector": ".sb-group-label",
+      "occurrences": 9,
+      "files": [
+        "frontend/src/pages/sistema/compras/compras.css",
+        "frontend/src/pages/sistema/configuracoes/configuracoes.css",
+        "frontend/src/pages/sistema/dashboard/dashboard.css",
+        "frontend/src/pages/sistema/estoque/estoque.css",
+        "frontend/src/pages/sistema/financeiro/financeiro.css",
+        "frontend/src/pages/sistema/relatorios/relatorios.css",
+        "frontend/src/pages/sistema/usuarios/usuarios.css",
+        "frontend/src/pages/sistema/vencimentos/vencimentos.css"
+      ]
+    },
+    {
+      "selector": ".sb-item:hover",
+      "occurrences": 9,
+      "files": [
+        "frontend/src/pages/sistema/compras/compras.css",
+        "frontend/src/pages/sistema/configuracoes/configuracoes.css",
+        "frontend/src/pages/sistema/dashboard/dashboard.css",
+        "frontend/src/pages/sistema/estoque/estoque.css",
+        "frontend/src/pages/sistema/financeiro/financeiro.css",
+        "frontend/src/pages/sistema/relatorios/relatorios.css",
+        "frontend/src/pages/sistema/usuarios/usuarios.css",
+        "frontend/src/pages/sistema/vencimentos/vencimentos.css"
+      ]
+    }
+  ],
+  "repeated_page_function_names": {
+    "getUsuarioId": [
+      "frontend/src/pages/sistema/compras/compras.js",
+      "frontend/src/pages/sistema/dashboard/dashboard.js",
+      "frontend/src/pages/sistema/estoque/estoque.js",
+      "frontend/src/pages/sistema/vencimentos/vencimentos.js"
+    ],
+    "initDate": [
+      "frontend/src/pages/sistema/compras/compras.js",
+      "frontend/src/pages/sistema/configuracoes/configuracoes.js",
+      "frontend/src/pages/sistema/relatorios/relatorios.js",
+      "frontend/src/pages/sistema/usuarios/usuarios.js"
+    ],
+    "initCounters": [
+      "frontend/src/pages/sistema/compras/compras.js",
+      "frontend/src/pages/sistema/configuracoes/configuracoes.js",
+      "frontend/src/pages/sistema/dashboard/dashboard.js",
+      "frontend/src/pages/sistema/relatorios/relatorios.js",
+      "frontend/src/pages/sistema/usuarios/usuarios.js"
+    ],
+    "initPeriodSelector": [
+      "frontend/src/pages/sistema/compras/compras.js",
+      "frontend/src/pages/sistema/configuracoes/configuracoes.js",
+      "frontend/src/pages/sistema/relatorios/relatorios.js",
+      "frontend/src/pages/sistema/usuarios/usuarios.js"
+    ],
+    "initChartTabs": [
+      "frontend/src/pages/sistema/compras/compras.js",
+      "frontend/src/pages/sistema/relatorios/relatorios.js"
+    ],
+    "initTableFilter": [
+      "frontend/src/pages/sistema/compras/compras.js",
+      "frontend/src/pages/sistema/relatorios/relatorios.js"
+    ],
+    "initReportButtons": [
+      "frontend/src/pages/sistema/compras/compras.js",
+      "frontend/src/pages/sistema/configuracoes/configuracoes.js",
+      "frontend/src/pages/sistema/usuarios/usuarios.js"
+    ],
+    "initClock": [
+      "frontend/src/pages/sistema/dashboard/dashboard.js",
+      "frontend/src/pages/sistema/vencimentos/vencimentos.js"
+    ],
+    "fetchProdutos": [
+      "frontend/src/pages/sistema/estoque/estoque.js",
+      "frontend/src/pages/sistema/relatorios/relatorios.js",
+      "frontend/src/pages/sistema/vencimentos/vencimentos.js"
+    ],
+    "fmtDate": [
+      "frontend/src/pages/sistema/estoque/estoque.js",
+      "frontend/src/pages/sistema/financeiro/financeiro.js",
+      "frontend/src/pages/sistema/vencimentos/vencimentos.js"
+    ],
+    "getFiltered": [
+      "frontend/src/pages/sistema/estoque/estoque.js",
+      "frontend/src/pages/sistema/vencimentos/vencimentos.js"
+    ],
+    "renderTable": [
+      "frontend/src/pages/sistema/estoque/estoque.js",
+      "frontend/src/pages/sistema/vencimentos/vencimentos.js"
+    ],
+    "openEditModal": [
+      "frontend/src/pages/sistema/estoque/estoque.js",
+      "frontend/src/pages/sistema/usuarios/usuarios.js"
+    ],
+    "updateKPIs": [
+      "frontend/src/pages/sistema/estoque/estoque.js",
+      "frontend/src/pages/sistema/usuarios/usuarios.js",
+      "frontend/src/pages/sistema/vencimentos/vencimentos.js"
+    ],
+    "showToast": [
+      "frontend/src/pages/sistema/estoque/estoque.js",
+      "frontend/src/pages/sistema/vencimentos/vencimentos.js"
+    ],
+    "toast": [
+      "frontend/src/pages/sistema/financeiro/financeiro.js",
+      "frontend/src/pages/sistema/relatorios/relatorios.js",
+      "frontend/src/pages/sistema/usuarios/usuarios.js"
+    ],
+    "openLoteModal": [
+      "frontend/src/pages/sistema/relatorios/relatorios.js",
+      "frontend/src/pages/sistema/vencimentos/vencimentos.js"
+    ],
+    "closeLoteModal": [
+      "frontend/src/pages/sistema/relatorios/relatorios.js",
+      "frontend/src/pages/sistema/vencimentos/vencimentos.js"
+    ],
+    "handleLoteSubmit": [
+      "frontend/src/pages/sistema/relatorios/relatorios.js",
+      "frontend/src/pages/sistema/vencimentos/vencimentos.js"
+    ]
+  },
+  "nota_manutencao": "Referências a arquivos removidos foram excluídas em 15/10/2026. Contagens preservam o levantamento histórico de 06/10/2026."
+}

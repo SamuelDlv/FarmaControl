@@ -2,8 +2,8 @@
  * FARMAControl — TEMA CLARO PADRONIZADO
  * ══════════════════════════════════════════════════════════════════════
  *
- * ESCOPO: body:not(.fc-dark):not(.fc-auth)
- * → Aplica apenas no tema claro e NUNCA na página de login
+ * ESCOPO: body:not(.fc-auth)
+ * → Aparência única clara; os componentes não sobrescrevem a página de login
  *
  * RESPONSÁVEL POR:
  * - Cores de fundo, texto e bordas do tema claro
@@ -19,139 +19,247 @@
  * Garante máximo contraste e legibilidade no tema claro
  */
 
-/* Tema claro: Aplicar contraste máximo (excluir página de auth) */
-body:not(.fc-dark):not(.fc-auth) {
+:root {
+  color-scheme: only light;
+}
+
+/* Contraste dos componentes (excluir página de auth) */
+body:not(.fc-auth) {
   background: var(--bg-body, #f0f2f1) !important;
   color: var(--ink, #1a1a1a) !important;
 }
 
-body:not(.fc-dark):not(.fc-auth) h1,
-body:not(.fc-dark):not(.fc-auth) h2,
-body:not(.fc-dark):not(.fc-auth) h3,
-body:not(.fc-dark):not(.fc-auth) h4,
-body:not(.fc-dark):not(.fc-auth) h5,
-body:not(.fc-dark):not(.fc-auth) h6 {
+body:not(.fc-auth) h1,
+body:not(.fc-auth) h2,
+body:not(.fc-auth) h3,
+body:not(.fc-auth) h4,
+body:not(.fc-auth) h5,
+body:not(.fc-auth) h6 {
   color: var(--ink, #1a1a1a) !important;
 }
 
-body:not(.fc-dark):not(.fc-auth) .page-title {
+body:not(.fc-auth) .page-title {
   color: var(--ink, #1a1a1a) !important;
 }
 
-body:not(.fc-dark):not(.fc-auth) .sb-item {
-  color: var(--ink-60, #2d2d2d) !important;
+body:not(.fc-auth) .sb-item {
+  color: var(--sidebar-muted, var(--ink-60, #2d2d2d)) !important;
 }
 
-body:not(.fc-dark):not(.fc-auth) .sb-item:hover {
-  background: var(--ink-06, #e8e8e8) !important;
-  color: var(--ink, #1a1a1a) !important;
+body:not(.fc-auth) .sb-item:hover {
+  background: var(--sidebar-bg-hover, var(--ink-06, #e8e8e8)) !important;
+  color: var(--sidebar-text, var(--ink, #1a1a1a)) !important;
 }
 
-body:not(.fc-dark):not(.fc-auth) .sb-item.active {
-  background: var(--sage-pale) !important;
-  color: var(--ink, #1a1a1a) !important;
+body:not(.fc-auth) .sb-item.active {
+  background: var(--sidebar-bg-active, var(--sage-pale)) !important;
+  color: var(--sidebar-text, var(--ink, #1a1a1a)) !important;
 }
 /* Feedback imediato no clique (antes do crossfade): o item "afunda" e
    escurece no frame do clique — o usuário sente a resposta instantânea
    enquanto a transição começa. */
-body:not(.fc-dark):not(.fc-auth) .sb-item:active,
-body:not(.fc-dark):not(.fc-auth) .sb-item.sb-clicked {
-  background: var(--ink-12, #d0d0d0) !important;
+body:not(.fc-auth) .sb-item:active,
+body:not(.fc-auth) .sb-item.sb-clicked {
+  background: var(--sidebar-bg-active, var(--ink-12, #d0d0d0)) !important;
   transform: scale(0.985);
 }
-body:not(.fc-dark):not(.fc-auth) .sb-item {
-  transition: background-color 0.15s ease, color 0.15s ease, transform 0.12s ease;
+body:not(.fc-auth) .sb-item {
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.12s ease;
 }
 
-body:not(.fc-dark):not(.fc-auth) .sb-group-label {
-  color: var(--ink-35, #5a5a5a) !important;
+body:not(.fc-auth) .sb-group-label {
+  color: var(--sidebar-muted, var(--ink-35, #5a5a5a)) !important;
 }
 
-body:not(.fc-dark):not(.fc-auth) .sidebar {
-  background: var(--surface, #ffffff) !important;
-  border-right: 1px solid var(--ink-12, #d0d0d0) !important;
+body:not(.fc-auth) .sidebar {
+  background: var(--sidebar-bg, var(--surface, #ffffff)) !important;
+  border-right: 1px solid var(--sidebar-border, var(--ink-12, #d0d0d0)) !important;
 }
 
-body:not(.fc-dark):not(.fc-auth) .topbar {
+body:not(.fc-auth) .topbar {
   background: var(--surface-2, #fafafa) !important;
   border-bottom: 1px solid var(--ink-12, #d0d0d0) !important;
 }
 
-body:not(.fc-dark):not(.fc-auth) .card,
-body:not(.fc-dark):not(.fc-auth) .kpi-card {
-  background: var(--surface, #ffffff) !important;
+body:not(.fc-auth) .card,
+body:not(.fc-auth) .kpi-card {
+  /* Superfície suave e uniforme; evita cartões branco-puro desconexos. */
+  background: var(--surface-2, #fafafa) !important;
   border: 1px solid var(--ink-12, #d0d0d0) !important;
 }
 
-body:not(.fc-dark):not(.fc-auth) table thead th {
+body:not(.fc-auth) table thead th {
   background: var(--surface-2, #fafafa) !important;
   color: var(--ink, #1a1a1a) !important;
   border-bottom: 1px solid var(--ink-12, #d0d0d0) !important;
 }
 
-body:not(.fc-dark):not(.fc-auth) table tbody td {
+body:not(.fc-auth) table tbody td {
   color: var(--ink-60, #2d2d2d) !important;
   border-bottom: 1px solid var(--ink-12, #d0d0d0) !important;
 }
 
-body:not(.fc-dark):not(.fc-auth) .form-input,
-body:not(.fc-dark):not(.fc-auth) .form-select,
-body:not(.fc-dark):not(.fc-auth) input,
-body:not(.fc-dark):not(.fc-auth) select,
-body:not(.fc-dark):not(.fc-auth) textarea {
+body:not(.fc-auth) .form-input,
+body:not(.fc-auth) .form-select,
+body:not(.fc-auth) input,
+body:not(.fc-auth) select,
+body:not(.fc-auth) textarea {
   background: var(--surface, #ffffff) !important;
   color: var(--ink-60, #2d2d2d) !important;
   border: 1px solid var(--ink-12, #d0d0d0) !important;
 }
 
-body:not(.fc-dark):not(.fc-auth) .form-input::placeholder,
-body:not(.fc-dark):not(.fc-auth) input::placeholder {
+body:not(.fc-auth) .form-input::placeholder,
+body:not(.fc-auth) input::placeholder {
   color: var(--ink-35, #5a5a5a) !important;
 }
 
-body:not(.fc-dark):not(.fc-auth) .badge,
-body:not(.fc-dark):not(.fc-auth) .pill {
+body:not(.fc-auth) .badge,
+body:not(.fc-auth) .pill {
   background: var(--surface-2, #fafafa) !important;
   color: var(--ink-60, #2d2d2d) !important;
   border: 1px solid var(--ink-12, #d0d0d0) !important;
 }
 
-body:not(.fc-dark):not(.fc-auth) .ghost-btn,
-body:not(.fc-dark):not(.fc-auth) .tb-btn:not(.primary) {
+body:not(.fc-auth) .ghost-btn,
+body:not(.fc-auth) .tb-btn:not(.primary) {
   background: var(--surface, #ffffff) !important;
   color: var(--ink-60, #2d2d2d) !important;
   border: 1px solid var(--ink-12, #d0d0d0) !important;
 }
 
-body:not(.fc-dark):not(.fc-auth) .ghost-btn:hover,
-body:not(.fc-dark):not(.fc-auth) .tb-btn:not(.primary):hover {
+body:not(.fc-auth) .ghost-btn:hover,
+body:not(.fc-auth) .tb-btn:not(.primary):hover {
   background: var(--surface-2, #fafafa) !important;
   border-color: var(--ink-35, #5a5a5a) !important;
   color: var(--ink, #1a1a1a) !important;
 }
 
-body:not(.fc-dark):not(.fc-auth) .breadcrumb {
+body:not(.fc-auth) .breadcrumb {
   color: var(--ink-35, #5a5a5a) !important;
 }
 
-body:not(.fc-dark):not(.fc-auth) .bc-root,
-body:not(.fc-dark):not(.fc-auth) .bc-cur {
+body:not(.fc-auth) .bc-root,
+body:not(.fc-auth) .bc-cur {
   color: var(--ink-60, #2d2d2d) !important;
 }
 
-body:not(.fc-dark):not(.fc-auth) .muted,
-body:not(.fc-dark):not(.fc-auth) .text-muted {
+body:not(.fc-auth) .muted,
+body:not(.fc-auth) .text-muted {
   color: var(--ink-35, #5a5a5a) !important;
 }
 
-body:not(.fc-dark):not(.fc-auth) ::-webkit-scrollbar-track {
+body:not(.fc-auth) ::-webkit-scrollbar-track {
   background: var(--surface-2, #fafafa) !important;
 }
 
-body:not(.fc-dark):not(.fc-auth) ::-webkit-scrollbar-thumb {
+body:not(.fc-auth) ::-webkit-scrollbar-thumb {
   background: var(--ink-12, #d0d0d0) !important;
 }
 
-body:not(.fc-dark):not(.fc-auth) ::-webkit-scrollbar-thumb:hover {
+body:not(.fc-auth) ::-webkit-scrollbar-thumb:hover {
   background: var(--ink-35, #5a5a5a) !important;
+}
+
+/* Modal de confirmação global, usado em ações irreversíveis. */
+.fc-confirm-overlay,
+#fc-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(13, 21, 16, 0.52);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+#fc-confirm-overlay.open {
+  opacity: 1;
+}
+.fc-confirm-card {
+  width: min(100%, 420px);
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  gap: 12px;
+  padding: 22px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid var(--ink-12, #d0d0d0);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.25);
+  transform: translateY(8px) scale(0.98);
+  transition: transform 0.18s ease;
+}
+#fc-confirm-overlay.open .fc-confirm-card {
+  transform: translateY(0) scale(1);
+}
+.fc-confirm-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: var(--sage, #4a7c59);
+  background: var(--sage-pale, rgba(74, 124, 89, 0.1));
+}
+.fc-confirm-icon.danger {
+  color: #c03a3a;
+  background: rgba(192, 58, 58, 0.12);
+}
+.fc-confirm-content h2 {
+  margin: 1px 0 5px;
+  font:
+    600 16px/1.25 Outfit,
+    sans-serif;
+  color: var(--ink, #1a1a1a);
+}
+.fc-confirm-content p {
+  margin: 0;
+  font:
+    13px/1.55 Outfit,
+    sans-serif;
+  color: var(--ink-60, #2d2d2d);
+}
+.fc-confirm-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 8px;
+}
+.fc-confirm-actions button {
+  border: 0;
+  border-radius: 8px;
+  padding: 9px 14px;
+  font:
+    600 12px Outfit,
+    sans-serif;
+  cursor: pointer;
+}
+.fc-confirm-cancel {
+  color: var(--ink-60, #2d2d2d);
+  background: var(--ink-06, #e8e8e8);
+}
+.fc-confirm-ok {
+  color: #fff;
+  background: var(--sage, #4a7c59);
+}
+.fc-confirm-ok.danger {
+  background: #c03a3a;
+}
+.fc-confirm-actions button:hover {
+  filter: brightness(0.94);
+}
+@media (max-width: 480px) {
+  .fc-confirm-card {
+    padding: 18px;
+  }
+  .fc-confirm-actions button {
+    flex: 1;
+  }
 }

@@ -1,65 +1,93 @@
 /**
- * FarmaControl — Sistema Global de Configurações (v2 — reescrito)
- *
- * ══ MUDANÇA FUNDAMENTAL v2 ══
- *
- * CAUSA RAIZ DO FLASH DE COR (confirmada):
- * O ensureStyle() usava var(--sage) nas regras CSS. O browser resolve
- * var() no cascade — se o CSS da página é parseado ANTES do setProperty()
- * rodar, o fallback do var(--sage, #4a7c59) é usado → FLASH VERDE.
- *
- * SOLUÇÃO v2:
- * ensureStyle() agora gera CSS com VALORES DIRETOS (hex resolvidos),
- * não referências a var(). O CSS é regenerado a cada applySettings().
- *
- * Além disso, o motor v14 chama applySettings() ANTES da injeção de CSS
- * da página nova — garantindo que as cores estão corretas quando o
- * browser parse qualquer CSS.
- */
-
-/* ══════════════════════════════════════════════════════════════════════
- * FARMAControl — SISTEMA GLOBAL DE CONFIGURAÇÕES (v2)
- * ══════════════════════════════════════════════════════════════════════
- *
- * Este arquivo é carregado em TODAS as páginas do sistema.
- * Ele é responsável por:
- *
- * 1. Definir a paleta de cores do tema (verde, azul, laranja, etc.)
- * 2. Aplicar as CSS variables (--sage, --ink, --surface, etc.) no <html>
- * 3. Gerar um <style> inline com valores DIRETOS (sem var()) para
- *    evitar o "flash" de cor antes do CSS da página carregar
- * 4. Gerenciar a sessão do usuário logado (localStorage)
- * 5. Aplicar configurações de densidade, animações e sidebar
- *
- * FUNÇÕES PRINCIPAIS:
- * ─────────────────────────────────────────────────────────────────────
- * parseStored()        → Lê configurações salvas no localStorage
- * getPalette(hexColor) → Retorna a paleta de cores para um hex
- * regenerateStyle()    → Cria <style> inline com valores hex diretos
- * applySettings()      → Aplica tema + cores + densidade na página
- * applyUser()          → Mostra nome/avatar do usuário na sidebar
- * loadRemoteSettings() → Busca configurações salvas no banco
- * showToast()          → Exibe notificação temporária (sucesso/erro)
- * ─────────────────────────────────────────────────────────────────────
+ * Preferências visuais compartilhadas: cor de destaque, densidade e animações.
+ * A aplicação tem uma única aparência clara; a paleta ajusta apenas os acentos.
  */
 (function () {
   'use strict';
 
-  const API_BASE = 'http://localhost:5000';
+  const pageUrl = new URL(window.location.href);
+  const API_BASE = /^https?:$/.test(pageUrl.protocol) ? pageUrl.origin : 'http://localhost:5000';
   const STORAGE_KEY = 'farmacontrol_configuracoes';
+  const CSRF_KEY = 'farmacontrol_csrf';
+
+  /* Centraliza credenciais e CSRF para as chamadas da API em todas as telas. */
+  const nativeFetch = window.fetch.bind(window);
+  window.fetch = function (input, init) {
+    // Credenciais/CSRF pertencem somente à origem da API. Bibliotecas,
+    // recursos externos e futuras integrações mantêm as opções do chamador.
+    const url = new URL(
+      typeof input === 'string' ? input : input.url || input,
+      window.location.href
+    );
+    if (url.origin !== new URL(API_BASE).origin) return nativeFetch(input, init);
+    const options = Object.assign({}, init || {});
+    options.credentials = options.credentials || 'include';
+    const method = String(options.method || (input && input.method) || 'GET').toUpperCase();
+    const pageSignal = window.FarmaControlPage?.signal;
+    // Leituras pertencem à tela. Mutações e logout keepalive não são tratados
+    // como leituras canceláveis: cancelar o cliente não desfaz uma gravação.
+    if (pageSignal && ['GET', 'HEAD'].includes(method) && !options.keepalive) {
+      const callerSignal = options.signal || input?.signal;
+      options.signal = callerSignal ? AbortSignal.any([pageSignal, callerSignal]) : pageSignal;
+    }
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+      const csrf = sessionStorage.getItem(CSRF_KEY);
+      if (csrf) {
+        const headers = new Headers(options.headers || (input && input.headers) || {});
+        headers.set('X-CSRF-Token', csrf);
+        options.headers = headers;
+      }
+    }
+    return nativeFetch(input, options);
+  };
 
   /* ══ PALETAS PREDEFINIDAS ══ */
   const palettes = {
-    '#4a7c59': { sage: '#4a7c59', sage2: '#3a6447', light: '#6aaa7e', pale: 'rgba(74,124,89,0.1)', border: 'rgba(74,124,89,0.22)', surface: '#0d1510', surface2: '#141f18' },
-    '#2e6da4': { sage: '#2e6da4', sage2: '#235590', light: '#4f8bc0', pale: 'rgba(46,109,164,0.1)', border: 'rgba(46,109,164,0.22)', surface: '#0a121a', surface2: '#101a26' },
-    '#b87a1a': { sage: '#b87a1a', sage2: '#965f14', light: '#d59636', pale: 'rgba(184,122,26,0.1)', border: 'rgba(184,122,26,0.22)', surface: '#1a140a', surface2: '#261e10' },
-    '#c03a3a': { sage: '#c03a3a', sage2: '#9b2d2d', light: '#d85c5c', pale: 'rgba(192,58,58,0.1)', border: 'rgba(192,58,58,0.22)', surface: '#1a0a0a', surface2: '#261010' },
-    '#6b4fbb': { sage: '#6b4fbb', sage2: '#523a97', light: '#876fd0', pale: 'rgba(107,79,187,0.1)', border: 'rgba(107,79,187,0.22)', surface: '#110a1a', surface2: '#1a1026' },
-    '#1a7a6e': { sage: '#1a7a6e', sage2: '#125f55', light: '#32998c', pale: 'rgba(26,122,110,0.1)', border: 'rgba(26,122,110,0.22)', surface: '#0a1a18', surface2: '#102623' }
+    '#4a7c59': {
+      sage: '#4a7c59',
+      sage2: '#3a6447',
+      light: '#6aaa7e',
+      pale: 'rgba(74,124,89,0.1)',
+      border: 'rgba(74,124,89,0.22)'
+    },
+    '#2e6da4': {
+      sage: '#2e6da4',
+      sage2: '#235590',
+      light: '#4f8bc0',
+      pale: 'rgba(46,109,164,0.1)',
+      border: 'rgba(46,109,164,0.22)'
+    },
+    '#b87a1a': {
+      sage: '#b87a1a',
+      sage2: '#965f14',
+      light: '#d59636',
+      pale: 'rgba(184,122,26,0.1)',
+      border: 'rgba(184,122,26,0.22)'
+    },
+    '#c03a3a': {
+      sage: '#c03a3a',
+      sage2: '#9b2d2d',
+      light: '#d85c5c',
+      pale: 'rgba(192,58,58,0.1)',
+      border: 'rgba(192,58,58,0.22)'
+    },
+    '#6b4fbb': {
+      sage: '#6b4fbb',
+      sage2: '#523a97',
+      light: '#876fd0',
+      pale: 'rgba(107,79,187,0.1)',
+      border: 'rgba(107,79,187,0.22)'
+    },
+    '#1a7a6e': {
+      sage: '#1a7a6e',
+      sage2: '#125f55',
+      light: '#32998c',
+      pale: 'rgba(26,122,110,0.1)',
+      border: 'rgba(26,122,110,0.22)'
+    }
   };
 
   const defaultSettings = {
-    tema: 'claro',
     densidade_interface: 'normal',
     cor_destaque: '#4a7c59',
     animacoes_interface: 'true',
@@ -72,21 +100,44 @@
 
   /* ══ parseStored(): Lê as configurações salvas no localStorage do navegador.
    * Se não houver nada salvo ou o JSON estiver corrompido, retorna objeto vazio. */
+  function currentConfig(cfg) {
+    if (!cfg || typeof cfg !== 'object' || Array.isArray(cfg)) return {};
+    const clean = { ...cfg };
+    // Chaves aposentadas são descartadas também dos caches de versões antigas.
+    delete clean.tema;
+    delete clean.tema_efetivo;
+    return clean;
+  }
+
+  function readStored(storage, key) {
+    try {
+      const raw = storage.getItem(key);
+      const cfg = JSON.parse(raw || '{}');
+      const clean = currentConfig(cfg);
+      if (raw && (Object.hasOwn(cfg || {}, 'tema') || Object.hasOwn(cfg || {}, 'tema_efetivo'))) {
+        storage.setItem(key, JSON.stringify(clean));
+      }
+      return clean;
+    } catch (_) {
+      return {};
+    }
+  }
+
   function parseStored() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {}; }
-    catch (_) { return {}; }
+    return readStored(localStorage, STORAGE_KEY);
   }
 
   /* ══ saveStored(cfg): Salva as configurações no localStorage.
    * Mantém as configurações antigas e sobrescreve apenas as novas. */
   function saveStored(cfg) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(Object.assign(parseStored(), cfg || {})));
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(Object.assign(parseStored(), currentConfig(cfg)))
+    );
   }
 
   function getEffectiveSettings(cfg) {
-    const merged = Object.assign({}, defaultSettings, parseStored(), cfg || {});
-    merged.tema_efetivo = 'claro';
-    return merged;
+    return Object.assign({}, defaultSettings, parseStored(), currentConfig(cfg));
   }
 
   /* ══ setVar(name, value): Define uma CSS variable no elemento <html> (root).
@@ -98,25 +149,39 @@
   /* ══ CONVERSÕES DE COR ══ */
   function hexToRgb(hex) {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
+    return result
+      ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) }
+      : null;
   }
 
   function rgbToHex(r, g, b) {
-    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
   }
 
   function rgbToHsl(r, g, b) {
-    r /= 255; g /= 255; b /= 255;
-    const max = Math.max(r, g, b), min = Math.min(r, g, b);
-    let h, s, l = (max + min) / 2;
-    if (max === min) { h = s = 0; }
-    else {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    const max = Math.max(r, g, b),
+      min = Math.min(r, g, b);
+    let h,
+      s,
+      l = (max + min) / 2;
+    if (max === min) {
+      h = s = 0;
+    } else {
       const d = max - min;
       s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
       switch (max) {
-        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-        case g: h = ((b - r) / d + 2) / 6; break;
-        case b: h = ((r - g) / d + 4) / 6; break;
+        case r:
+          h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+          break;
+        case g:
+          h = ((b - r) / d + 2) / 6;
+          break;
+        case b:
+          h = ((r - g) / d + 4) / 6;
+          break;
       }
     }
     return { h, s, l };
@@ -124,62 +189,54 @@
 
   function hslToRgb(h, s, l) {
     let r, g, b;
-    if (s === 0) { r = g = b = l; }
-    else {
+    if (s === 0) {
+      r = g = b = l;
+    } else {
       const hue2rgb = (p, q, t) => {
-        if (t < 0) t += 1; if (t > 1) t -= 1;
-        if (t < 1/6) return p + (q - p) * 6 * t;
-        if (t < 1/2) return q;
-        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1 / 6) return p + (q - p) * 6 * t;
+        if (t < 1 / 2) return q;
+        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
         return p;
       };
       const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
       const p = 2 * l - q;
-      r = hue2rgb(p, q, h + 1/3); g = hue2rgb(p, q, h); b = hue2rgb(p, q, h - 1/3);
+      r = hue2rgb(p, q, h + 1 / 3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1 / 3);
     }
     return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
   }
 
-  /* ══ generateDarkVariant(): Converte uma cor para versão mais escura (L=0.28).
-   * Usado para gerar a cor "sage2" (darker) a partir da cor principal. */
-  function generateDarkVariant(hexColor) {
-    const rgb = hexToRgb(hexColor); if (!rgb) return hexColor;
+  /* Tom de destaque usado em estados de interação, também na aparência clara. */
+  function generateAccentStrong(hexColor) {
+    const rgb = hexToRgb(hexColor);
+    if (!rgb) return hexColor;
     const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
     return rgbToHex(...Object.values(hslToRgb(hsl.h, hsl.s * 0.6, 0.28)));
   }
 
-  function generateUltraDarkVariant(hexColor) {
-    const rgb = hexToRgb(hexColor); if (!rgb) return hexColor;
-    const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-    return rgbToHex(...Object.values(hslToRgb(hsl.h, hsl.s * 0.3, 0.08)));
-  }
-
-  function generateVeryDarkVariant(hexColor) {
-    const rgb = hexToRgb(hexColor); if (!rgb) return hexColor;
-    const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-    return rgbToHex(...Object.values(hslToRgb(hsl.h, hsl.s * 0.4, 0.12)));
-  }
-
   function generateLightVariant(hexColor) {
-    const rgb = hexToRgb(hexColor); if (!rgb) return hexColor;
+    const rgb = hexToRgb(hexColor);
+    if (!rgb) return hexColor;
     const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-    return rgbToHex(...Object.values(hslToRgb(hsl.h, hsl.s * 0.7, 0.50)));
+    return rgbToHex(...Object.values(hslToRgb(hsl.h, hsl.s * 0.7, 0.5)));
   }
 
   function generatePaleVariant(hexColor, opacity = 0.1) {
-    const rgb = hexToRgb(hexColor); if (!rgb) return hexColor;
+    const rgb = hexToRgb(hexColor);
+    if (!rgb) return hexColor;
     return `rgba(${rgb.r},${rgb.g},${rgb.b},${opacity})`;
   }
 
   function generateColorPalette(hexColor) {
     return {
       sage: hexColor,
-      sage2: generateDarkVariant(hexColor),
+      sage2: generateAccentStrong(hexColor),
       light: generateLightVariant(hexColor),
       pale: generatePaleVariant(hexColor, 0.1),
-      border: generatePaleVariant(hexColor, 0.22),
-      surface: generateUltraDarkVariant(hexColor),
-      surface2: generateVeryDarkVariant(hexColor)
+      border: generatePaleVariant(hexColor, 0.22)
     };
   }
 
@@ -203,6 +260,8 @@
       .sb-item.active { background: ${palette.pale} !important; }
       .sb-item.active .sb-icon, .config-nav-item.active, .config-nav-item.active .cni-icon { color: ${palette.light} !important; }
       .badge, .pill, .status-badge.ok { border-color: ${palette.border}; }
+      .sb-collapse svg { display: none !important; }
+      .sb-collapse::after { content: '☰'; font-size: 15px; line-height: 1; }
       .fc-density-compact { font-size: 13px; }
       .fc-density-compact .topbar { height: 50px; min-height: 50px; }
       .fc-density-compact .sb-head { padding: 14px 12px 10px; }
@@ -269,57 +328,97 @@
     document.body?.classList.toggle('fc-theme-red', selectedColor === '#c03a3a');
 
     /* Densidade */
-    document.body?.classList.toggle('fc-density-compact', settings.densidade_interface === 'compacta');
-    document.body?.classList.toggle('fc-density-spaced', settings.densidade_interface === 'espacada');
-    document.body?.classList.toggle('fc-no-animations', String(settings.animacoes_interface) === 'false');
+    document.body?.classList.toggle(
+      'fc-density-compact',
+      settings.densidade_interface === 'compacta'
+    );
+    document.body?.classList.toggle(
+      'fc-density-spaced',
+      settings.densidade_interface === 'espacada'
+    );
+    document.body?.classList.toggle(
+      'fc-no-animations',
+      String(settings.animacoes_interface) === 'false'
+    );
 
     /* Sidebar recolhida padrão */
     const sb = document.getElementById('sidebar');
-    if (sb && window.innerWidth > 860 && String(settings.sidebar_recolhida_padrao) === 'true' && localStorage.getItem('fc_sb') === null) {
+    if (
+      sb &&
+      window.innerWidth > 860 &&
+      String(settings.sidebar_recolhida_padrao) === 'true' &&
+      localStorage.getItem('fc_sb') === null
+    ) {
       sb.classList.add('collapsed');
     }
 
     /* Forçar recálculo para garantir que o browser processou tudo */
     try {
       if (document.body) void document.body.offsetHeight;
-    } catch(e) {}
+    } catch (e) {}
   }
 
   /* ══ USUÁRIO ══ */
   function getCurrentUser() {
-    try { return JSON.parse(sessionStorage.getItem('farmacontrol_usuario') || '{}') || {}; }
-    catch (_) { return {}; }
+    try {
+      return JSON.parse(sessionStorage.getItem('farmacontrol_usuario') || '{}') || {};
+    } catch (_) {
+      return {};
+    }
   }
 
-  /* ══ applyUser(): Busca o usuário logado no localStorage e atualiza
+  /* ══ applyUser(): Busca o usuário logado no sessionStorage e atualiza
    * o nome, cargo e avatar na sidebar/topbar de todas as páginas. */
   function applyUser() {
     const user = getCurrentUser();
-    const fullName = [user.nome, user.sobrenome].filter(Boolean).join(' ').trim() || user.nome || user.email || 'Usuário';
+    const fullName =
+      [user.nome, user.sobrenome].filter(Boolean).join(' ').trim() ||
+      user.nome ||
+      user.email ||
+      'Usuário';
     const role = user.perfil_nome || user.cargo || user.funcao || user.perfil || 'Usuário';
-    const initials = (fullName.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2) || 'U').toUpperCase();
+    const initials = (
+      fullName
+        .split(/\s+/)
+        .filter(Boolean)
+        .map(n => n[0])
+        .join('')
+        .slice(0, 2) || 'U'
+    ).toUpperCase();
 
-    document.querySelectorAll('#user-name, .sb-user-name').forEach(el => { el.textContent = fullName; });
-    document.querySelectorAll('#user-role, .sb-user-role').forEach(el => { el.textContent = role; });
-    document.querySelectorAll('#user-avatar, .sb-avatar').forEach(el => { el.textContent = initials; });
+    document.querySelectorAll('#user-name, .sb-user-name').forEach(el => {
+      el.textContent = fullName;
+    });
+    document.querySelectorAll('#user-role, .sb-user-role').forEach(el => {
+      el.textContent = role;
+    });
+    document.querySelectorAll('#user-avatar, .sb-avatar').forEach(el => {
+      el.textContent = initials;
+    });
   }
 
   /* ══ LOAD REMOTO ══ */
   async function loadRemoteSettings() {
     try {
-      const res = await fetch(`${API_BASE}/configuracoes`);
+      /* Antes do login, a API entrega somente a paleta publica; apos o
+         login, carrega as configuracoes completas autorizadas para o perfil. */
+      const endpoint = getCurrentUser()?.perfil ? '/configuracoes' : '/configuracoes/visual';
+      const res = await fetch(`${API_BASE}${endpoint}`);
       const result = await res.json();
       if (!result.ok) return {};
-      const cfg = {}; (result.configuracoes || []).forEach(item => { cfg[item.chave] = item.valor; });
-      return cfg; /* NÃO salva aqui — saveStored só deve ocorrer quando o usuário explicitamente salva */
-    } catch (_) { return {}; }
+      const cfg = {};
+      (result.configuracoes || []).forEach(item => {
+        cfg[item.chave] = item.valor;
+      });
+      return currentConfig(
+        cfg
+      ); /* NÃO salva aqui — saveStored só deve ocorrer quando o usuário explicitamente salva */
+    } catch (_) {
+      return {};
+    }
   }
 
-  /* ══ INIT (executa uma vez no carregamento) ══
-   * GUARDA __initialized: previne re-execução durante navegação SPA.
-   * O sidebar-init.js dispara document.dispatchEvent('DOMContentLoaded') a cada
-   * navegação — sem essa guarda, o listener abaixo chama init() → loadRemoteSettings()
-   * → saveStored(), sobrescrevendo o localStorage do usuário com os defaults do backend. */
+  /* Inicializa preferências uma vez por documento. */
   let __initialized = false;
   /* ══ init(): Função de inicialização automática.
    * Executada ao carregar o script. Aplica as configurações salvas
@@ -327,6 +426,11 @@
   async function init() {
     if (__initialized) return;
     __initialized = true;
+    readStored(sessionStorage, 'farmacontrol_visual_bootstrap');
+    /* A preferência local é síncrona: ela precisa estar aplicada antes da
+       resposta da API para a interface nunca voltar à paleta padrão. */
+    applyUser();
+    applySettings(parseStored());
     const remote = await loadRemoteSettings();
     /* Local tem precedência sobre remoto: só aplica valores remotos que NÃO existem localmente */
     const stored = parseStored();
@@ -346,53 +450,112 @@
       el = document.createElement('div');
       el.id = 'fc-toast';
       el.setAttribute('role', 'status');
-      el.style.cssText = 'position:fixed;bottom:22px;right:22px;display:flex;align-items:center;gap:8px;padding:10px 15px;border-radius:9px;font-family:Outfit,sans-serif;font-size:12.5px;font-weight:500;color:white;z-index:9999;pointer-events:none;opacity:0;transform:translateY(10px) scale(0.97);transition:all 0.25s cubic-bezier(0.23,1,0.32,1);max-width:300px;box-shadow:0 6px 20px rgba(0,0,0,0.18);';
+      el.style.cssText =
+        'position:fixed;bottom:22px;right:22px;display:flex;align-items:center;gap:8px;padding:10px 15px;border-radius:9px;font-family:Outfit,sans-serif;font-size:12.5px;font-weight:500;color:white;z-index:9999;pointer-events:none;opacity:0;transform:translateY(10px) scale(0.97);transition:all 0.25s cubic-bezier(0.23,1,0.32,1);max-width:300px;box-shadow:0 6px 20px rgba(0,0,0,0.18);';
       document.body.appendChild(el);
     }
     const colors = {
       success: 'linear-gradient(135deg,#4a7c59,#3a6447)',
-      error:   'linear-gradient(135deg,#c03a3a,#a02e2e)',
-      info:    'linear-gradient(135deg,#2e6da4,#235590)',
-      warn:    'linear-gradient(135deg,#b87a1a,#965f14)'
+      error: 'linear-gradient(135deg,#c03a3a,#a02e2e)',
+      info: 'linear-gradient(135deg,#2e6da4,#235590)',
+      warn: 'linear-gradient(135deg,#b87a1a,#965f14)'
     };
     const isRedTheme = currentColorHex === '#c03a3a';
     const isError = type === 'error' || type === 'err';
     /* No tema vermelho, apenas erros preservam o fundo vermelho.
        Sucesso, informação e aviso passam a usar um toast branco neutro. */
-    el.style.background = isRedTheme && !isError
-      ? '#ffffff'
-      : (colors[type] || colors.success);
+    el.style.background = isRedTheme && !isError ? '#ffffff' : colors[type] || colors.success;
     el.style.color = isRedTheme && !isError ? '#2d2d2d' : '#ffffff';
     const iconColor = isRedTheme && !isError ? '#c03a3a' : '#ffffff';
-    el.innerHTML = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="${iconColor}" stroke-width="1.2"/><path d="M5.5 8l2 2 3.5-3" stroke="${iconColor}" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>${msg}</span>`;
+    el.innerHTML = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="${iconColor}" stroke-width="1.2"/><path d="M5.5 8l2 2 3.5-3" stroke="${iconColor}" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span></span>`;
+    el.querySelector('span').textContent = msg;
     el.offsetHeight;
-    el.style.opacity   = '1';
+    el.style.opacity = '1';
     el.style.transform = 'translateY(0) scale(1)';
     clearTimeout(__toastTimer);
     __toastTimer = setTimeout(() => {
-      el.style.opacity   = '0';
+      el.style.opacity = '0';
       el.style.transform = 'translateY(8px) scale(0.97)';
     }, 3200);
   }
 
+  /* Confirmação visual compartilhada: substitui o alert/confirm nativo do
+     navegador para ações destrutivas terem o mesmo acabamento do sistema. */
+  function showConfirm({
+    title = 'Confirmar ação',
+    message = '',
+    confirmLabel = 'Confirmar',
+    danger = false
+  } = {}) {
+    return new Promise(resolve => {
+      document.getElementById('fc-confirm-overlay')?.remove();
+      const overlay = document.createElement('div');
+      overlay.id = 'fc-confirm-overlay';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
+      overlay.setAttribute('aria-labelledby', 'fc-confirm-title');
+      overlay.innerHTML = `
+        <div class="fc-confirm-card">
+          <div class="fc-confirm-icon ${danger ? 'danger' : ''}" aria-hidden="true">${danger ? '!' : '?'}</div>
+          <div class="fc-confirm-content">
+            <h2 id="fc-confirm-title"></h2>
+            <p></p>
+          </div>
+          <div class="fc-confirm-actions">
+            <button type="button" class="fc-confirm-cancel">Cancelar</button>
+            <button type="button" class="fc-confirm-ok ${danger ? 'danger' : ''}"></button>
+          </div>
+        </div>`;
+      overlay.querySelector('h2').textContent = title;
+      overlay.querySelector('p').textContent = message;
+      overlay.querySelector('.fc-confirm-ok').textContent = confirmLabel;
+      document.body.appendChild(overlay);
+
+      const finish = value => {
+        document.removeEventListener('keydown', onKey);
+        overlay.remove();
+        resolve(value);
+      };
+      const onKey = event => {
+        if (event.key === 'Escape') finish(false);
+      };
+      overlay.querySelector('.fc-confirm-cancel').addEventListener('click', () => finish(false));
+      overlay.querySelector('.fc-confirm-ok').addEventListener('click', () => finish(true));
+      overlay.addEventListener('click', event => {
+        if (event.target === overlay) finish(false);
+      });
+      document.addEventListener('keydown', onKey);
+      requestAnimationFrame(() => overlay.classList.add('open'));
+      overlay.querySelector('.fc-confirm-cancel').focus();
+    });
+  }
+
   /* ══ API PÚBLICA ══ */
   window.FarmaControlSettings = {
-    API_BASE, STORAGE_KEY, defaults: defaultSettings, showToast,
-    apply: applySettings, applyUser, loadRemote: loadRemoteSettings,
-    saveLocal: saveStored, readLocal: parseStored, clearLocal: () => localStorage.removeItem(STORAGE_KEY),
-    palettes, generateColorPalette, getPalette,
+    API_BASE,
+    STORAGE_KEY,
+    CSRF_KEY,
+    currentConfig,
+    defaults: defaultSettings,
+    showToast,
+    confirm: showConfirm,
+    apply: applySettings,
+    applyUser,
+    loadRemote: loadRemoteSettings,
+    saveLocal: saveStored,
+    readLocal: parseStored,
+    clearLocal: () => localStorage.removeItem(STORAGE_KEY),
+    palettes,
+    generateColorPalette,
+    getPalette,
     getCurrentPalette: () => currentPalette,
     getCurrentColor: () => currentColorHex
   };
 
-  /* ══ INICIALIZAÇÃO ══
-   * Usa { once: true } para garantir que o listener é removido após a primeira execução.
-   * Durante SPA nav, o sidebar-init.js dispara DOMContentLoaded manualmente, mas a
-   * guarda __initialized impede que init() re-executa e sobrescreva o localStorage. */
+  /* O listener é removido após o carregamento do documento. */
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init, { once: true });
   } else {
     init();
   }
-
 })();

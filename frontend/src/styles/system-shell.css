@@ -1,0 +1,298 @@
+/* Estrutura, sidebar, badges e interação compartilhados pelas nove telas.
+ * Carregar antes do CSS local; contraste e responsividade permanecem depois.
+ * Somente regras idênticas nas nove telas foram extraídas. Variações locais
+ * e media queries continuam nos arquivos de cada página, na ordem original.
+ */
+
+.app {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: var(--sb-w);
+  min-width: var(--sb-w);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  transition:
+    width 0.3s var(--ease),
+    min-width 0.3s var(--ease);
+  position: relative;
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+.sidebar.collapsed {
+  width: var(--sb-w-sm);
+  min-width: var(--sb-w-sm);
+}
+
+.sb-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 14px 14px;
+  border-bottom: 1px solid var(--ink-12);
+  flex-shrink: 0;
+}
+
+.sb-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.sb-logo {
+  width: 28px;
+  height: 28px;
+  background: var(--sage);
+  border-radius: var(--rad-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.sb-brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sb-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.sb-ver {
+  font-size: 9px;
+  color: var(--ink-35);
+  white-space: nowrap;
+}
+
+.sb-collapse {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: var(--ink-06);
+  border-radius: var(--rad-xs);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-35);
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.sidebar.collapsed .sb-collapse svg {
+  transform: rotate(180deg);
+}
+
+.sidebar.collapsed .sb-brand-text,
+.sidebar.collapsed .sb-group-label,
+.sidebar.collapsed .sb-label,
+.sidebar.collapsed .sb-badge,
+.sidebar.collapsed .sb-user-info,
+.sidebar.collapsed .sb-logout {
+  display: none;
+}
+
+.sb-group-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--ink-35);
+  padding: 12px 8px 4px;
+  white-space: nowrap;
+}
+
+.sb-item:hover {
+  background: var(--ink-06);
+  color: var(--ink);
+}
+
+.sb-item.active {
+  background: var(--sage-pale);
+  color: var(--ink);
+}
+
+.sb-item.active .sb-icon {
+  color: var(--sage-light);
+}
+
+.sb-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sb-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.sb-badge {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.sb-badge.warn {
+  background: rgba(184, 122, 26, 0.25);
+  color: #e8a840;
+}
+
+.sb-badge.crit {
+  background: rgba(192, 58, 58, 0.25);
+  color: #e86060;
+}
+
+.sb-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--ink-12);
+  padding: 10px 12px;
+  flex-shrink: 0;
+  background: var(--surface);
+  z-index: 101;
+}
+
+.sb-user-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sb-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--sage-pale);
+  border: 1.5px solid var(--sage-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--sage-light);
+  flex-shrink: 0;
+}
+
+.sb-user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sb-user-name {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sb-user-role {
+  display: block;
+  font-size: 10px;
+  color: var(--ink-35);
+}
+
+.sb-logout {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: var(--ink-06);
+  border-radius: var(--rad-xs);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-35);
+  flex-shrink: 0;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.sb-logout:hover {
+  background: rgba(192, 58, 58, 0.15);
+  color: #e86060;
+}
+
+.sb-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 90;
+  backdrop-filter: blur(2px);
+}
+
+.sb-overlay.visible {
+  display: block;
+}
+
+:where(button, a, input, select, textarea, [role='button']) {
+  pointer-events: auto !important;
+}
+
+.modal-overlay:not(.open),
+.sb-overlay:not(.visible),
+.notif-panel:not(.open) {
+  visibility: hidden;
+  pointer-events: none !important;
+}
+
+.modal-overlay.open {
+  visibility: visible;
+  pointer-events: auto !important;
+}
+
+.sb-overlay.visible {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Data do cabeçalho compartilhada por todas as telas. */
+.date-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  background: var(--surface);
+  border: 1px solid var(--ink-06);
+  border-radius: 20px;
+  font-size: 11.5px;
+  line-height: 17px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.date-chip svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}

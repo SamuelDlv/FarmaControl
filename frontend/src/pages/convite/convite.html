@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Confirmar convite — FarmaControl</title>
+    <link rel="stylesheet" href="../acesso/acesso.css" />
+    <link rel="stylesheet" href="convite.css" />
+  </head>
+  <body class="fc-auth">
+    <main class="invite-page">
+      <h1>Confirmar convite</h1>
+      <p id="status">Carregando dados do convite…</p>
+      <form id="invite-form" hidden>
+        <label>Nome</label><input id="nome" readonly /><label>Sobrenome</label
+        ><input id="sobrenome" readonly /><label>E-mail</label><input id="email" readonly /><label
+          >Perfil de acesso</label
+        ><input id="perfil" readonly /><label>Crie sua senha</label>
+        <div class="password-field">
+          <input id="senha" type="password" minlength="8" required /><button
+            type="button"
+            class="eye-toggle"
+            data-target="senha"
+            aria-label="Mostrar senha"
+          >
+            <svg class="eye-open" viewBox="0 0 20 20" fill="none">
+              <path
+                d="M2 10s3-5.5 8-5.5S18 10 18 10s-3 5.5-8 5.5S2 10 2 10z"
+                stroke="currentColor"
+                stroke-width="1.25"
+              />
+              <circle cx="10" cy="10" r="2" stroke="currentColor" stroke-width="1.25" /></svg
+            ><svg class="eye-closed" viewBox="0 0 20 20" fill="none" style="display: none">
+              <path
+                d="M3 3l14 14M8.46 8.53A2 2 0 0011.47 11.47M4.05 5.89A9 9 0 002 10s3 5.5 8 5.5a8.4 8.4 0 004.11-1.06M7.5 4.83A8.3 8.3 0 0110 4.5c5 0 8 5.5 8 5.5a9.15 9.15 0 01-2.06 2.62"
+                stroke="currentColor"
+                stroke-width="1.25"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+        </div>
+        <label>Confirme sua senha</label>
+        <div class="password-field">
+          <input id="confirmar" type="password" minlength="8" required /><button
+            type="button"
+            class="eye-toggle"
+            data-target="confirmar"
+            aria-label="Mostrar senha"
+          >
+            <svg class="eye-open" viewBox="0 0 20 20" fill="none">
+              <path
+                d="M2 10s3-5.5 8-5.5S18 10 18 10s-3 5.5-8 5.5S2 10 2 10z"
+                stroke="currentColor"
+                stroke-width="1.25"
+              />
+              <circle cx="10" cy="10" r="2" stroke="currentColor" stroke-width="1.25" /></svg
+            ><svg class="eye-closed" viewBox="0 0 20 20" fill="none" style="display: none">
+              <path
+                d="M3 3l14 14M8.46 8.53A2 2 0 0011.47 11.47M4.05 5.89A9 9 0 002 10s3 5.5 8 5.5a8.4 8.4 0 004.11-1.06M7.5 4.83A8.3 8.3 0 0110 4.5c5 0 8 5.5 8 5.5a9.15 9.15 0 01-2.06 2.62"
+                stroke="currentColor"
+                stroke-width="1.25"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+        </div>
+        <div class="legal">
+          <label
+            ><input id="termos" type="checkbox" /> Li e aceito os
+            <a href="../termos/termos.html" target="_blank" rel="noopener">Termos de Uso</a>.</label
+          ><label
+            ><input id="privacidade" type="checkbox" /> Li e aceito a
+            <a href="../privacidade/privacidade.html" target="_blank" rel="noopener"
+              >Política de Privacidade</a
+            >.</label
+          >
+        </div>
+        <button type="submit">Concluir cadastro</button>
+      </form>
+    </main>
+    <script src="convite.js"></script>
+  </body>
+</html>

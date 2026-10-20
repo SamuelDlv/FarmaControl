@@ -1,0 +1,355 @@
+/* Responsividade compartilhada das páginas do perfil Proprietário. */
+
+/* Colunas laterais iguais mantem a data no centro, mesmo sem acoes. */
+@media (min-width: 861px) {
+  .main > .topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr);
+  }
+
+  .topbar > .topbar-left {
+    grid-column: 1;
+  }
+  .topbar > .topbar-center {
+    grid-column: 2;
+  }
+  .topbar > .topbar-right,
+  .topbar > .topbar-actions {
+    grid-column: 3;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .topbar > .topbar-left,
+  .topbar > .topbar-center,
+  .topbar > .topbar-right,
+  .topbar > .topbar-actions {
+    grid-row: 1;
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* Itens sem permissao devem permanecer invisiveis mesmo quando a pagina
+   declara .sb-item { display:flex }. */
+.sidebar .sb-item[hidden],
+.sidebar .sb-group-label[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 860px) {
+  /* A sidebar passa a ser sobreposta. Conteúdo e painel auxiliar ocupam uma
+     única coluna para que nada seja comprimido ou desapareça. */
+  html,
+  body {
+    height: auto !important;
+    min-height: 100%;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+
+  .app {
+    display: block !important;
+    width: 100%;
+    min-height: 100dvh;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Camadas independentes do CSS de cada página: a navegação fica sempre
+     acima do conteúdo e o overlay continua clicável para fechar o menu. */
+  .sidebar {
+    z-index: 9999 !important;
+    transform: translateX(-105%);
+    transition: transform 0.25s ease !important;
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0) !important;
+  }
+
+  /* A seta interna é uma segunda forma de fechar o menu no celular. */
+  .sidebar .sb-collapse {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sb-overlay {
+    display: block !important;
+    z-index: 9998 !important;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none !important;
+    transition: opacity 0.25s ease;
+  }
+
+  .sb-overlay.visible {
+    visibility: visible !important;
+    opacity: 1;
+    pointer-events: auto !important;
+  }
+
+  .main,
+  .page-body,
+  .page {
+    display: block !important;
+    width: 100%;
+    height: auto !important;
+    min-height: 0;
+    overflow: visible !important;
+  }
+
+  .page-main {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0;
+    overflow: visible !important;
+  }
+
+  /* Em vez de ocultar o painel lateral, ele é mostrado abaixo do conteúdo. */
+  .page-panel {
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    border-top: 1px solid var(--ink-06);
+    border-left: 0;
+  }
+
+  .topbar {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr);
+    position: sticky;
+    top: 0;
+    height: auto !important;
+    min-height: var(--top-h);
+    padding-block: 10px !important;
+  }
+
+  .topbar-left,
+  .topbar-center,
+  .topbar-right,
+  .topbar-actions {
+    width: 100%;
+    min-width: 0;
+    justify-content: flex-start !important;
+  }
+
+  .topbar-right,
+  .topbar-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .topbar > .topbar-left {
+    grid-row: 1;
+  }
+  .topbar > .topbar-center {
+    grid-row: 2;
+    justify-content: center !important;
+  }
+  .topbar > .topbar-right,
+  .topbar > .topbar-actions {
+    grid-row: 3;
+  }
+
+  /* Separadores não carregam informação e ocupam espaço útil no celular.
+     As ações permanecem visíveis e podem quebrar para a próxima linha. */
+  .topbar .tb-divider {
+    display: none !important;
+  }
+  .topbar .tb-btn,
+  .topbar .btn-primary,
+  .topbar-actions .btn-icon {
+    display: inline-flex !important;
+  }
+
+  .topbar .btn-primary span {
+    display: inline !important;
+  }
+
+  /* O botão de salvar é controlado pelo JavaScript: só aparece após uma
+     alteração real, mesmo quando os demais controles da topbar são exibidos. */
+  .topbar #btn-save-all[style*='display:none'] {
+    display: none !important;
+  }
+
+  .breadcrumb {
+    min-width: 0;
+    max-width: calc(100vw - 72px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@media (max-width: 600px) {
+  .topbar {
+    padding-inline: 12px !important;
+  }
+
+  .kpi-meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .kpi-delta {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+}
+/* Controle de navegação neutro: não usar setas nos botões da barra lateral. */
+.sb-collapse svg {
+  display: none !important;
+}
+.sb-collapse::after {
+  content: '☰';
+  font-size: 15px;
+  line-height: 1;
+}
+
+/* Tipografia única e legível para todo o sistema: sem fontes decorativas,
+   traços excessivamente finos ou algarismos com larguras irregulares. */
+body,
+body * {
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Dados extensos permanecem legíveis; a rolagem fica dentro da tabela. */
+.table-wrap table,
+.table-wrapper table {
+  min-width: 1050px;
+}
+.table-wrap th,
+.table-wrap td,
+.table-wrapper th,
+.table-wrapper td {
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.table-wrap .med-name,
+.table-wrap .med-meta,
+.table-wrap .prod-name,
+.table-wrapper .prod-name {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.card-head-l {
+  flex-wrap: wrap;
+}
+.card-title {
+  overflow-wrap: normal;
+}
+.rank-val,
+.cat-val {
+  width: auto;
+  min-width: 38px;
+  white-space: nowrap;
+}
+.cat-row {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) minmax(40px, 0.7fr) auto;
+}
+.cat-label {
+  width: auto;
+  min-width: 0;
+}
+.cat-row .cat-bar {
+  width: var(--pct, 0%);
+}
+.rank-name {
+  min-width: 0;
+}
+.rank-trend {
+  width: auto;
+  white-space: nowrap;
+}
+.kpi-value {
+  font-size: clamp(20px, 2vw, 32px);
+  overflow-wrap: normal;
+}
+.kpi-currency {
+  font-size: clamp(18px, 1.6vw, 28px);
+}
+.empty-state {
+  padding: 18px;
+  color: var(--ink-60);
+  font-size: 13px;
+  text-align: center;
+}
+.summary-val {
+  white-space: nowrap;
+}
+.fc-view-overlay .rank-item,
+.fc-view-overlay .exp-item {
+  padding: 10px 0;
+}
+.fc-view-overlay .rank-name {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.fc-view-overlay .modal-body {
+  overflow-x: auto;
+}
+.fc-view-overlay .cat-row {
+  margin-bottom: 12px;
+}
+.fc-view-overlay .cat-label {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.mc-bars {
+  padding-bottom: 0;
+}
+.mc-bar-group {
+  min-height: 0;
+}
+.mc-label {
+  position: static;
+  flex: 0 0 20px;
+  line-height: 20px;
+}
+.mc-bar[style*='height:0%'] {
+  border: 0;
+}
+.panel-row {
+  grid-template-columns: minmax(0, 1fr) 280px;
+}
+@media (max-width: 1199px) {
+  .panel-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (min-width: 861px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1400px) {
+  .kpi-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* O campo de busca já possui borda no contêiner. */
+body:not(.fc-auth) .search-field input {
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  min-width: 0;
+}
+.search-field:focus-within {
+  outline: 2px solid var(--sage);
+  outline-offset: 2px;
+}
+
+@media (max-width: 1100px) and (min-width: 861px) {
+  .two-col {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

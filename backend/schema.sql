@@ -10,6 +10,35 @@ CREATE DATABASE IF NOT EXISTS farmacontrol
 USE farmacontrol;
 
 -- ───────────────────────────────────────────
+--  Acessos técnicos ao banco (somente TI)
+-- ───────────────────────────────────────────
+-- Estas roles do MySQL não correspondem aos perfis da aplicação, que ficam
+-- nas tabelas perfis e perfil_permissoes abaixo. A criação e a atribuição de
+-- usuários devem ser feitas por uma conta administrativa da TI.
+CREATE ROLE IF NOT EXISTS
+  'fc_runtime_rw',
+  'fc_schema_deployer',
+  'fc_support_ro',
+  'fc_database_admin';
+
+-- Backend: manipula dados e executa rotinas, sem poder alterar o schema.
+GRANT SELECT, INSERT, UPDATE, DELETE, EXECUTE
+  ON farmacontrol.* TO 'fc_runtime_rw';
+
+-- Deploy/migrações: altera objetos somente dentro do banco FarmaControl.
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, DROP, INDEX, REFERENCES,
+      CREATE VIEW, SHOW VIEW, TRIGGER, EVENT, CREATE ROUTINE, ALTER ROUTINE, EXECUTE
+  ON farmacontrol.* TO 'fc_schema_deployer';
+
+-- Suporte: diagnóstico sem alteração de dados.
+GRANT SELECT, SHOW VIEW
+  ON farmacontrol.* TO 'fc_support_ro';
+
+-- Administração do banco da aplicação, com delegação controlada pela TI.
+GRANT ALL PRIVILEGES
+  ON farmacontrol.* TO 'fc_database_admin' WITH GRANT OPTION;
+
+-- ───────────────────────────────────────────
 --  1. Perfis de acesso (Roles)
 -- ───────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS perfis (
@@ -27,12 +56,46 @@ INSERT INTO perfis (slug, nome, descricao) VALUES
   ('farmaceutico', 'Farmacêutico',           'Responsável técnico: controle de estoque, validade e dispensação de controlados.'),
   ('admin',        'Gerente / Administrador', 'Gestão operacional completa: estoque, compras e relatórios de vendas.'),
   ('atendente',    'Atendente / Balconista',  'Frente de loja: consulta de produtos e registro de vendas.'),
+  ('visualizador', 'Visualizador',            'Consulta de informações operacionais sem permissões administrativas.'),
   ('compras',      'Responsável por Compras', 'Gestão de suprimentos: pedidos de compra e análise de demanda.'),
   ('ti',           'TI / Suporte',            'Manutenção técnica: logs, configurações de sistema e integrações.')
 ON DUPLICATE KEY UPDATE nome = VALUES(nome), descricao = VALUES(descricao);
 
 -- ───────────────────────────────────────────
---  2. Usuários
+--  2. Permissões configuráveis por perfil
+-- ───────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS perfil_permissoes (
+  perfil_id TINYINT UNSIGNED NOT NULL,
+  modulo VARCHAR(40) NOT NULL,
+  permitido TINYINT(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (perfil_id, modulo),
+  CONSTRAINT fk_perfil_permissao_perfil
+    FOREIGN KEY (perfil_id) REFERENCES perfis(id)
+    ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Padrão inicial. INSERT IGNORE preserva personalizações se este schema for
+-- executado novamente em uma base já existente.
+INSERT IGNORE INTO perfil_permissoes (perfil_id, modulo, permitido)
+SELECT p.id, m.modulo,
+  CASE
+    WHEN p.slug IN ('proprietario', 'admin', 'ti') THEN 1
+    WHEN p.slug = 'farmaceutico' AND m.modulo IN ('dashboard','estoque','vencimentos','relatorios','compras') THEN 1
+    WHEN p.slug = 'atendente' AND m.modulo IN ('dashboard','estoque') THEN 1
+    WHEN p.slug = 'visualizador' AND m.modulo IN ('dashboard','estoque','vencimentos','relatorios') THEN 1
+    WHEN p.slug = 'compras' AND m.modulo IN ('dashboard','estoque','vencimentos','relatorios','compras') THEN 1
+    ELSE 0
+  END
+FROM perfis p
+CROSS JOIN (
+  SELECT 'dashboard' AS modulo UNION ALL SELECT 'estoque' UNION ALL SELECT 'vencimentos' UNION ALL SELECT 'relatorios'
+  UNION ALL SELECT 'compras' UNION ALL SELECT 'financeiro' UNION ALL SELECT 'usuarios' UNION ALL SELECT 'configuracoes'
+) AS m
+WHERE p.slug IN ('proprietario', 'admin', 'farmaceutico', 'atendente', 'visualizador', 'compras', 'ti');
+
+
+-- ───────────────────────────────────────────
+--  3. Usuários
 -- ───────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS usuarios (
   id              INT UNSIGNED     NOT NULL AUTO_INCREMENT,
@@ -53,8 +116,40 @@ CREATE TABLE IF NOT EXISTS usuarios (
   CONSTRAINT fk_usuario_perfil FOREIGN KEY (perfil_id) REFERENCES perfis (id) ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
+-- Compatibilidade da recuperação de senha para bases criadas antes deste
+-- schema. O CREATE TABLE acima atende instalações novas; este trecho atualiza
+-- uma tabela usuarios já existente em versões antigas do MySQL.
+SET @schema_atual = DATABASE();
+SET @sql = (
+  SELECT IF(COUNT(*) = 0,
+    'ALTER TABLE usuarios ADD COLUMN token_reset VARCHAR(255) NULL',
+    'SELECT 1'
+  )
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = @schema_atual
+    AND TABLE_NAME = 'usuarios'
+    AND COLUMN_NAME = 'token_reset'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql = (
+  SELECT IF(COUNT(*) = 0,
+    'ALTER TABLE usuarios ADD COLUMN token_expira_em DATETIME NULL',
+    'SELECT 1'
+  )
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = @schema_atual
+    AND TABLE_NAME = 'usuarios'
+    AND COLUMN_NAME = 'token_expira_em'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
 -- ───────────────────────────────────────────
---  3. Auditoria e Logs
+--  4. Auditoria e Logs
 -- ───────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS analises_cadastro (
   id              INT UNSIGNED     NOT NULL AUTO_INCREMENT,
@@ -106,6 +201,18 @@ CREATE TABLE IF NOT EXISTS categorias_produto (
   PRIMARY KEY (id)
 ) ENGINE=InnoDB;
 
+INSERT IGNORE INTO categorias_produto (nome, descricao) VALUES
+  ('Medicamentos', 'Medicamentos e especialidades farmacêuticas'),
+  ('Alimentos', 'Alimentos, bebidas, doces e itens de conveniência'),
+  ('Higiene pessoal', 'Cuidados e higiene pessoal'),
+  ('Cosméticos e dermocosméticos', 'Cremes, beleza e cuidados com a pele'),
+  ('Saúde sexual', 'Preservativos, lubrificantes e cuidados íntimos'),
+  ('Infantil e bebê', 'Fraldas e cuidados infantis'),
+  ('Suplementos', 'Suplementos alimentares'),
+  ('Acessórios', 'Acessórios e utensílios'),
+  ('Primeiros socorros', 'Materiais de primeiros socorros'),
+  ('Outros produtos', 'Demais produtos do catálogo');
+
 CREATE TABLE IF NOT EXISTS fornecedores (
   id              INT UNSIGNED     NOT NULL AUTO_INCREMENT,
   nome_fantasia   VARCHAR(150)     NOT NULL,
@@ -124,6 +231,8 @@ CREATE TABLE IF NOT EXISTS fornecedores (
 CREATE TABLE IF NOT EXISTS produtos (
   id              INT UNSIGNED     NOT NULL AUTO_INCREMENT,
   nome            VARCHAR(255)     NOT NULL,
+  tipo_produto    ENUM('medicamento', 'outro') NOT NULL DEFAULT 'medicamento',
+  exige_validade  BOOLEAN          NOT NULL DEFAULT TRUE,
   nome_generico   VARCHAR(255)     NULL,
   descricao       TEXT             NULL,
   fabricante      VARCHAR(150)     NULL,
@@ -268,6 +377,59 @@ CREATE TABLE IF NOT EXISTS configuracoes_sistema (
   atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Aceites de termos e privacidade registrados no momento do cadastro.
+CREATE TABLE IF NOT EXISTS aceites_legais (
+  id                  INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  usuario_id          INT UNSIGNED NOT NULL,
+  termos_versao       VARCHAR(32) NOT NULL,
+  privacidade_versao  VARCHAR(32) NOT NULL,
+  aceito_em           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ip                  VARCHAR(64) NULL,
+  PRIMARY KEY (id),
+  INDEX idx_aceites_legais_usuario (usuario_id),
+  CONSTRAINT fk_aceite_usuario FOREIGN KEY (usuario_id)
+    REFERENCES usuarios (id) ON UPDATE CASCADE ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS convites_cadastro (
+  id                         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  nome                       VARCHAR(80) NOT NULL,
+  sobrenome                  VARCHAR(80) NOT NULL,
+  email                      VARCHAR(180) NOT NULL,
+  perfil_id                  TINYINT UNSIGNED NOT NULL,
+  convidado_por_usuario_id   INT UNSIGNED NOT NULL,
+  token_hash                 CHAR(64) NOT NULL UNIQUE,
+  status                     ENUM('pendente','aceito','recusado','expirado') NOT NULL DEFAULT 'pendente',
+  expira_em                  DATETIME NOT NULL,
+  respondido_em              DATETIME NULL,
+  aceito_usuario_id          INT UNSIGNED NULL,
+  criado_em                  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_convites_email_status (email, status),
+  CONSTRAINT fk_convite_perfil FOREIGN KEY (perfil_id) REFERENCES perfis (id) ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT fk_convite_criador FOREIGN KEY (convidado_por_usuario_id) REFERENCES usuarios (id) ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT fk_convite_aceito_usuario FOREIGN KEY (aceito_usuario_id) REFERENCES usuarios (id) ON UPDATE CASCADE ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- Alertas operacionais e sua resolução auditável.
+CREATE TABLE IF NOT EXISTS alertas (
+  id                         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  tipo_alerta                VARCHAR(30) NOT NULL,
+  referencia_id              INT NULL,
+  mensagem                   TEXT NOT NULL,
+  status                     VARCHAR(20) NOT NULL DEFAULT 'ativo',
+  resolvido_em               DATETIME NULL,
+  resolvido_por_usuario_id   INT UNSIGNED NULL,
+  criado_em                  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  atualizado_em              DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_alertas_tipo (tipo_alerta),
+  INDEX idx_alertas_status (status),
+  INDEX idx_alertas_resolvido_por (resolvido_por_usuario_id),
+  CONSTRAINT fk_alerta_resolvido_usuario FOREIGN KEY (resolvido_por_usuario_id)
+    REFERENCES usuarios (id) ON UPDATE CASCADE ON DELETE SET NULL
+) ENGINE=InnoDB;
+
 -- ───────────────────────────────────────────
 --  6. Financeiro
 -- ───────────────────────────────────────────
@@ -282,7 +444,7 @@ CREATE TABLE IF NOT EXISTS financeiro_categorias (
 
 -- Categorias financeiras padrão
 INSERT IGNORE INTO financeiro_categorias (nome, tipo, slug) VALUES
-  ('Venda de Medicamentos', 'receita', 'venda_medicamentos'),
+  ('Venda de Produtos', 'receita', 'venda_medicamentos'),
   ('Serviços Farmacêuticos', 'receita', 'servicos'),
   ('Pagamento de Fornecedores', 'despesa', 'fornecedores'),
   ('Folha de Pagamento', 'despesa', 'salarios'),
@@ -312,3 +474,16 @@ CREATE TABLE IF NOT EXISTS financeiro_transacoes (
   CONSTRAINT fk_fin_venda     FOREIGN KEY (venda_id) REFERENCES vendas (id) ON UPDATE CASCADE ON DELETE SET NULL,
   CONSTRAINT fk_fin_compra    FOREIGN KEY (compra_id) REFERENCES compras (id) ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB;
+
+-- Historico preservado mesmo apos exclusao do usuario (identidade por snapshot).
+CREATE TABLE IF NOT EXISTS log_atividades (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    usuario_id INT NULL,
+    usuario_nome VARCHAR(255) NOT NULL,
+    perfil VARCHAR(40) NOT NULL,
+    acao VARCHAR(255) NOT NULL,
+    detalhes MEDIUMTEXT NOT NULL,
+    status_http SMALLINT UNSIGNED NOT NULL,
+    criado_em DATETIME NOT NULL DEFAULT (UTC_TIMESTAMP()),
+    INDEX idx_log_usuario (usuario_id, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

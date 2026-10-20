@@ -1,0 +1,98 @@
+LICENÇA FARMACONTROL — USO NÃO COMERCIAL
+
+Copyright (c) 2026 SamuelDlv (https://github.com/SamuelDlv)
+Todos os direitos reservados.
+
+1. Titularidade e abrangência
+
+Esta licença abrange o código-fonte, a documentação e os demais materiais
+originais do projeto FarmaControl sobre os quais o titular detenha direitos.
+A disponibilização desses materiais não transfere sua titularidade.
+
+2. Permissões para fins não comerciais
+
+O titular concede, gratuitamente e sem necessidade de autorização individual,
+permissão não exclusiva para usar, executar, estudar, copiar, modificar,
+adaptar e redistribuir os materiais, inclusive versões modificadas, apenas
+para fins não comerciais e desde que sejam cumpridas as condições abaixo:
+
+a) Preservar o aviso de direitos autorais, os créditos a SamuelDlv, o link
+   https://github.com/SamuelDlv e uma cópia integral desta licença nas cópias
+   e redistribuições dos materiais ou de suas versões modificadas.
+b) Identificar as alterações realizadas e não apresentar versões modificadas
+   como versões oficiais ou aprovadas pelo titular.
+c) Manter os materiais originais e suas adaptações sob estas condições,
+   sem conceder a terceiros direitos comerciais ou outras permissões que
+   esta licença não conceda. Os destinatários recebem diretamente do
+   titular as permissões aqui descritas.
+
+São exemplos de usos permitidos o estudo pessoal, trabalhos acadêmicos,
+experimentos e projetos gratuitos sem finalidade comercial. A gratuidade
+isoladamente não torna um uso não comercial: aplica-se a seção 3.
+Não há obrigação de publicar modificações mantidas para uso privado
+não comercial.
+
+3. Usos que exigem autorização prévia
+
+É necessária autorização prévia, expressa e por escrito de SamuelDlv para
+qualquer uso comercial dos materiais ou de versões modificadas, incluindo:
+
+a) Vender, alugar, licenciar mediante pagamento ou cobrar pelo acesso.
+b) Oferecer o sistema como serviço pago, por assinatura ou com monetização
+   por publicidade, ou incorporá-lo a produtos ou serviços comerciais.
+c) Usá-lo na operação de farmácias, empresas ou outras atividades comerciais,
+   inclusive internamente e mesmo sem revender ou cobrar pelo software.
+d) Prestar serviços remunerados de instalação, hospedagem, personalização,
+   manutenção, suporte ou consultoria envolvendo o projeto.
+e) Distribuí-lo como parte de uma oferta comercial, mesmo que o software
+   seja anunciado como gratuito.
+
+Também exige autorização prévia por escrito redistribuir os materiais
+originais ou suas adaptações sob condições diferentes das aqui previstas,
+remover os avisos e créditos obrigatórios ou usar o nome e os elementos de
+identidade do projeto para sugerir patrocínio, parceria ou aprovação pelo
+titular. A identificação verdadeira do projeto e a atribuição exigida por
+esta licença não dependem de autorização adicional.
+
+Qualquer autorização concedida limita-se às condições, à finalidade e ao
+prazo nela expressamente definidos. O silêncio não constitui autorização.
+
+4. Publicação no GitHub
+
+Quando o projeto estiver em um repositório público no GitHub, ficam
+ressalvadas as permissões concedidas nos termos do serviço, incluindo a
+visualização e a criação de forks dentro da plataforma. Essas permissões
+não substituem as condições das seções 2 e 3 para os usos aqui licenciados.
+
+5. Solicitações de autorização
+
+Solicitações devem ser dirigidas ao titular por um canal de contato indicado
+em seu perfil do GitHub: https://github.com/SamuelDlv.
+Para os casos da seção 3, a solicitação deve descrever o uso pretendido,
+e o solicitante deve aguardar autorização expressa e por escrito antes
+de realizá-lo. Os usos permitidos pela seção 2 não exigem essa solicitação.
+
+6. Materiais de terceiros e exceções legais
+
+Dependências, bibliotecas, fontes e outros materiais de terceiros permanecem
+sujeitos às respectivas licenças e aos direitos de seus titulares. Esta
+licença não substitui nem restringe as permissões dessas licenças.
+Nenhuma disposição deste documento afasta direitos ou exceções que não
+possam ser excluídos pela legislação aplicável.
+
+7. Garantias e responsabilidade
+
+Na extensão permitida pela legislação aplicável e salvo acordo escrito em
+contrário, os materiais são disponibilizados no estado em que se encontram,
+sem garantia de funcionamento, adequação a finalidade específica ou
+ausência de erros. O titular não assume responsabilidade por danos
+decorrentes do uso dos materiais na medida em que essa exclusão seja
+legalmente permitida.
+
+8. Reserva de direitos
+
+Todos os direitos não expressamente concedidos permanecem reservados.
+A disponibilização pública do código não o coloca em domínio público.
+Esta licença permite acesso ao código e usos não comerciais; por restringir
+o uso comercial, não é uma licença de código aberto segundo a definição
+da Open Source Initiative.

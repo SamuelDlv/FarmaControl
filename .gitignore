@@ -4,6 +4,8 @@ __pycache__/
 *.egg-info/
 *.egg
 .venv/
+.venv-audit/
+.venv-*/
 venv/
 env/
 env.bak/
@@ -27,6 +29,9 @@ desktop.ini
 .env
 .env.local
 .env.production
+.env.*
+!.env.example
+!.env.*.example
 
 # Logs
 *.log
@@ -35,8 +40,26 @@ backend/backend.log
 # Database
 *.db
 *.sqlite
+*.sqlite3
+*.sql.gz
+*.dump
+backups/
 
 # Build
 dist/
 build/
 *.map
+
+# Cópias e evidências locais da auditoria
+.audit-backup/
+
+# Testes e ferramentas locais
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage/
+*.tmp
+*.bak

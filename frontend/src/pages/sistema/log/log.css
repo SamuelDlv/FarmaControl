@@ -1,0 +1,119 @@
+.log-panel {
+  background: var(--surface-2);
+  border: 1px solid var(--ink-12);
+  border-radius: 12px;
+  padding: 20px;
+  min-width: 0;
+}
+.log-scroll {
+  overflow-x: auto;
+}
+.log-filters {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.log-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-60);
+  flex: 1 1 155px;
+}
+.log-filters select,
+.log-filters input {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--ink-12);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+}
+.log-filters .ghost-btn {
+  height: 36px;
+}
+.log-panel table {
+  width: 100%;
+  min-width: 960px;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+.log-panel th {
+  color: var(--ink-60);
+  font-weight: 500;
+  background: var(--sage-pale);
+}
+.log-panel th,
+.log-panel td {
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--ink-06);
+  vertical-align: top;
+}
+.log-panel td:first-child {
+  white-space: nowrap;
+}
+.log-panel td:last-child {
+  overflow-wrap: anywhere;
+  min-width: 180px;
+}
+#log-status {
+  color: var(--ink-60);
+  font-size: 13px;
+  margin: 0 0 18px;
+}
+#log-status[data-error='true'] {
+  color: #a32b2b;
+}
+.log-panel .log-empty {
+  padding: 32px 12px;
+  color: var(--ink-60);
+  text-align: left;
+  white-space: normal;
+}
+.log-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 20px;
+  font-size: 13px;
+}
+.log-panel button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.log-panel td:nth-child(5) {
+  min-width: 250px;
+  max-width: 480px;
+  overflow-wrap: anywhere;
+}
+.log-panel summary {
+  color: var(--sage);
+  cursor: pointer;
+}
+.log-panel summary:focus-visible {
+  outline: 2px solid var(--sage);
+  outline-offset: 4px;
+}
+.log-details {
+  white-space: pre-wrap;
+  margin-top: 10px;
+  line-height: 1.6;
+  max-height: 340px;
+  overflow-y: auto;
+}
+@media (max-width: 600px) {
+  .log-panel {
+    padding: 12px;
+  }
+  .log-pagination {
+    justify-content: center;
+  }
+}

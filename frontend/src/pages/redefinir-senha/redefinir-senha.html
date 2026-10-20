@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Redefinir senha — FarmaControl</title>
+    <link rel="stylesheet" href="../acesso/acesso.css" />
+    <link rel="stylesheet" href="redefinir-senha.css" />
+  </head>
+  <body>
+    <main class="reset-card">
+      <h1>Crie uma nova senha</h1>
+      <p>Escolha uma senha com pelo menos 8 caracteres para recuperar seu acesso.</p>
+      <form id="reset-form">
+        <label for="password">Nova senha</label>
+        <div class="password-wrap">
+          <input
+            id="password"
+            type="password"
+            minlength="8"
+            autocomplete="new-password"
+            required
+            autofocus
+          />
+          <button type="button" class="eye-toggle" id="toggle-password" aria-label="Mostrar senha">
+            <svg class="eye-open" viewBox="0 0 20 20" fill="none">
+              <path
+                d="M2 10s3-5.5 8-5.5S18 10 18 10s-3 5.5-8 5.5S2 10 2 10z"
+                stroke="currentColor"
+                stroke-width="1.25"
+              />
+              <circle cx="10" cy="10" r="2" stroke="currentColor" stroke-width="1.25" />
+            </svg>
+            <svg class="eye-closed" viewBox="0 0 20 20" fill="none" style="display: none">
+              <path
+                d="M3 3l14 14M8.46 8.53A2 2 0 0011.47 11.47M4.05 5.89A9 9 0 002 10s3 5.5 8 5.5a8.4 8.4 0 004.11-1.06M7.5 4.83A8.3 8.3 0 0110 4.5c5 0 8 5.5 8 5.5a9.15 9.15 0 01-2.06 2.62"
+                stroke="currentColor"
+                stroke-width="1.25"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+        </div>
+        <button type="submit">Redefinir senha</button>
+      </form>
+      <p class="reset-message" id="message" role="status"></p>
+    </main>
+    <script src="redefinir-senha.js"></script>
+  </body>
+</html>

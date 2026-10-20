@@ -24,26 +24,41 @@
  */
 
 /* Fundo sólido IMEDIATO e estático — nunca transparente, nunca varia */
-html, body {
+html,
+body {
   background: #f0f2f1;
   color: #1a1a1a;
 }
 
 /* Troca de cor de destaque gradual — APENAS em superfícies interativas */
-button, a, .sb-item, input, select, textarea {
-  transition: background-color 0.2s ease, border-color 0.2s ease,
-              color 0.2s ease, box-shadow 0.2s ease;
+button,
+a,
+.sb-item,
+input,
+select,
+textarea {
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 /* Feedback de clique/press em botões */
 button {
-  transition: background-color 0.15s ease, border-color 0.15s ease,
-              color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 /* Sidebar: transição suave na expansão/recolha */
 .sidebar {
-  transition: width 0.25s ease, min-width 0.25s ease;
+  transition:
+    width 0.25s ease,
+    min-width 0.25s ease;
 }
 
 /* Respeitar usuários que desativaram animações */
