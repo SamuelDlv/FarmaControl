@@ -3,10 +3,16 @@ setlocal
 title FarmaControl - Servidor
 
 cd /d "%~dp0"
-set "FARMACONTROL_PYTHON=%~dp0.venv\Scripts\python.exe"
-if not exist "%FARMACONTROL_PYTHON%" (
-    echo Ambiente Python nao encontrado em .venv.
-    echo Siga docs\TRANSFERENCIA.md para criar a .venv.
+rem Prefere o launcher do Windows; usa python do PATH como alternativa.
+set "FARMACONTROL_PYTHON="
+py -3 -c "import sys; sys.exit(sys.version_info.major != 3)" >nul 2>&1
+if not errorlevel 1 set "FARMACONTROL_PYTHON=py -3"
+if not defined FARMACONTROL_PYTHON (
+    python -c "import sys; sys.exit(sys.version_info.major != 3)" >nul 2>&1
+    if not errorlevel 1 set "FARMACONTROL_PYTHON=python"
+)
+if not defined FARMACONTROL_PYTHON (
+    echo Python 3 nao encontrado. Instale o Python e habilite sua inclusao no PATH.
     pause
     exit /b 1
 )
@@ -21,9 +27,11 @@ rem Abre o navegador padrao apos 2 segundos, enquanto o servidor inicia.
 start "" /b powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -Command "Start-Sleep -Seconds 2; Start-Process 'http://localhost:5000/pages/acesso/acesso.html'"
 
 echo Mantenha esta janela aberta enquanto usar o FarmaControl. Ctrl+C encerra o servidor.
-"%FARMACONTROL_PYTHON%" "%~dp0backend\app.py"
+%FARMACONTROL_PYTHON% "%~dp0backend\app.py"
 if errorlevel 1 (
     echo O servidor nao iniciou ou terminou com erro. Confira a mensagem acima.
+    echo Se faltarem dependencias, execute nesta pasta:
+    echo %FARMACONTROL_PYTHON% -m pip install -r backend\requirements.txt
     pause
     exit /b 1
 )
