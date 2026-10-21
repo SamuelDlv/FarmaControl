@@ -139,6 +139,8 @@ O FarmaControl permite **uso, estudo, cópia, modificação e redistribuição p
 
 ## Documentação e colaboração
 
+Explore o **[Atlas EER do banco](docs/database_eer.md)**: 24 tabelas organizadas em sete áreas, diagramas de relacionamentos e dicionário de colunas com PK/FK, tipos e nulabilidade.
+
 Acesse o [índice completo](docs/README.md), o [guia de desenvolvimento](docs/DESENVOLVIMENTO.md) e a [referência da API](docs/API.md). Para propor uma mudança, descreva o problema, o comportamento esperado, testes executados e eventual migração de banco.
 
 Os relatórios datados são registros históricos. Na preparação de 19/10/2026 passaram 120 testes Python e 17 JavaScript; integração real com MySQL, navegador e infraestrutura publicada não foi revalidada nessa etapa.

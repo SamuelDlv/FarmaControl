@@ -37,22 +37,41 @@ Use-o em uma instalação nova. Em base existente, compare estrutura e migraçõ
 | `financeiro_transacoes` | Valores, estado, pagamento e vínculos operacionais |
 | `log_atividades` | Autor, ação, entidade e detalhes de auditoria |
 
-## Relações principais
+## Mapa visual das tabelas
+
+Abra o **[Atlas EER: diagramas por área e dicionário completo](database_eer.md)** para consultar as 24 tabelas, todas as FKs declaradas, colunas, tipos, nulabilidade e regras de exclusão. Os diagramas foram divididos em sete áreas para evitar nomes cortados e excesso de cruzamentos.
+
+| Área | Consulta visual |
+| --- | --- |
+| Identidade e autorização | [Acesso e permissões](database_eer.md#acesso) |
+| Convites, análises e aceites | [Cadastro e consentimento](database_eer.md#cadastro) |
+| Produtos, fornecedores e lotes | [Catálogo e estoque](database_eer.md#estoque) |
+| Pedidos e recebimento | [Compras](database_eer.md#compras) |
+| Clientes, PDV e receitas | [Vendas e prescrições](database_eer.md#vendas) |
+| Categorias e lançamentos | [Financeiro](database_eer.md#financeiro) |
+| Alertas, logs e configurações | [Operação e auditoria](database_eer.md#operacao) |
+
+### Visão geral do fluxo comercial
+
+Este recorte mostra somente as FKs do fluxo comercial. As demais relações e as colunas estão no atlas.
 
 ```mermaid
 erDiagram
-    perfis ||--o{ usuarios : classifica
-    perfis ||--o{ perfil_permissoes : concede
-    categorias_produto ||--o{ produtos : agrupa
-    produtos ||--o{ estoque : possui
-    estoque ||--o{ movimentacoes_estoque : registra
-    fornecedores ||--o{ compras : fornece
-    compras ||--o{ itens_compra : contem
-    vendas ||--o{ itens_venda : contem
-    financeiro_categorias ||--o{ financeiro_transacoes : classifica
+    fornecedores ||..o{ compras : fornecedor_id
+    compras ||..o{ itens_compra : compra_id
+    produtos ||..o{ itens_compra : produto_id
+    categorias_produto |o..o{ produtos : categoria_id
+    produtos ||..o{ estoque : produto_id
+    estoque ||..o{ movimentacoes_estoque : estoque_id
+    produtos ||..o{ itens_venda : produto_id
+    vendas ||..o{ itens_venda : venda_id
+    clientes |o..o{ vendas : cliente_id
+    vendas |o..o{ financeiro_transacoes : venda_id
+    compras |o..o{ financeiro_transacoes : compra_id
+    financeiro_categorias ||..o{ financeiro_transacoes : categoria_id
 ```
 
-O diagrama é resumido. Colunas, nulabilidade, índices e políticas de exclusão têm como referência o SQL. Não remova vínculos para contornar a retenção do histórico.
+`||` indica um vínculo obrigatório; `|o`, opcional; `o{`, zero ou muitos registros. Linhas tracejadas indicam relações não identificadoras (FK fora da PK do filho). Não há FK direta entre um item de venda e um lote de estoque: `lote_vendido` é texto. Colunas, índices e políticas de exclusão têm como referência o SQL. Não remova vínculos para contornar a retenção do histórico.
 
 ## Regras de dados
 

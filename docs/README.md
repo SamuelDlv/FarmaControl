@@ -11,6 +11,7 @@ Referência revisada em **19/10/2026**, a partir do código e dos SQLs presentes
 | Entender páginas, estilos e navegação | [Frontend](../frontend/README.md) |
 | Consultar login, convites e recuperação | [Autenticação](../frontend/src/pages/README-authentication.md) |
 | Entender tabelas e migrações | [Banco de dados](database_schema_design.md) |
+| Visualizar tabelas, chaves e relacionamentos | [Atlas EER e dicionário de dados](database_eer.md) |
 | Consultar endpoints | [Referência da API](API.md) |
 | Operar vendas de balcão | [Vendas e PDV](pdv.md) |
 | Desenvolver e executar verificações | [Desenvolvimento](DESENVOLVIMENTO.md) |
