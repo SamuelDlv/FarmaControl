@@ -6,6 +6,8 @@
   'use strict';
   const collapseButtons = new WeakSet();
   const initializedSidebars = new WeakSet();
+  // O script roda no head: evita pintar o menu parcial antes de restaurar o estado.
+  document.documentElement.classList.add('fc-sidebar-pending');
 
   /* Compatibilidade para sessões antigas sem a lista de permissões do login.
      Mantém os padrões do schema; a lista persistida sempre tem prioridade. */
@@ -184,6 +186,9 @@
         JSON.parse(localStorage.getItem('farmacontrol_configuracoes') || '{}'),
         JSON.parse(sessionStorage.getItem('farmacontrol_visual_bootstrap') || '{}')
       );
+      document.body.classList.toggle('fc-density-compact', settings.densidade_interface === 'compacta');
+      document.body.classList.toggle('fc-density-spaced', settings.densidade_interface === 'espacada');
+      document.body.classList.toggle('fc-no-animations', String(settings.animacoes_interface) === 'false');
       sb.classList.toggle(
         'collapsed',
         !isMobile() &&
@@ -282,6 +287,15 @@
         // Links nativos preservam Voltar/Avançar, Ctrl+clique e abrir em nova aba.
       });
     });
+    // Mantem a posicao do menu ao navegar em janelas de pouca altura.
+    const nav = sb.querySelector('.sb-nav');
+    if (nav) {
+      try { nav.scrollTop = Number(sessionStorage.getItem('fc_sb_scroll')) || 0; } catch (_) {}
+      window.addEventListener('pagehide', () => {
+        try { sessionStorage.setItem('fc_sb_scroll', String(nav.scrollTop)); } catch (_) {}
+      });
+    }
+    document.documentElement.classList.remove('fc-sidebar-pending');
   }
 
   /* ══ initLogout(): Configura o botão de logout em TODAS as páginas.

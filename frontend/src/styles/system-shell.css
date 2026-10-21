@@ -32,6 +32,41 @@
   min-width: var(--sb-w-sm);
 }
 
+.fc-sidebar-pending .sidebar {
+  visibility: hidden;
+}
+
+/* Geometria e preferencias disponiveis antes do JS de fim de pagina. */
+.sidebar .sb-nav {
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
+.sidebar .sb-item {
+  flex-shrink: 0;
+  line-height: 19.5px;
+}
+
+.sb-collapse svg { display: none !important; }
+.sb-collapse::after { content: '\2630'; font-size: 15px; line-height: 1; }
+.fc-density-compact { font-size: 13px; }
+.fc-density-compact .topbar { height: 50px; min-height: 50px; }
+.fc-density-compact .sb-head { padding: 14px 12px 10px; }
+.fc-density-compact .sb-item { padding: 6px 8px; gap: 8px; }
+.fc-density-compact .card-body { padding: 12px 14px; gap: 10px; }
+.fc-density-compact .card-head { padding: 10px 14px; }
+.fc-density-compact .form-input, .fc-density-compact .form-select { height: 32px; }
+.fc-density-compact .toggle-row { padding: 7px 0; }
+.fc-density-compact .page-body { gap: 10px; }
+.fc-density-compact .page-main { padding: 14px; }
+.fc-density-spaced .card-body { padding: 20px 22px; gap: 18px; }
+.fc-density-spaced .page-main { padding: 22px; }
+.fc-no-animations *, .fc-no-animations *::before, .fc-no-animations *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
 .sb-head {
   display: flex;
   align-items: center;

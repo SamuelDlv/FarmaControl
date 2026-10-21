@@ -61,13 +61,12 @@ body:not(.fc-auth) .sb-item.active {
 body:not(.fc-auth) .sb-item:active,
 body:not(.fc-auth) .sb-item.sb-clicked {
   background: var(--sidebar-bg-active, var(--ink-12, #d0d0d0)) !important;
-  transform: scale(0.985);
+  transform: none;
 }
 body:not(.fc-auth) .sb-item {
   transition:
     background-color 0.15s ease,
-    color 0.15s ease,
-    transform 0.12s ease;
+    color 0.15s ease;
 }
 
 body:not(.fc-auth) .sb-group-label {
