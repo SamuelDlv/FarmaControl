@@ -1,0 +1,3087 @@
+{
+  "info": {
+    "name": "FarmaControl - GET e POST",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Collection de todas as rotas GET e POST declaradas em backend/app.py. Sem prefixo /api.\n\n1. Inicie backend e banco configurados.\n2. Em Variables, preencha base_url, email e password com conta aprovada.\n3. Execute POST /auth/login. Cookie automatico e csrf_token salvo pelo script.\n4. Execute as requisicoes desejadas; ajuste IDs, datas e corpos. POSTs de criacao salvam IDs retornados nas variaveis da Collection.\n\nUse Send individualmente: esta Collection e um catalogo, nao um fluxo para executar inteiro no Runner. Cadastro, convite, redefinicao, recusa e logout sao fluxos alternativos; POSTs gravam dados e podem enviar e-mails. Valores de exemplo nao representam registros existentes. Permissoes dependem da conta. Nao crie variaveis de ambiente com os mesmos nomes de csrf_token/IDs, pois sobrepoem as da Collection. Consulte docs/postman/README.md."
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "csrf_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cadastro_email",
+      "value": "cadastro@example.invalid",
+      "type": "string"
+    },
+    {
+      "key": "nova_senha",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "convite_email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "convite_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reset_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fornecedor_cnpj",
+      "value": "00000000000100",
+      "type": "string"
+    },
+    {
+      "key": "lote",
+      "value": "POSTMAN-001",
+      "type": "string"
+    },
+    {
+      "key": "data_validade",
+      "value": "2028-12-31",
+      "type": "string"
+    },
+    {
+      "key": "data_prescricao",
+      "value": "2026-10-22",
+      "type": "string"
+    },
+    {
+      "key": "preco_venda",
+      "value": "19.90",
+      "type": "string"
+    },
+    {
+      "key": "chave",
+      "value": "postman_teste",
+      "type": "string"
+    },
+    {
+      "key": "pagina",
+      "value": "dashboard/dashboard.html",
+      "type": "string"
+    },
+    {
+      "key": "arquivo",
+      "value": "utils/sidebar-init.js",
+      "type": "string"
+    },
+    {
+      "key": "financeiro_categoria_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "cliente_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "categoria_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "fornecedor_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "produto_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "estoque_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "movimentacao_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "compra_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "venda_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "receita_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "alerta_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "usuario_id",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Saude",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Handler: health em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Autenticacao",
+      "item": [
+        {
+          "name": "POST /auth/login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Execute primeiro com uma conta aprovada. O Postman guarda o cookie de sessao e o script salva csrf_token. Mantenha o cookie jar habilitado e use sempre o mesmo host.\nHandler: login em backend/app.py.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"remember\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.unset(\"csrf_token\");"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });",
+                  "if (pm.response.code < 300 && data && data.ok && data.csrf_token) { pm.collectionVariables.set(\"csrf_token\", data.csrf_token); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Cadastro publico fica pendente de aprovacao. Edite os aceites conforme sua decisao. Para aceitar convite, adicione convite_token: {{convite_token}} ao corpo; o servidor resolve identidade e perfil pelo convite.\nHandler: register em backend/app.py.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Usuario\",\n  \"sobrenome\": \"Teste\",\n  \"email\": \"{{cadastro_email}}\",\n  \"role\": \"atendente\",\n  \"password\": \"{{nova_senha}}\",\n  \"accepts_terms\": true,\n  \"accepts_privacy\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });",
+                  "if (pm.response.code < 300 && data && data.ok && data.csrf_token) { pm.collectionVariables.set(\"csrf_token\", data.csrf_token); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/recuperar-senha",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/recuperar-senha",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "recuperar-senha"
+              ]
+            },
+            "description": "Envia e-mail de recuperacao quando aplicavel. Copie o token recebido para reset_token.\nHandler: solicitar_recuperacao_senha em backend/app.py.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/redefinir-senha",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/redefinir-senha",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "redefinir-senha"
+              ]
+            },
+            "description": "Use reset_token do e-mail. A senha sera alterada para nova_senha; faca login novamente.\nHandler: redefinir_senha em backend/app.py.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{reset_token}}\",\n  \"password\": \"{{nova_senha}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /auth/convites/<string:token>",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/convites/{{convite_token}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "convites",
+                "{{convite_token}}"
+              ]
+            },
+            "description": "Handler: consultar_convite em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/convites/<string:token>/recusar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/convites/{{convite_token}}/recusar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "convites",
+                "{{convite_token}}",
+                "recusar"
+              ]
+            },
+            "description": "Recusa o convite identificado por convite_token.\nHandler: recusar_convite em backend/app.py.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /auth/logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Execute ao terminar: encerra a sessao e limpa o token CSRF salvo.\nHandler: logout em backend/app.py.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });",
+                  "if (pm.response.code < 300 && data && data.ok) pm.collectionVariables.unset(\"csrf_token\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Administracao",
+      "item": [
+        {
+          "name": "GET /admin/usuarios",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/usuarios",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "usuarios"
+              ]
+            },
+            "description": "Handler: listar_usuarios em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /admin/logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/logs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "logs"
+              ],
+              "query": [
+                {
+                  "key": "atividade",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filtro opcional; habilite e ajuste conforme docs/API.md."
+                },
+                {
+                  "key": "usuario_id",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filtro opcional; habilite e ajuste conforme docs/API.md."
+                },
+                {
+                  "key": "antes",
+                  "value": "0",
+                  "disabled": true,
+                  "description": "Filtro opcional; habilite e ajuste conforme docs/API.md."
+                },
+                {
+                  "key": "busca",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filtro opcional; habilite e ajuste conforme docs/API.md."
+                },
+                {
+                  "key": "incluir_usuarios",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filtro opcional; habilite e ajuste conforme docs/API.md."
+                },
+                {
+                  "key": "limit",
+                  "value": "50",
+                  "disabled": true,
+                  "description": "Filtro opcional; habilite e ajuste conforme docs/API.md."
+                },
+                {
+                  "key": "data_inicio",
+                  "value": "2026-10-22",
+                  "disabled": true,
+                  "description": "YYYY-MM-DD; nao pode ser futura."
+                },
+                {
+                  "key": "data_fim",
+                  "value": "2026-10-22",
+                  "disabled": true,
+                  "description": "YYYY-MM-DD; nao pode ser futura."
+                }
+              ]
+            },
+            "description": "Handler: listar_logs em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /admin/pendentes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/pendentes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "pendentes"
+              ]
+            },
+            "description": "Handler: listar_pendentes em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /admin/perfis/permissoes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/perfis/permissoes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "perfis",
+                "permissoes"
+              ]
+            },
+            "description": "Handler: listar_permissoes_perfis em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /admin/convites",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/convites",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "convites"
+              ]
+            },
+            "description": "Envia e-mail ao destinatario. Configure convite_email; o token vem no link recebido, nao na resposta.\nHandler: criar_convite em backend/app.py.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Convidado\",\n  \"sobrenome\": \"Teste\",\n  \"email\": \"{{convite_email}}\",\n  \"role\": \"atendente\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /admin/analisar-cadastro",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/analisar-cadastro",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "analisar-cadastro"
+              ]
+            },
+            "description": "usuario_id identifica o cadastro a analisar, nao necessariamente o usuario conectado. Exige acesso administrativo.\nHandler: analisar_cadastro em backend/app.py.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario_id\": {{usuario_id}},\n  \"decisao\": \"aprovado\",\n  \"motivo\": \"Cadastro de teste aprovado\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Clientes",
+      "item": [
+        {
+          "name": "GET /clientes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/clientes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "clientes"
+              ]
+            },
+            "description": "Handler: get_clientes em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /clientes/<int:cliente_id>",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/clientes/{{cliente_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "clientes",
+                "{{cliente_id}}"
+              ]
+            },
+            "description": "Handler: get_cliente em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /clientes",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/clientes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "clientes"
+              ]
+            },
+            "description": "Handler: create_cliente em backend/app.py.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Cliente\",\n  \"sobrenome\": \"Postman\",\n  \"cpf\": null,\n  \"telefone\": \"11999999999\",\n  \"email\": null,\n  \"endereco\": \"Rua de Teste, 100\",\n  \"data_nascimento\": \"1990-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });",
+                  "if (pm.response.code === 201 && data && data.ok && data.id != null) pm.collectionVariables.set(\"cliente_id\", String(data.id));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Categorias de produtos",
+      "item": [
+        {
+          "name": "GET /categorias-produto",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/categorias-produto",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "categorias-produto"
+              ]
+            },
+            "description": "Handler: get_categorias_produto em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /categorias-produto/<int:categoria_id>",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/categorias-produto/{{categoria_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "categorias-produto",
+                "{{categoria_id}}"
+              ]
+            },
+            "description": "Handler: get_categoria_produto em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /categorias-produto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/categorias-produto",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "categorias-produto"
+              ]
+            },
+            "description": "Handler: create_categoria_produto em backend/app.py.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Categoria Postman {{$timestamp}}\",\n  \"descricao\": \"Categoria de teste\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });",
+                  "if (pm.response.code === 201 && data && data.ok && data.id != null) pm.collectionVariables.set(\"categoria_id\", String(data.id));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Fornecedores",
+      "item": [
+        {
+          "name": "GET /fornecedores",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/fornecedores",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "fornecedores"
+              ]
+            },
+            "description": "Handler: get_fornecedores em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /fornecedores/<int:fornecedor_id>",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/fornecedores/{{fornecedor_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "fornecedores",
+                "{{fornecedor_id}}"
+              ]
+            },
+            "description": "Handler: get_fornecedor em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /fornecedores",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/fornecedores",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "fornecedores"
+              ]
+            },
+            "description": "Handler: create_fornecedor em backend/app.py.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome_fantasia\": \"Fornecedor Postman\",\n  \"razao_social\": \"Fornecedor Postman Ltda\",\n  \"cnpj\": \"{{fornecedor_cnpj}}\",\n  \"contato_nome\": \"Contato Teste\",\n  \"contato_telefone\": \"11999999999\",\n  \"contato_email\": \"fornecedor@example.invalid\",\n  \"endereco\": \"Rua de Teste, 200\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });",
+                  "if (pm.response.code === 201 && data && data.ok && data.id != null) pm.collectionVariables.set(\"fornecedor_id\", String(data.id));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Produtos",
+      "item": [
+        {
+          "name": "GET /produtos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/produtos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "produtos"
+              ]
+            },
+            "description": "Handler: get_produtos em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /produtos/<int:produto_id>",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/produtos/{{produto_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "produtos",
+                "{{produto_id}}"
+              ]
+            },
+            "description": "Handler: get_produto em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /produtos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/produtos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "produtos"
+              ]
+            },
+            "description": "Crie/consulte categoria e fornecedor antes e ajuste os IDs. Exemplo de produto do tipo outro. Medicamentos exigem exige_validade=true.\nHandler: create_produto em backend/app.py.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Produto Postman {{$timestamp}}\",\n  \"tipo_produto\": \"outro\",\n  \"exige_validade\": false,\n  \"requer_receita\": false,\n  \"ativo\": true,\n  \"descricao\": \"Produto de teste\",\n  \"fabricante\": \"Fabricante Teste\",\n  \"preco_custo\": 10,\n  \"preco_venda\": 19.9,\n  \"estoque_minimo\": 5,\n  \"categoria_id\": {{categoria_id}},\n  \"fornecedor_id\": {{fornecedor_id}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });",
+                  "if (pm.response.code === 201 && data && data.ok && data.id != null) pm.collectionVariables.set(\"produto_id\", String(data.id));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Estoque",
+      "item": [
+        {
+          "name": "GET /estoque",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/estoque",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "estoque"
+              ]
+            },
+            "description": "Handler: get_estoque em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /estoque/parametros",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/estoque/parametros",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "estoque",
+                "parametros"
+              ]
+            },
+            "description": "Handler: get_parametros_estoque em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /estoque/<int:estoque_id>",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/estoque/{{estoque_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "estoque",
+                "{{estoque_id}}"
+              ]
+            },
+            "description": "Handler: get_item_estoque em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /estoque",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/estoque",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "estoque"
+              ]
+            },
+            "description": "Use produto_id existente. A combinacao produto/lote deve ser unica; ajuste lote antes de repetir.\nHandler: create_item_estoque em backend/app.py.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"produto_id\": {{produto_id}},\n  \"lote\": \"{{lote}}\",\n  \"quantidade\": 100,\n  \"data_validade\": \"{{data_validade}}\",\n  \"localizacao\": \"Prateleira A\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });",
+                  "if (pm.response.code === 201 && data && data.ok && data.id != null) pm.collectionVariables.set(\"estoque_id\", String(data.id));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /estoque/<int:estoque_id>/historico",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/estoque/{{estoque_id}}/historico",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "estoque",
+                "{{estoque_id}}",
+                "historico"
+              ]
+            },
+            "description": "Handler: get_historico_estoque em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Movimentacoes de estoque",
+      "item": [
+        {
+          "name": "GET /movimentacoes-estoque",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/movimentacoes-estoque",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "movimentacoes-estoque"
+              ],
+              "query": [
+                {
+                  "key": "produto_id",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filtro opcional; habilite e ajuste conforme docs/API.md."
+                },
+                {
+                  "key": "tipo",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filtro opcional; habilite e ajuste conforme docs/API.md."
+                },
+                {
+                  "key": "periodo_dias",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filtro opcional; habilite e ajuste conforme docs/API.md."
+                },
+                {
+                  "key": "limite",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filtro opcional; habilite e ajuste conforme docs/API.md."
+                },
+                {
+                  "key": "offset",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filtro opcional; habilite e ajuste conforme docs/API.md."
+                },
+                {
+                  "key": "periodo",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filtro opcional; habilite e ajuste conforme docs/API.md."
+                },
+                {
+                  "key": "busca",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filtro opcional; habilite e ajuste conforme docs/API.md."
+                }
+              ]
+            },
+            "description": "Handler: get_movimentacoes_estoque em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /movimentacoes-estoque/<int:movimentacao_id>",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/movimentacoes-estoque/{{movimentacao_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "movimentacoes-estoque",
+                "{{movimentacao_id}}"
+              ]
+            },
+            "description": "Handler: get_movimentacao_estoque em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /movimentacoes-estoque",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/movimentacoes-estoque",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "movimentacoes-estoque"
+              ]
+            },
+            "description": "Altera saldo. Tipos: entrada, saida, ajuste e transferencia. Transferencia exige estoque_destino_id inteiro de outro lote do mesmo produto.\nHandler: create_movimentacao_estoque em backend/app.py.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estoque_id\": {{estoque_id}},\n  \"tipo_movimentacao\": \"entrada\",\n  \"quantidade\": 5,\n  \"observacao\": \"Entrada de teste via Postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });",
+                  "if (pm.response.code === 201 && data && data.ok && data.id != null) pm.collectionVariables.set(\"movimentacao_id\", String(data.id));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Compras",
+      "item": [
+        {
+          "name": "GET /compras",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/compras",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "compras"
+              ]
+            },
+            "description": "Handler: get_compras em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /compras/<int:compra_id>",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/compras/{{compra_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "compras",
+                "{{compra_id}}"
+              ]
+            },
+            "description": "Handler: get_compra em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /compras",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/compras",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "compras"
+              ]
+            },
+            "description": "Exemplo pendente. Status recebido movimenta estoque; exige lote e validade conforme o produto.\nHandler: create_compra em backend/app.py.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fornecedor_id\": {{fornecedor_id}},\n  \"valor_total\": 100,\n  \"status\": \"pendente\",\n  \"itens\": [\n    {\n      \"produto_id\": {{produto_id}},\n      \"quantidade\": 10,\n      \"preco_unitario\": 10,\n      \"lote_recebido\": \"{{lote}}\",\n      \"data_validade_recebida\": \"{{data_validade}}\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });",
+                  "if (pm.response.code === 201 && data && data.ok && data.id != null) pm.collectionVariables.set(\"compra_id\", String(data.id));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Vendas e PDV",
+      "item": [
+        {
+          "name": "GET /vendas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/vendas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendas"
+              ]
+            },
+            "description": "Handler: get_vendas em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /vendas/catalogo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/vendas/catalogo",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendas",
+                "catalogo"
+              ]
+            },
+            "description": "Handler: catalogo_pdv em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /vendas/balcao",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/vendas/balcao",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendas",
+                "balcao"
+              ]
+            },
+            "description": "Conclui venda e altera estoque/financeiro. Consulte GET /vendas/catalogo e ajuste estoque_id e preco_venda ao preco atual. Receita exigida requer receita_conferida=true.\nHandler: concluir_pdv em backend/app.py.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_pagamento\": \"pix\",\n  \"receita_conferida\": false,\n  \"itens\": [\n    {\n      \"estoque_id\": {{estoque_id}},\n      \"quantidade\": 1,\n      \"preco_unitario\": \"{{preco_venda}}\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });",
+                  "if (pm.response.code === 201 && data && data.ok && data.id != null) pm.collectionVariables.set(\"venda_id\", String(data.id));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /vendas/<int:venda_id>",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/vendas/{{venda_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendas",
+                "{{venda_id}}"
+              ]
+            },
+            "description": "Handler: get_venda em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /vendas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/vendas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "vendas"
+              ]
+            },
+            "description": "Exemplo pendente. Status concluida movimenta estoque e sincroniza o financeiro. Ajuste total e itens juntos.\nHandler: create_venda em backend/app.py.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cliente_id\": {{cliente_id}},\n  \"valor_total\": 19.9,\n  \"tipo_pagamento\": \"pix\",\n  \"status\": \"pendente\",\n  \"itens\": [\n    {\n      \"produto_id\": {{produto_id}},\n      \"quantidade\": 1,\n      \"preco_unitario\": 19.9,\n      \"desconto\": 0,\n      \"lote_vendido\": \"{{lote}}\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });",
+                  "if (pm.response.code === 201 && data && data.ok && data.id != null) pm.collectionVariables.set(\"venda_id\", String(data.id));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Receitas",
+      "item": [
+        {
+          "name": "GET /receitas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/receitas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "receitas"
+              ]
+            },
+            "description": "Handler: get_receitas em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /receitas/<int:receita_id>",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/receitas/{{receita_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "receitas",
+                "{{receita_id}}"
+              ]
+            },
+            "description": "Handler: get_receita em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /receitas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/receitas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "receitas"
+              ]
+            },
+            "description": "Use cliente e produto existentes. Os textos sao ficticios para testar o contrato.\nHandler: create_receita em backend/app.py.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cliente_id\": {{cliente_id}},\n  \"medico_nome\": \"Medico Teste\",\n  \"crm\": \"123456-SP\",\n  \"data_prescricao\": \"{{data_prescricao}}\",\n  \"data_validade\": \"{{data_validade}}\",\n  \"observacoes\": \"Registro ficticio para teste da API\",\n  \"arquivo_receita_url\": null,\n  \"itens\": [\n    {\n      \"produto_id\": {{produto_id}},\n      \"quantidade\": 1,\n      \"dosagem\": \"Exemplo de teste\",\n      \"instrucoes_uso\": \"Exemplo de teste\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });",
+                  "if (pm.response.code === 201 && data && data.ok && data.id != null) pm.collectionVariables.set(\"receita_id\", String(data.id));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Alertas",
+      "item": [
+        {
+          "name": "GET /alertas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/alertas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "alertas"
+              ]
+            },
+            "description": "Handler: get_alertas em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /alertas/<int:alerta_id>",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/alertas/{{alerta_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "alertas",
+                "{{alerta_id}}"
+              ]
+            },
+            "description": "Handler: get_alerta em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /alertas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/alertas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "alertas"
+              ]
+            },
+            "description": "Handler: create_alerta em backend/app.py.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_alerta\": \"outros\",\n  \"referencia_id\": null,\n  \"mensagem\": \"Alerta de teste via Postman\",\n  \"status\": \"ativo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });",
+                  "if (pm.response.code === 201 && data && data.ok && data.id != null) pm.collectionVariables.set(\"alerta_id\", String(data.id));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Configuracoes",
+      "item": [
+        {
+          "name": "GET /configuracoes/visual",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracoes/visual",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracoes",
+                "visual"
+              ]
+            },
+            "description": "Handler: get_configuracoes_visuais em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /configuracoes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracoes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracoes"
+              ]
+            },
+            "description": "Handler: get_configuracoes em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /configuracoes/<string:chave>",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracoes/{{chave}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracoes",
+                "{{chave}}"
+              ]
+            },
+            "description": "Handler: get_configuracao em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /configuracoes",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/configuracoes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "configuracoes"
+              ]
+            },
+            "description": "Use uma chave nova; chave existente retorna 409. tema e tema_efetivo estao aposentadas (410).\nHandler: create_configuracao em backend/app.py.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chave\": \"{{chave}}\",\n  \"valor\": \"teste\",\n  \"descricao\": \"Configuracao de teste via Postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "GET /dashboard/stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/dashboard/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "dashboard",
+                "stats"
+              ]
+            },
+            "description": "Handler: get_dashboard_stats em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Relatorios",
+      "item": [
+        {
+          "name": "GET /relatorios/estoque",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/relatorios/estoque",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "relatorios",
+                "estoque"
+              ],
+              "query": [
+                {
+                  "key": "periodo",
+                  "value": "month",
+                  "disabled": true,
+                  "description": "Filtro opcional; habilite e ajuste conforme docs/API.md."
+                }
+              ]
+            },
+            "description": "Handler: relatorio_estoque em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /relatorios/vencimentos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/relatorios/vencimentos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "relatorios",
+                "vencimentos"
+              ]
+            },
+            "description": "Handler: relatorio_vencimentos em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /relatorios/compras",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/relatorios/compras",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "relatorios",
+                "compras"
+              ],
+              "query": [
+                {
+                  "key": "periodo",
+                  "value": "month",
+                  "disabled": true,
+                  "description": "Filtro opcional; habilite e ajuste conforme docs/API.md."
+                }
+              ]
+            },
+            "description": "Handler: relatorio_compras em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Financeiro",
+      "item": [
+        {
+          "name": "GET /financeiro/stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/financeiro/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "financeiro",
+                "stats"
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "30",
+                  "disabled": true,
+                  "description": "Filtro opcional; habilite e ajuste conforme docs/API.md."
+                }
+              ]
+            },
+            "description": "Handler: financeiro_stats em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /financeiro/fluxo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/financeiro/fluxo",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "financeiro",
+                "fluxo"
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "7",
+                  "disabled": true,
+                  "description": "Filtro opcional; habilite e ajuste conforme docs/API.md."
+                },
+                {
+                  "key": "start_date",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filtro opcional; habilite e ajuste conforme docs/API.md."
+                },
+                {
+                  "key": "end_date",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filtro opcional; habilite e ajuste conforme docs/API.md."
+                }
+              ]
+            },
+            "description": "Handler: financeiro_fluxo em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /financeiro/categorias",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/financeiro/categorias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "financeiro",
+                "categorias"
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "30",
+                  "disabled": true,
+                  "description": "Filtro opcional; habilite e ajuste conforme docs/API.md."
+                },
+                {
+                  "key": "tipo",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filtro opcional; habilite e ajuste conforme docs/API.md."
+                }
+              ]
+            },
+            "description": "Handler: financeiro_categorias em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /financeiro/transacoes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/financeiro/transacoes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "financeiro",
+                "transacoes"
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "30",
+                  "disabled": true,
+                  "description": "Filtro opcional; habilite e ajuste conforme docs/API.md."
+                },
+                {
+                  "key": "limit",
+                  "value": "50",
+                  "disabled": true,
+                  "description": "Filtro opcional; habilite e ajuste conforme docs/API.md."
+                }
+              ]
+            },
+            "description": "Handler: financeiro_transacoes em backend/app.py."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /financeiro/transacoes",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/financeiro/transacoes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "financeiro",
+                "transacoes"
+              ]
+            },
+            "description": "Consulte GET /financeiro/categorias e preencha financeiro_categoria_id com categoria do tipo despesa. data_transacao vazia usa a data do banco; aceita YYYY-MM-DD.\nHandler: create_financeiro_transacao em backend/app.py.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"despesa\",\n  \"categoria_id\": {{financeiro_categoria_id}},\n  \"descricao\": \"Despesa de teste via Postman\",\n  \"valor\": 25,\n  \"data_transacao\": \"\",\n  \"metodo_pagamento\": \"pix\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Resposta de sucesso\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "let data; try { data = pm.response.json(); } catch (e) {}",
+                  "pm.test(\"Resposta JSON com ok=true\", function () { pm.expect(data && data.ok).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Arquivos do frontend",
+      "item": [
+        {
+          "name": "GET /pages/sistema/<path:filename>",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "text/html, */*"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pages/sistema/{{pagina}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pages",
+                "sistema",
+                "{{pagina}}"
+              ]
+            },
+            "description": "Handler: serve_sistema_page em backend/app.py. Retorna arquivo HTML/CSS/JS, nao JSON."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /pages/proprietario/<path:filename>",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "text/html, */*"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pages/proprietario/{{pagina}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pages",
+                "proprietario",
+                "{{pagina}}"
+              ]
+            },
+            "description": "Handler: serve_sistema_page em backend/app.py. Retorna arquivo HTML/CSS/JS, nao JSON."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /<path:filename>",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "text/html, */*"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/{{arquivo}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "{{arquivo}}"
+              ]
+            },
+            "description": "Handler: serve_frontend_asset em backend/app.py. Retorna arquivo HTML/CSS/JS, nao JSON."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
