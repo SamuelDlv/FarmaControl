@@ -1,6 +1,6 @@
 # Referência da API
 
-Revisada em **23/10/2026** a partir dos decoradores de `backend/app.py`. Os caminhos não possuem prefixo `/api`. Em desenvolvimento a origem é `http://localhost:5000`; o frontend usa a mesma origem da página.
+Revisada em **23/10/2026** a partir dos registros de rotas em `backend/farmacontrol/routes/`. Os caminhos não possuem prefixo `/api`. Em desenvolvimento a origem é `http://localhost:5000`; o frontend usa a mesma origem da página.
 
 ## Convenções
 
@@ -87,7 +87,7 @@ O servidor admite de 1 a 100 lotes distintos e compara o preço enviado ao preç
 
 ### Configurações
 
-`PUT /configuracoes` recebe `configuracoes` com as chaves editáveis. `system_settings.py` define tipos e limites. As antigas chaves `tema` e `tema_efetivo` não são configurações ativas e sua leitura/gravação individual retorna 410. Opções de idioma/moeda não realizam tradução ou conversão financeira.
+`PUT /configuracoes` recebe `configuracoes` com as chaves editáveis. `backend/farmacontrol/services/system_settings.py` define tipos e limites. As antigas chaves `tema` e `tema_efetivo` não são configurações ativas e sua leitura/gravação individual retorna 410. Opções de idioma/moeda não realizam tradução ou conversão financeira.
 
 ### Histórico
 
@@ -98,7 +98,7 @@ O servidor admite de 1 a 100 lotes distintos e compara o preço enviado ao preç
 A tabela abaixo foi extraída estaticamente dos decoradores do arquivo atual; não exige importar a aplicação nem conectar ao banco. Lista métodos explícitos e GET das rotas estáticas, sem expandir HEAD/OPTIONS automáticos do Flask. Os links apontam ao arquivo de implementação, evitando números de linha que envelhecem a cada edição.
 
 
-Total: **88 declarações de rota** em [app.py](../backend/app.py).
+Total: **88 declarações de rota** nos [módulos de rotas](../backend/farmacontrol/routes/), registrados por [create_app()](../backend/farmacontrol/__init__.py). URLs, métodos e nomes dos endpoints foram preservados na modularização.
 
 | Método | Caminho | Handler |
 | --- | --- | --- |

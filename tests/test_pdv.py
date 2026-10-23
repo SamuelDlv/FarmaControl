@@ -4,6 +4,10 @@ import unittest
 api = base.api
 
 
+from farmacontrol.core import access
+import pymysql
+
+
 class PdvTests(unittest.TestCase):
     setUp = base.BackendTests.setUp
     login_session = base.BackendTests.login_session
@@ -21,10 +25,10 @@ class PdvTests(unittest.TestCase):
         self.cur.fetchone.side_effect=[{'senha_hash':'hash-simulado','status':'aprovado','perfil':'atendente'},row,{'id':3}]
 
     def test_access_roles(self):
-        for role in api.PERFIS_VALIDOS:
+        for role in access.PERFIS_VALIDOS:
             self.login_session(role)
             response=self.client.get('/vendas/catalogo')
-            self.assertEqual(response.status_code,200 if role in api.SALES_ROLES else 403)
+            self.assertEqual(response.status_code,200 if role in access.SALES_ROLES else 403)
 
     def test_invalid_quantities_do_not_write(self):
         self.login_session()
@@ -54,7 +58,7 @@ class PdvTests(unittest.TestCase):
         self.prepare()
         def execute(sql,*args):
             if 'INSERT INTO financeiro_transacoes' in sql:
-                raise api.pymysql.OperationalError('simulado')
+                raise pymysql.OperationalError('simulado')
         self.cur.execute.side_effect=execute
         self.assertEqual(self.post(self.payload()).status_code,503)
         self.db.rollback.assert_called_once()
@@ -93,7 +97,7 @@ class PdvTests(unittest.TestCase):
         self.login_session()
         def execute(sql, *args):
             if 'INSERT INTO financeiro_transacoes' in sql:
-                raise api.pymysql.OperationalError('simulado')
+                raise pymysql.OperationalError('simulado')
         self.cur.execute.side_effect = execute
         response = self.client.post('/vendas', json={
             'valor_total': 25, 'tipo_pagamento': 'pix', 'status': 'concluida',

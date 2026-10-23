@@ -76,3 +76,5 @@ Siga o [README](../README.md) para criar o ambiente e o [guia de transferência]
 O repositório é [SamuelDlv/FarmaControl](https://github.com/SamuelDlv/FarmaControl), com branch principal `main`. Em 23/10/2026, as correções de logout e limite de autenticação foram publicadas pelo conector GitHub. Esse envio não cria uma pasta `.git` nem configura um remoto no diretório local; os comandos de Git deste guia exigem um clone ou repositório local inicializado.
 
 Arquivos locais de `.audit-backup` e ambientes virtuais permanecem fora do versionamento. Publicar uma atualização no GitHub não reinicia o servidor local: depois de atualizar o código, reinicie o backend para carregar mudanças Python.
+
+A atualização de modularização de 23/10/2026 mantém `backend/app.py` como entrada e distribui a implementação em `backend/farmacontrol/`. O [mapa da refatoração](REFATORACAO_BACKEND.md) lista cada arquivo criado, movido ou alterado. Os módulos antigos na raiz de `backend/` são removidos do repositório junto com a inclusão de seus novos caminhos, no mesmo commit.

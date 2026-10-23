@@ -6,6 +6,11 @@ import test_backend as base
 api = base.api
 
 
+from farmacontrol.core import database
+from farmacontrol.routes import frontend
+import pymysql
+
+
 class PageAccessTests(unittest.TestCase):
     setUp = base.BackendTests.setUp
     login_session = base.BackendTests.login_session
@@ -34,7 +39,7 @@ class PageAccessTests(unittest.TestCase):
 
     def test_generic_file_handler_cannot_bypass_page_protection(self):
         with api.app.test_request_context('/pages/sistema/dashboard/dashboard.html'):
-            response = api.serve_frontend_asset('pages/sistema/dashboard/dashboard.html')
+            response = frontend.serve_frontend_asset('pages/sistema/dashboard/dashboard.html')
         self.assertEqual(response.status_code, 302)
 
     def test_account_revocation_and_password_change_deny_html(self):
@@ -69,7 +74,7 @@ class PageAccessTests(unittest.TestCase):
 
     def test_database_failure_does_not_deliver_html(self):
         self.login_session()
-        with patch.object(api, 'get_db', side_effect=api.pymysql.OperationalError('offline')):
+        with patch.object(database, 'get_db', side_effect=pymysql.OperationalError('offline')):
             response = self.client.get(self.dashboard)
         self.assertEqual(response.status_code, 503)
         self.assertNotIn(b'auth-guard.js', response.data)

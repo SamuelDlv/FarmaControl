@@ -1,11 +1,11 @@
 """Regressões da rastreabilidade, sem acesso a banco real."""
 import ast
-from pathlib import Path
+import inspect
 from unittest.mock import Mock
 import unittest
 import test_backend as base
 from flask import g
-from audit import commit_audit
+from farmacontrol.services.audit import commit_audit
 
 api = base.api
 
@@ -99,13 +99,11 @@ class AuditTests(unittest.TestCase):
             self.assertEqual(self.client.get('/admin/logs', query_string=query).status_code, 400)
 
     def test_every_mutation_endpoint_uses_transactional_audit(self):
-        tree = ast.parse((Path(api.__file__)).read_text(encoding='utf-8'))
-        for function in tree.body:
-            if not isinstance(function, ast.FunctionDef):
-                continue
-            if any(isinstance(d, ast.Call) and isinstance(d.func, ast.Attribute)
-                   and isinstance(d.func.value, ast.Name) and d.func.value.id == 'app'
-                   and d.func.attr in {'post', 'put', 'patch', 'delete'} for d in function.decorator_list):
-                with self.subTest(endpoint=function.name):
-                    self.assertTrue(any(isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
-                                        and n.func.id == 'commit_audit' for n in ast.walk(function)))
+        endpoints = {rule.endpoint for rule in api.app.url_map.iter_rules()
+                     if rule.methods & {'POST', 'PUT', 'PATCH', 'DELETE'}}
+        self.assertTrue(endpoints)
+        for endpoint in endpoints:
+            function = ast.parse(inspect.getsource(api.app.view_functions[endpoint]))
+            with self.subTest(endpoint=endpoint):
+                self.assertTrue(any(isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+                                    and n.func.id == 'commit_audit' for n in ast.walk(function)))

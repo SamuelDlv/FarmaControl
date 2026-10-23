@@ -1,6 +1,6 @@
 # Vendas / PDV
 
-Revisado em **19/10/2026**. Página: `frontend/src/pages/sistema/vendas/vendas.html`. Implementação: `catalogo_pdv` e `concluir_pdv` em `backend/app.py`. Consulte também [API](API.md) e [banco](database_schema_design.md).
+Revisado em **23/10/2026**. Página: `frontend/src/pages/sistema/vendas/vendas.html`. Implementação: `catalogo_pdv` e `concluir_pdv` em `backend/farmacontrol/routes/vendas.py`. Consulte também [API](API.md) e [banco](database_schema_design.md).
 
 ## Acesso e catálogo
 

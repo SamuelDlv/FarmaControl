@@ -1,6 +1,6 @@
 # Autenticação, contas e permissões
 
-Revisado em **23/10/2026**, a partir de `backend/app.py`, `runtime_config.py` e `security.py`. Consulte [backend](../../../backend/README.md) e [API](../../../docs/API.md).
+Revisado em **23/10/2026**, a partir de `backend/farmacontrol/routes/auth.py`, `backend/farmacontrol/middleware.py` e dos módulos `access.py`, `credentials.py`, `runtime_config.py` e `security.py` em `backend/farmacontrol/core/`. Consulte [backend](../../../backend/README.md) e [API](../../../docs/API.md).
 
 ## Páginas públicas
 

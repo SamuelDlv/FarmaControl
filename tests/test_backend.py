@@ -18,13 +18,24 @@ with patch("pymysql.connect", side_effect=AssertionError("Banco real proibido no
     import app as api
 
 
+from farmacontrol.core import access
+from farmacontrol.core import credentials as credentials_module
+from farmacontrol.core import database
+from farmacontrol.core.security import AuthLimiter
+from farmacontrol.core.security import credential_stamp
+from farmacontrol.routes import financeiro
+from farmacontrol.services import email
+import pymysql
+import smtplib
+
+
 class BackendTests(unittest.TestCase):
     def setUp(self):
         self.block_db = patch("pymysql.connect", side_effect=AssertionError("Banco real proibido"))
         self.block_db.start()
         self.addCleanup(self.block_db.stop)
         api.app.config.update(TESTING=True, SECRET_KEY="somente-testes", SESSION_COOKIE_SECURE=False)
-        api.auth_limiter = api.AuthLimiter()
+        api.app.extensions["auth_limiter"] = AuthLimiter()
         self.client = api.app.test_client()
         self.cur = Mock()
         self.cur.__enter__ = Mock(return_value=self.cur)
@@ -34,12 +45,12 @@ class BackendTests(unittest.TestCase):
         self.cur.lastrowid = 8
         self.db = Mock()
         self.db.cursor.return_value = self.cur
-        self.get_db = patch.object(api, "get_db", return_value=self.db)
+        self.get_db = patch.object(database, "get_db", return_value=self.db)
         self.get_db.start()
         self.addCleanup(self.get_db.stop)
         self.profile_permissions = {}
         self.permissions_reader = patch.object(
-            api,
+            access,
             "permissoes_efetivas",
             side_effect=lambda _cursor, profile: set(self.profile_permissions.get(profile, ())),
         )
@@ -49,18 +60,18 @@ class BackendTests(unittest.TestCase):
     def login_session(self, perfil="proprietario"):
         with self.client.session_transaction() as sess:
             sess["usuario_id"] = 42
-            sess["credential_stamp"] = api.credential_stamp(api.app.config["SECRET_KEY"], "hash-simulado")
+            sess["credential_stamp"] = credential_stamp(api.app.config["SECRET_KEY"], "hash-simulado")
             sess["perfil"] = perfil
             sess["csrf_token"] = "teste-csrf"
         self.cur.fetchone.return_value = {"senha_hash": "hash-simulado", "status": "aprovado", "perfil": perfil, "id": 3, "tipo": "receita"}
         default_modules = {
-            "proprietario": api.PERMISSION_MODULES,
-            "admin": api.PERMISSION_MODULES,
+            "proprietario": access.PERMISSION_MODULES,
+            "admin": access.PERMISSION_MODULES,
             "farmaceutico": ("dashboard", "estoque", "vencimentos", "relatorios", "compras"),
             "atendente": ("dashboard", "estoque"),
             "visualizador": ("dashboard", "estoque", "vencimentos", "relatorios"),
             "compras": ("dashboard", "estoque", "vencimentos", "relatorios", "compras"),
-            "ti": api.PERMISSION_MODULES,
+            "ti": access.PERMISSION_MODULES,
         }
         self.profile_permissions = default_modules
 
@@ -70,7 +81,7 @@ class BackendTests(unittest.TestCase):
 
     def test_removed_forecast_is_unavailable(self):
         self.login_session()
-        self.assertNotIn("previsao", api.PERMISSION_MODULES)
+        self.assertNotIn("previsao", access.PERMISSION_MODULES)
         for path in (
             "/previsao/reposicao",
             "/pages/sistema/previsao/previsao.html",
@@ -90,7 +101,7 @@ class BackendTests(unittest.TestCase):
 
     def test_all_protected_routes_require_session(self):
         for rule in api.app.url_map.iter_rules():
-            if not rule.rule.startswith(api.PROTECTED_API_PREFIXES) or rule.rule == "/configuracoes/visual":
+            if not rule.rule.startswith(access.PROTECTED_API_PREFIXES) or rule.rule == "/configuracoes/visual":
                 continue
             path = rule.rule
             import re
@@ -111,21 +122,21 @@ class BackendTests(unittest.TestCase):
         for route in ("/compras", "/fornecedores", "/compras/1", "/fornecedores/1"):
             for method in ("GET", "POST", "PUT", "DELETE"):
                 with self.subTest(route=route, method=method):
-                    self.assertEqual(api.roles_permitidos(route, method), api.INVENTORY_ROLES)
-        self.assertEqual(api.roles_permitidos("/compras-falso", "GET"), set())
-        self.assertEqual(api.roles_permitidos("/fornecedores-falso", "GET"), set())
+                    self.assertEqual(access.roles_permitidos(route, method), access.INVENTORY_ROLES)
+        self.assertEqual(access.roles_permitidos("/compras-falso", "GET"), set())
+        self.assertEqual(access.roles_permitidos("/fornecedores-falso", "GET"), set())
 
     def test_root_lists_are_accessible_to_expected_roles(self):
-        for role in api.INVENTORY_ROLES:
+        for role in access.INVENTORY_ROLES:
             for route in ("/compras", "/fornecedores"):
                 with self.subTest(role=role, route=route):
-                    self.assertEqual(api.modulo_da_rota(route), "compras")
+                    self.assertEqual(access.modulo_da_rota(route), "compras")
                     modules = {
-                        "proprietario": api.PERMISSION_MODULES,
-                        "admin": api.PERMISSION_MODULES,
+                        "proprietario": access.PERMISSION_MODULES,
+                        "admin": access.PERMISSION_MODULES,
                         "farmaceutico": ("compras",),
                         "compras": ("compras",),
-                        "ti": api.PERMISSION_MODULES,
+                        "ti": access.PERMISSION_MODULES,
                     }[role]
                     self.assertIn("compras", modules)
 
@@ -154,7 +165,7 @@ class BackendTests(unittest.TestCase):
 
     def test_database_failure_in_session_validation(self):
         self.login_session()
-        self.cur.execute.side_effect = api.pymysql.OperationalError("simulado")
+        self.cur.execute.side_effect = pymysql.OperationalError("simulado")
         self.assertEqual(self.client.get("/estoque").status_code, 503)
 
     def test_logout_requires_csrf_and_clears_cookie_session(self):
@@ -245,7 +256,7 @@ class BackendTests(unittest.TestCase):
 
     def test_stock_failure_rolls_back(self):
         self.login_session()
-        self.cur.execute.side_effect = [None, api.pymysql.OperationalError("simulado")]
+        self.cur.execute.side_effect = [None, pymysql.OperationalError("simulado")]
         response = self.client.post("/estoque", json={
             "produto_id": 2, "quantidade": 1, "data_validade": "2027-01-01"
         }, headers={"X-CSRF-Token": "teste-csrf"})
@@ -255,7 +266,7 @@ class BackendTests(unittest.TestCase):
 
     def test_financial_categories_filter_the_category_type(self):
         self.login_session()
-        with patch.object(api, "_fin_tables_exist", return_value=True):
+        with patch.object(financeiro, "_fin_tables_exist", return_value=True):
             response = self.client.get("/financeiro/categorias?tipo=despesa&days=30")
         self.assertEqual(response.status_code, 200)
         query, params = next(call.args for call in self.cur.execute.call_args_list if "WHERE fc.tipo = %s" in call.args[0])
@@ -265,8 +276,8 @@ class BackendTests(unittest.TestCase):
     def test_financial_read_failure_is_not_reported_as_empty_data(self):
         self.login_session()
         # A primeira consulta é a validação da sessão executada pelo middleware.
-        self.cur.execute.side_effect = [None, api.pymysql.OperationalError("simulado")]
-        with patch.object(api, "_fin_tables_exist", return_value=True):
+        self.cur.execute.side_effect = [None, pymysql.OperationalError("simulado")]
+        with patch.object(financeiro, "_fin_tables_exist", return_value=True):
             response = self.client.get("/financeiro/transacoes")
         self.assertEqual(response.status_code, 500)
         self.assertFalse(response.json["ok"])
@@ -276,7 +287,7 @@ class BackendTests(unittest.TestCase):
         self.cur.fetchall.return_value = [{
             'dia': date(2026, 10, 12), 'receitas': 27.56, 'despesas': 0,
         }]
-        with patch.object(api, '_fin_tables_exist', return_value=True):
+        with patch.object(financeiro, '_fin_tables_exist', return_value=True):
             response = self.client.get('/financeiro/fluxo?start_date=2026-10-10&end_date=2026-10-12')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['dias'], ['2026-10-10', '2026-10-11', '2026-10-12'])
@@ -361,7 +372,7 @@ class BackendTests(unittest.TestCase):
         self.login_session()
         self.cur.fetchall.return_value = [{'id': 2, 'nome': 'Despesas', 'tipo': 'despesa',
                                           'valor': 50, 'pendente': 75, 'qtd': 2}]
-        with patch.object(api, '_fin_tables_exist', return_value=True):
+        with patch.object(financeiro, '_fin_tables_exist', return_value=True):
             response = self.client.get('/financeiro/categorias?tipo=despesa&days=30')
         self.assertEqual(response.json['categorias'][0]['valor'], 50)
         self.assertEqual(response.json['categorias'][0]['pendente'], 75)
@@ -374,7 +385,7 @@ class BackendTests(unittest.TestCase):
             "senha_hash": "hash-simulado", "status": "aprovado",
             "perfil": "proprietario", "perfil_nome": "Proprietário",
         }
-        with patch.object(api, "verificar_senha", return_value=True):
+        with patch.object(credentials_module, "verificar_senha", return_value=True):
             response = self.client.post("/auth/login", json={"email": "teste@example.com", "password": "simulada"})
         self.assertEqual(response.status_code, 200)
         self.assertNotIn("senha_hash", response.json["usuario"])
@@ -392,7 +403,7 @@ class BackendTests(unittest.TestCase):
             "perfil": "proprietario", "perfil_nome": "Proprietário",
         }
         credentials = {"email": "teste@example.com", "password": "simulada"}
-        with patch.object(api, "verificar_senha", return_value=True):
+        with patch.object(credentials_module, "verificar_senha", return_value=True):
             first = self.client.post("/auth/login", json=credentials)
             self.assertEqual(first.status_code, 200)
             logout = self.client.post("/auth/logout", headers={
@@ -413,7 +424,7 @@ class BackendTests(unittest.TestCase):
             "senha_hash": "hash-simulado", "status": "aprovado",
             "perfil": "proprietario", "perfil_nome": "Proprietário",
         }
-        with patch.object(api, "verificar_senha", return_value=True):
+        with patch.object(credentials_module, "verificar_senha", return_value=True):
             response = self.client.post("/auth/login", json={
                 "email": "teste@example.com", "password": "simulada", "remember": True,
             })
@@ -490,8 +501,8 @@ class BackendTests(unittest.TestCase):
             "BREVO_SMTP_HOST": "smtp-relay.brevo.com", "BREVO_SMTP_PORT": "587",
             "BREVO_SMTP_LOGIN": "login@smtp-brevo.com", "BREVO_SMTP_PASSWORD": "segredo",
             "BREVO_SENDER_EMAIL": "remetente@example.com", "BREVO_SENDER_NAME": "FarmaControl",
-        }), patch.object(api.smtplib, "SMTP", return_value=smtp_context) as smtp_class:
-            self.assertTrue(api.enviar_email_brevo("destinatario@example.com", "Assunto", "<p>Teste</p>"))
+        }), patch.object(smtplib, "SMTP", return_value=smtp_context) as smtp_class:
+            self.assertTrue(email.enviar_email_brevo("destinatario@example.com", "Assunto", "<p>Teste</p>"))
         smtp_class.assert_called_once_with("smtp-relay.brevo.com", 587, timeout=10)
         smtp.starttls.assert_called_once()
         smtp.login.assert_called_once_with("login@smtp-brevo.com", "segredo")
@@ -519,7 +530,7 @@ class BackendTests(unittest.TestCase):
         self.cur.fetchone.side_effect = [
             {"senha_hash": "hash-simulado", "status": "aprovado", "perfil": "proprietario"}, None, {"id": 2},
         ]
-        with patch.object(api, "enviar_email_brevo", return_value=True) as send_mail:
+        with patch.object(email, "enviar_email_brevo", return_value=True) as send_mail:
             response = self.client.post("/admin/convites", json={
                 "nome": "Pessoa", "sobrenome": "Convidada", "email": "convite@example.com", "role": "atendente",
             }, headers={"X-CSRF-Token": "teste-csrf"})
@@ -542,7 +553,7 @@ class BackendTests(unittest.TestCase):
 
     def test_password_reset_request_sends_link_without_storing_plain_token(self):
         self.cur.fetchone.return_value = {"id": 9, "nome": "Pessoa"}
-        with patch.object(api, "enviar_email_brevo", return_value=True) as send_mail:
+        with patch.object(email, "enviar_email_brevo", return_value=True) as send_mail:
             response = self.client.post("/auth/recuperar-senha", json={"email": "pessoa@example.com"})
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json["ok"])
@@ -560,12 +571,12 @@ class BackendTests(unittest.TestCase):
         self.assertNotEqual(update[1][0], "nova-senha")
 
     def test_log_access_is_fixed_for_only_three_roles(self):
-        for role in api.PERFIS_VALIDOS:
+        for role in access.PERFIS_VALIDOS:
             self.login_session(role)
             # Even a forged/persisted module permission cannot grant this log.
             self.profile_permissions[role] = {"usuarios", "log"}
             response = self.client.get("/admin/logs")
-            self.assertEqual(response.status_code, 200 if role in api.ADMIN_ROLES else 403)
+            self.assertEqual(response.status_code, 200 if role in access.ADMIN_ROLES else 403)
 
     def test_log_filters_combine_with_cursor_and_brasilia_day_boundaries(self):
         from datetime import datetime
@@ -632,7 +643,7 @@ class BackendTests(unittest.TestCase):
         self.login_session()
         def execute(query, *args):
             if "INSERT INTO log_atividades" in query:
-                raise api.pymysql.OperationalError("audit unavailable")
+                raise pymysql.OperationalError("audit unavailable")
         self.cur.execute.side_effect = execute
         response = self.client.post("/categorias-produto", json={"nome": "Teste"}, headers={"X-CSRF-Token": "teste-csrf"})
         self.assertEqual(response.status_code, 500)

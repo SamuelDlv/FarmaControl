@@ -3,8 +3,8 @@ from unittest.mock import patch
 import pymysql
 from datetime import datetime
 import test_backend as backend_tests
-from system_settings import DEFAULTS, validate_settings, active_alerts, require_usable_stock
-from settings_notifications import send_due
+from farmacontrol.services.system_settings import DEFAULTS, validate_settings, active_alerts, require_usable_stock
+from farmacontrol.services.settings_notifications import send_due
 
 
 class SettingsTests(unittest.TestCase):
@@ -83,8 +83,8 @@ class SettingsTests(unittest.TestCase):
     def test_notifications_do_not_repeat_successful_daily_send(self):
         settings = {**DEFAULTS, 'notificacoes_email': 'true', 'email_notificacao': 'teste@example.com',
                     'notificacao.ultimo_dia': '2026-10-12'}
-        with patch('settings_notifications.read_settings', return_value=settings), \
-                patch('settings_notifications.active_alerts', return_value=[]):
+        with patch('farmacontrol.services.settings_notifications.read_settings', return_value=settings), \
+                patch('farmacontrol.services.settings_notifications.active_alerts', return_value=[]):
             sender = unittest.mock.Mock(return_value=True)
             send_due(self.cur, sender, datetime(2026, 10, 12))
             sender.assert_not_called()
@@ -94,8 +94,8 @@ class SettingsTests(unittest.TestCase):
 
     def test_failed_email_is_not_marked_delivered(self):
         settings = {**DEFAULTS, 'notificacoes_email': 'true', 'email_notificacao': 'teste@example.com'}
-        with patch('settings_notifications.read_settings', return_value=settings), \
-                patch('settings_notifications.active_alerts', return_value=[]):
+        with patch('farmacontrol.services.settings_notifications.read_settings', return_value=settings), \
+                patch('farmacontrol.services.settings_notifications.active_alerts', return_value=[]):
             sender = unittest.mock.Mock(return_value=False)
             send_due(self.cur, sender, datetime(2026, 10, 12))
             self.cur.execute.assert_not_called()

@@ -84,7 +84,7 @@ def write_event(db, status=200):
                     lines.append(f"Item {number}: " + "; ".join(f"{key}={safe_value(item[key])}" for key in ITEM_FIELDS if key in item))
         if resource == "configuracoes":
             # Valores de configuração podem conter credenciais. Registre só chaves conhecidas.
-            from system_settings import KEYS
+            from farmacontrol.services.system_settings import KEYS
             keys = sorted(key for key in data if key in KEYS)
             key = (request.view_args or {}).get("chave") or data.get("chave")
             if isinstance(key, str) and key in KEYS:

@@ -81,6 +81,8 @@ Os novos testes cobrem: limitação de tentativas e falsificação de IP; expira
 
 ## Arquivos alterados/criados
 
+Os caminhos abaixo registram a estrutura na data desta auditoria. Em 23/10/2026, a implementação foi reorganizada em `backend/farmacontrol/core/`, `backend/farmacontrol/routes/` e `backend/farmacontrol/middleware.py`; consulte o [mapa da modularização](REFATORACAO_BACKEND.md) para os caminhos atuais.
+
 - `backend/app.py`: validações, proteção de autenticação, sessão, transações de tokens e cabeçalhos.
 - `backend/security.py`: HMAC e limitador local.
 - `backend/runtime_config.py`: limite de corpo HTTP.

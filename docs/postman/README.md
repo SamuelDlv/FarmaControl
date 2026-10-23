@@ -1,6 +1,6 @@
 # FarmaControl no Postman
 
-Importe `FarmaControl.postman_collection.json` pelo botão **Import** do Postman. O arquivo usa Collection v2.1 e contém todas as 43 rotas GET e 21 POST declaradas em `backend/app.py`, incluindo três rotas de arquivos do frontend. PUT e DELETE não fazem parte desta Collection.
+Importe `FarmaControl.postman_collection.json` pelo botão **Import** do Postman. O arquivo usa Collection v2.1 e contém todas as 43 rotas GET e 21 POST registradas em `backend/farmacontrol/routes/`, incluindo três rotas de arquivos do frontend. PUT e DELETE não fazem parte desta Collection. A modularização preserva as URLs e os métodos da Collection.
 
 ## Configuração e login
 

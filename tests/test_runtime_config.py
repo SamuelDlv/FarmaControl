@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'backend'))
-from runtime_config import runtime_config
+from farmacontrol.core.runtime_config import runtime_config
 
 
 class RuntimeConfigTests(unittest.TestCase):

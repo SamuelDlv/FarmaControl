@@ -1,6 +1,6 @@
 # Documentação do FarmaControl
 
-Referência revisada em **19/10/2026**, a partir do código e dos SQLs presentes nesta cópia. A revisão documental não executa migrações nem confirma a estrutura de um banco instalado.
+Referência revisada em **23/10/2026**, a partir do código e dos SQLs presentes nesta cópia. A revisão documental não executa migrações nem confirma a estrutura de um banco instalado.
 
 ## Por onde começar
 
@@ -9,6 +9,7 @@ Referência revisada em **19/10/2026**, a partir do código e dos SQLs presentes
 | Instalar e conhecer os módulos | [README principal](../README.md) |
 | Instalar Python e dependências no Windows | [Instalador de dependências](../README.md#instalador-de-dependências-windows) |
 | Configurar API, ambiente e permissões | [Backend](../backend/README.md) |
+| Localizar os arquivos da estrutura modular do backend | [Mapa da refatoração](REFATORACAO_BACKEND.md) |
 | Entender páginas, estilos e navegação | [Frontend](../frontend/README.md) |
 | Consultar login, convites e recuperação | [Autenticação](../frontend/src/pages/README-authentication.md) |
 | Entender tabelas e migrações | [Banco de dados](database_schema_design.md) |
@@ -21,7 +22,7 @@ Referência revisada em **19/10/2026**, a partir do código e dos SQLs presentes
 
 ## Fontes de verdade
 
-O comportamento HTTP está em `backend/app.py`; as variáveis validadas estão em `backend/runtime_config.py`; tabelas, índices e relacionamentos estão em `backend/schema.sql` e nas migrações. O schema descreve uma instalação nova, enquanto as migrações registram alterações para bases anteriores.
+O comportamento HTTP está em `backend/farmacontrol/routes/` e `backend/farmacontrol/middleware.py`, com entrada em `backend/app.py`; as variáveis validadas estão em `backend/farmacontrol/core/runtime_config.py`; tabelas, índices e relacionamentos estão em `backend/schema.sql` e nas migrações. O schema descreve uma instalação nova, enquanto as migrações registram alterações para bases anteriores.
 
 Documentação não substitui esses contratos. Ao alterar uma rota, configuração, regra de acesso ou estrutura de dados, atualize o documento correspondente e os testes afetados no mesmo conjunto de mudanças.
 

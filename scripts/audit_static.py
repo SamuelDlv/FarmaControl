@@ -60,12 +60,17 @@ def audit():
         elif "/pages/sistema/" in relative:
             for name in re.findall(r"^\s*(?:async\s+)?function\s+(\w+)\s*\(", source, re.M):
                 globals_[name].append(relative)
-    source = (ROOT / "backend/app.py").read_text(encoding="utf-8")
-    tree = ast.parse(source)
-    uses = Counter(node.id for node in ast.walk(tree) if isinstance(node, ast.Name))
-    unused_imports = sorted({alias.asname or alias.name for node in ast.walk(tree)
-                             if isinstance(node, (ast.Import, ast.ImportFrom))
-                             for alias in node.names if not uses[(alias.asname or alias.name).split(".")[0]]})
+    unused_imports = []
+    for path in sorted((ROOT / "backend").rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        uses = Counter(node.id for node in ast.walk(tree) if isinstance(node, ast.Name))
+        unused_imports.extend(
+            {"file": path.relative_to(ROOT).as_posix(), "name": name}
+            for name in sorted({alias.asname or alias.name for node in ast.walk(tree)
+                                if isinstance(node, (ast.Import, ast.ImportFrom))
+                                for alias in node.names
+                                if not uses[(alias.asname or alias.name).split(".")[0]]})
+        )
     duplicates = [{"selector": rule.split("{")[0].strip(), "occurrences": len(paths), "files": sorted(set(paths))}
                   for rule, paths in css_rules.items() if len(set(paths)) > 1]
     return {"html_files": sum(p.suffix == ".html" for p in files),

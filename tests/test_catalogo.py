@@ -1,7 +1,7 @@
 """Contratos do catálogo misto, sem acesso ao banco instalado."""
 import unittest
 import test_backend as harness
-from product_rules import normalize_product, validate_expiry, PRODUCT_FIELDS
+from farmacontrol.services.product_rules import normalize_product, validate_expiry, PRODUCT_FIELDS
 
 
 class ProductRulesTests(unittest.TestCase):

@@ -13,6 +13,16 @@ sys.path.insert(0, str(ROOT / 'backend'))
 import app as api
 
 
+from farmacontrol.core import database
+from farmacontrol.routes import catalogo
+from farmacontrol.routes import compras
+from farmacontrol.routes import dashboard
+from farmacontrol.routes import estoque
+from farmacontrol.routes import financeiro
+from farmacontrol.routes import fornecedores
+from farmacontrol.routes import relatorios
+
+
 def main():
     db = connection()
     snapshots = {}
@@ -20,24 +30,24 @@ def main():
         with db.cursor() as cur:
             cur.execute('START TRANSACTION READ ONLY')
         routes = {
-            '/estoque': api.get_estoque,
-            '/produtos': api.get_produtos,
-            '/compras': api.get_compras,
-            '/fornecedores': api.get_fornecedores,
-            '/dashboard/stats': api.get_dashboard_stats,
-            '/relatorios/compras': api.relatorio_compras,
+            '/estoque': estoque.get_estoque,
+            '/produtos': catalogo.get_produtos,
+            '/compras': compras.get_compras,
+            '/fornecedores': fornecedores.get_fornecedores,
+            '/dashboard/stats': dashboard.get_dashboard_stats,
+            '/relatorios/compras': relatorios.relatorio_compras,
         }
         for period in ('month', 'quarter', 'year'):
-            routes[f'/relatorios/estoque?periodo={period}'] = api.relatorio_estoque
-            routes[f'/relatorios/compras?periodo={period}'] = api.relatorio_compras
-            routes[f'/movimentacoes-estoque?periodo={period}&limite=10&offset=0'] = api.get_movimentacoes_estoque
-        routes['/movimentacoes-estoque?periodo=year&limite=10&offset=1000&tipo=saida&busca=Teste'] = api.get_movimentacoes_estoque
+            routes[f'/relatorios/estoque?periodo={period}'] = relatorios.relatorio_estoque
+            routes[f'/relatorios/compras?periodo={period}'] = relatorios.relatorio_compras
+            routes[f'/movimentacoes-estoque?periodo={period}&limite=10&offset=0'] = estoque.get_movimentacoes_estoque
+        routes['/movimentacoes-estoque?periodo=year&limite=10&offset=1000&tipo=saida&busca=Teste'] = estoque.get_movimentacoes_estoque
         for days in (7, 30, 90):
-            routes[f'/financeiro/categorias?tipo=despesa&days={days}'] = api.financeiro_categorias
-            routes[f'/financeiro/stats?days={days}'] = api.financeiro_stats
-            routes[f'/financeiro/fluxo?days={days}'] = api.financeiro_fluxo
+            routes[f'/financeiro/categorias?tipo=despesa&days={days}'] = financeiro.financeiro_categorias
+            routes[f'/financeiro/stats?days={days}'] = financeiro.financeiro_stats
+            routes[f'/financeiro/fluxo?days={days}'] = financeiro.financeiro_fluxo
         # Histórico completo via páginas para validar conjuntos acima de 1.000.
-        with patch.object(api, 'get_db', return_value=db):
+        with patch.object(database, 'get_db', return_value=db):
             for url, fn in routes.items():
                 with api.app.test_request_context(url):
                     response = api.app.make_response(fn())
@@ -49,7 +59,7 @@ def main():
             total = None
             while total is None or len(rows) < total:
                 with api.app.test_request_context(f'/movimentacoes-estoque?limite=1000&offset={len(rows)}'):
-                    data = api.app.make_response(api.get_movimentacoes_estoque()).get_json()
+                    data = api.app.make_response(estoque.get_movimentacoes_estoque()).get_json()
                 total = data['total']
                 assert data['movimentacoes'] or len(rows) == total
                 rows.extend(data['movimentacoes'])

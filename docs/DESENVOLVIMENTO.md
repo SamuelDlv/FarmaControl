@@ -25,6 +25,7 @@ node --test tests/frontend.test.cjs tests/log.test.cjs tests/vendas.test.cjs tes
 | Arquivo | Cobertura principal |
 | --- | --- |
 | `tests/test_backend.py` | Contratos HTTP, sessão, perfis, operações e respostas |
+| `tests/test_app_structure.py` | Criação de aplicações isoladas, caminhos, entrada local/WSGI e agendamento de notificações |
 | `tests/test_catalogo.py` | Medicamentos, outros produtos, categorias e validade |
 | `tests/test_pdv.py` | Validação de vendas, cálculo e rollback |
 | `tests/test_audit.py` | Registro e consulta de atividades |
@@ -77,6 +78,8 @@ Os utilitários `migrate_catalogo.py` e `migrate_audit.py` permitem inspeção e
 
 No frontend, mantenha a ordem dos estilos e use os utilitários compartilhados. No backend, parametrize valores SQL e confirme mutações e auditoria na mesma transação quando esse for o contrato do fluxo. Não crie tabelas como efeito de uma requisição comum.
 
+As rotas estão em `backend/farmacontrol/routes/`, agrupadas por área e registradas por `create_app()`. Infraestrutura e permissões ficam em `core/`, regras compartilhadas em `services/` e os hooks HTTP em `middleware.py`. Ao simular dependências em testes, aplique o patch no módulo correspondente, por exemplo `farmacontrol.core.database.get_db`; `backend/app.py` contém apenas a entrada da aplicação. Veja o [mapa de arquivos](REFATORACAO_BACKEND.md).
+
 ## Diagnóstico
 
 | Sintoma | Conferência |
@@ -95,6 +98,8 @@ No frontend, mantenha a ordem dos estilos e use os utilitários compartilhados. 
 Logs podem conter informações operacionais; mantenha-os fora do repositório. Não trate mensagens de erros simulados da suíte como falha se o resultado final dos testes for `OK`.
 
 ## Registro de validação
+
+Em 23/10/2026, após a modularização do backend: 137 testes Python aprovados, compilação de `backend/`, `tests/` e `scripts/` sem erros e auditoria estática sem imports de backend não utilizados, assets ausentes ou IDs HTML duplicados. O teste de contrato confirma URLs, métodos HTTP e nomes dos endpoints. A comparação estrutural das 112 funções extraídas confirmou a preservação da lógica, descontando os novos caminhos de importação e acessos ao contexto Flask. A validação usa banco simulado; não confirma integração real com MySQL nem entrega SMTP.
 
 Em 19/10/2026, antes da remoção do ambiente de auditoria: 120 testes Python aprovados e `pip check` sem inconsistências. Os 17 testes JavaScript passaram usando o runtime Node do VS Code com isolamento de processo desativado, pois o ambiente bloqueou a criação de subprocessos. O comando padrão acima é destinado a uma instalação normal do Node. A última verificação de sintaxe examinou 53 scripts.
 

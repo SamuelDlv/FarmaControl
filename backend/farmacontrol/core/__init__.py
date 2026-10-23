@@ -1,0 +1,1 @@
+"""Componentes do backend FarmaControl."""

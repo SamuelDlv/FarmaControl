@@ -4,7 +4,7 @@ import logging
 import threading
 import time
 from datetime import datetime, timezone, timedelta
-from system_settings import read_settings, active_alerts
+from farmacontrol.services.system_settings import read_settings, active_alerts
 
 _lock = threading.Lock()
 _next_check = 0

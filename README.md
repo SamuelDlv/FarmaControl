@@ -32,7 +32,8 @@ Não há instalador automático do banco, conta administrativa criada automatica
 
 ## Estrutura atual
 
-- `backend/app.py`: API, autenticação por cookie, autorização e entrega dos arquivos estáticos.
+- `backend/app.py`: entrada local e WSGI da API.
+- `backend/farmacontrol/`: inicialização, infraestrutura em `core/`, regras compartilhadas em `services/` e rotas por área em `routes/`.
 - `backend/schema.sql` e `backend/migrations/`: definição e evolução do banco.
 - `frontend/src/pages/acesso/, convite/, redefinir-senha/, termos/ e privacidade/`: login, cadastro e documentos legais.
 - `frontend/src/pages/sistema/`: dashboard, vendas, estoque, vencimentos, compras, financeiro, relatórios, usuários, log e configurações.

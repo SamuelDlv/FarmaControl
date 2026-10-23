@@ -1,6 +1,6 @@
 # Backend — FarmaControl
 
-API Flask com PyMySQL e banco MySQL/MariaDB. As rotas estão em `app.py`; não há prefixo `/api`, JWT, Prisma ou servidor Node nesta implementação.
+API Flask com PyMySQL e banco MySQL/MariaDB. As rotas estão separadas por área em `farmacontrol/routes/`, com entrada em `app.py`; não há prefixo `/api`, JWT, Prisma ou servidor Node nesta implementação.
 
 Revisado em **23/10/2026**. Consulte também o [índice da documentação](../docs/README.md) e a [referência de endpoints](../docs/API.md).
 
@@ -8,15 +8,24 @@ Revisado em **23/10/2026**. Consulte também o [índice da documentação](../do
 
 | Arquivo | Responsabilidade |
 | --- | --- |
-| `app.py` | Inicialização, conexão, middleware, rotas, e-mails e arquivos estáticos |
-| `runtime_config.py` | Validação de ambiente, sessão, origens e limites HTTP |
-| `security.py` | Vínculo da sessão com a credencial e limitador de autenticação |
-| `audit.py` | Eventos de auditoria e detalhes permitidos |
-| `product_rules.py` | Normalização e validação do catálogo |
-| `reporting.py` | Funções compartilhadas de relatórios |
-| `system_settings.py` | Preferências, validação e alertas |
-| `settings_notifications.py` | Resumos por e-mail avaliados durante o uso |
+| `app.py` | Entrada local e WSGI (`app:app`) |
+| `farmacontrol/__init__.py` | `create_app()`: configuração e registro de rotas e middlewares |
+| `farmacontrol/core/` | Conexão por requisição, permissões, credenciais, respostas HTTP e caminhos |
+| `farmacontrol/core/runtime_config.py` | Validação de ambiente, sessão, origens e limites HTTP |
+| `farmacontrol/core/security.py` | Vínculo da sessão com a credencial e limitador de autenticação |
+| `farmacontrol/middleware.py` | Validação de entrada, autorização, CSRF, cabeçalhos, auditoria de consultas e agendamento |
+| `farmacontrol/routes/` | Rotas por área: autenticação, administração, clientes, catálogo, fornecedores, estoque, compras, vendas, receitas, alertas, configurações, dashboard, relatórios e financeiro; saúde e frontend |
+| `farmacontrol/services/audit.py` | Eventos de auditoria e detalhes permitidos |
+| `farmacontrol/services/product_rules.py` | Normalização e validação do catálogo |
+| `farmacontrol/services/reporting.py` | Funções compartilhadas de relatórios |
+| `farmacontrol/services/system_settings.py` | Preferências, validação e alertas |
+| `farmacontrol/services/email.py` | Templates e envio transacional pela Brevo |
+| `farmacontrol/services/settings_notifications.py` | Resumos por e-mail avaliados durante o uso |
 | `schema.sql` / `migrations/` | Instalação nova e evolução de bases existentes |
+
+Cada módulo de rotas expõe `register_routes(app)`, preservando as URLs, os métodos HTTP e os nomes dos endpoints. Os handlers usam o contexto Flask atual; a conexão permanece em `g` e é encerrada ao terminar o contexto. O limitador de autenticação pertence à instância da aplicação (`app.extensions`).
+
+Para adicionar uma área, crie um módulo em `farmacontrol/routes/` e registre-o em `create_app()`. Regras reutilizáveis ficam em `services/`; infraestrutura HTTP e segurança ficam em `core/`. Testes e scripts importam a responsabilidade diretamente do módulo correspondente.
 
 ## Configuração
 
@@ -26,7 +35,7 @@ prepara `.venv` na raiz do projeto e instala `backend/requirements.txt`. Se Pyth
 Execute-o na pasta original após extrair o projeto; consulte o [README](../README.md).
 A configuração do banco e de `backend/.env` continua sendo feita separadamente.
 
-`python backend/app.py` carrega `backend/.env` independentemente do diretório de trabalho. O servidor local escuta apenas em `127.0.0.1:5000`, com debug desligado por padrão. `runtime_config.py` valida a configuração antes de iniciar a aplicação.
+`python backend/app.py` carrega `backend/.env` independentemente do diretório de trabalho. O servidor local escuta apenas em `127.0.0.1:5000`, com debug desligado por padrão. `farmacontrol/core/runtime_config.py` valida a configuração antes de iniciar a aplicação.
 
 | Variável | Uso / padrão atual |
 |---|---|
