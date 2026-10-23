@@ -282,6 +282,36 @@ function initAutoClear() {
    LOGIN FORM
 ═══════════════════════════════════════════ */
 /* initLoginForm(): Configura o formulário de login (validação + envio). */
+let loginAttemptsTimer;
+function showLoginAttempts(data) {
+  const message = $('login-attempts');
+  if (!message) return;
+  clearInterval(loginAttemptsTimer);
+  message.classList.remove('show');
+  message.textContent = '';
+  if (!Number.isInteger(data.tentativas_restantes)) return;
+  message.classList.add('show');
+  const seconds = Number(data.aguarde_segundos) || 0;
+  if (seconds <= 0) {
+    message.textContent = data.mensagem;
+    return;
+  }
+  const deadline = Date.now() + seconds * 1000;
+  const update = () => {
+    const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+    if (!remaining) {
+      clearInterval(loginAttemptsTimer);
+      message.textContent = 'Tempo de espera concluído. Você pode tentar entrar novamente.';
+      return;
+    }
+    const minutes = String(Math.floor(remaining / 60)).padStart(2, '0');
+    const secs = String(remaining % 60).padStart(2, '0');
+    message.textContent = `Nenhuma tentativa disponível. Aguarde ${minutes}:${secs} para tentar novamente.`;
+  };
+  update();
+  loginAttemptsTimer = setInterval(update, 1000);
+}
+
 function initLoginForm() {
   const form = $('form-login');
   if (!form) return;
@@ -325,6 +355,7 @@ function initLoginForm() {
     setButtonLoading('btn-login', false);
 
     if (!ok) {
+      showLoginAttempts(data);
       const tipo = status === 403 ? 'warning' : 'error';
       showToast(data.mensagem || 'Erro ao fazer login.', tipo);
       if (status === 401) {
@@ -335,6 +366,7 @@ function initLoginForm() {
     }
 
     const usuario = data.usuario;
+    showLoginAttempts({});
     sessionStorage.setItem('farmacontrol_usuario', JSON.stringify(usuario));
     if (data.csrf_token) sessionStorage.setItem('farmacontrol_csrf', data.csrf_token);
     await cacheVisualSettings();

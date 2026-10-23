@@ -240,7 +240,8 @@ def validar_entrada():
         origin = request.headers.get("Origin")
         if origin and origin not in {request.host_url.rstrip("/"), *ALLOWED_ORIGINS}:
             return err("Origem da requisição não autorizada.", status=403)
-        retry = auth_limiter.check(request.remote_addr or "unknown")
+        g.auth_attempts = auth_limiter.check_with_status(request.remote_addr or "unknown")
+        retry = g.auth_attempts["retry_after"]
         if retry:
             response = app.make_response(err("Muitas tentativas. Aguarde antes de tentar novamente.", status=429))
             response.headers["Retry-After"] = str(retry)
@@ -272,6 +273,22 @@ def payload_grande(_error):
 
 @app.after_request
 def security_headers(response):
+    attempts = getattr(g, "auth_attempts", None)
+    if attempts and (response.status_code == 429 or
+                     (request.path == "/auth/login" and response.status_code == 401)):
+        data = response.get_json()
+        remaining = attempts["remaining"]
+        wait = attempts["reset_after"] if remaining == 0 else 0
+        data.update(tentativas_restantes=remaining, aguarde_segundos=wait)
+        if remaining:
+            noun = "tentativa disponível" if remaining == 1 else "tentativas disponíveis"
+            data["mensagem"] += f" Restam {remaining} {noun} antes do bloqueio temporário."
+        else:
+            minutes, seconds = divmod(wait, 60)
+            data["mensagem"] = ("Limite de tentativas atingido. "
+                                f"Aguarde {minutes:02d}:{seconds:02d} para tentar novamente.")
+            response.headers["Retry-After"] = str(wait)
+        response.set_data(app.json.dumps(data))
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "no-referrer"

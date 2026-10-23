@@ -17,19 +17,26 @@ class AuthLimiter:
     Em múltiplos workers, complementar no proxy com limite compartilhado.
     Cabeçalhos enviados pelo cliente nunca são usados como identidade.
     """
-    def __init__(self, limit=20, window=300, capacity=4096):
+    def __init__(self, limit=5, window=300, capacity=4096):
         self.limit, self.window, self.capacity = limit, window, capacity
         self.entries = {}
         self.lock = threading.Lock()
 
     def check(self, ip):
+        return self.check_with_status(ip)["retry_after"]
+
+    def check_with_status(self, ip):
+        """Consome uma tentativa e devolve os limites da mesma operação atômica."""
         now = time.monotonic()
         with self.lock:
             self.entries = {key: value for key, value in self.entries.items() if value[0] > now}
             end, count = self.entries.get(ip, (now + self.window, 0))
             if ip not in self.entries and len(self.entries) >= self.capacity:
-                return max(1, math.ceil(min(v[0] for v in self.entries.values()) - now))
+                retry = max(1, math.ceil(min(v[0] for v in self.entries.values()) - now))
+                return {"remaining": 0, "reset_after": retry, "retry_after": retry}
             if count >= self.limit:
-                return max(1, math.ceil(end - now))
+                retry = max(1, math.ceil(end - now))
+                return {"remaining": 0, "reset_after": retry, "retry_after": retry}
             self.entries[ip] = (end, count + 1)
-            return 0
+            return {"remaining": self.limit - count - 1,
+                    "reset_after": max(1, math.ceil(end - now)), "retry_after": 0}

@@ -12,7 +12,7 @@ class SecurityTests(unittest.TestCase):
     login_session = base.BackendTests.login_session
 
     def test_auth_rate_limit_cannot_be_bypassed_with_forwarded_header(self):
-        for index in range(20):
+        for index in range(5):
             response = self.client.post('/auth/login', json={},
                                         headers={'X-Forwarded-For': f'192.0.2.{index}'})
             self.assertEqual(response.status_code, 400)
@@ -25,6 +25,44 @@ class SecurityTests(unittest.TestCase):
         response = self.client.post('/auth/login', json={}, headers={'Origin': 'https://evil.example'})
         self.assertEqual(response.status_code, 403)
         api.get_db.assert_not_called()
+
+    def test_wrong_password_reports_remaining_attempts_and_wait_until_reset(self):
+        api.auth_limiter = AuthLimiter(limit=2, window=300)
+        credentials = {'email': 'teste@example.com', 'password': 'incorreta'}
+        with patch('security.time.monotonic', return_value=100), \
+                patch.object(api, 'verificar_senha', return_value=False):
+            first = self.client.post('/auth/login', json=credentials)
+        self.assertEqual(first.status_code, 401)
+        self.assertEqual(first.json['tentativas_restantes'], 1)
+        self.assertEqual(first.json['aguarde_segundos'], 0)
+        self.assertIn('1 tentativa disponível', first.json['mensagem'])
+        with patch('security.time.monotonic', return_value=110), \
+                patch.object(api, 'verificar_senha', return_value=False):
+            last = self.client.post('/auth/login', json=credentials)
+        self.assertEqual(last.status_code, 401)
+        self.assertEqual(last.json['tentativas_restantes'], 0)
+        self.assertEqual(last.json['aguarde_segundos'], 290)
+        self.assertIn('04:50', last.json['mensagem'])
+        with patch('security.time.monotonic', return_value=120):
+            blocked = self.client.post('/auth/login', json=credentials)
+        self.assertEqual(blocked.status_code, 429)
+        self.assertEqual(blocked.json['aguarde_segundos'], 280)
+        self.assertEqual(blocked.headers['Retry-After'], '280')
+        with patch('security.time.monotonic', return_value=400), \
+                patch.object(api, 'verificar_senha', return_value=False):
+            renewed = self.client.post('/auth/login', json=credentials)
+        self.assertEqual(renewed.status_code, 401)
+        self.assertEqual(renewed.json['tentativas_restantes'], 1)
+
+    def test_unknown_email_has_same_attempt_feedback_as_wrong_password(self):
+        self.cur.fetchone.return_value = None
+        response = self.client.post('/auth/login', json={
+            'email': 'ausente@example.com', 'password': 'incorreta',
+        })
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json['tentativas_restantes'], 4)
+        self.assertEqual(response.json['aguarde_segundos'], 0)
+        self.assertIn('E-mail ou senha incorretos.', response.json['mensagem'])
 
     def test_unicode_csrf_header_is_rejected_without_server_error(self):
         self.login_session()
@@ -74,6 +112,8 @@ class SecurityTests(unittest.TestCase):
                      {'password': 'x' * 73}, {'password': 'é' * 37},
                      {'password': '\ud800'}):
             with self.subTest(data=repr(data)):
+                # Cada entrada é um cenário independente de validação.
+                api.auth_limiter = AuthLimiter()
                 self.assertEqual(self.client.post('/auth/login', json=data).status_code, 400)
         api.get_db.assert_not_called()
 
