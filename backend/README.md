@@ -20,6 +20,12 @@ Revisado em **23/10/2026**. Consulte também o [índice da documentação](../do
 
 ## Configuração
 
+No Windows x64, o executável `dist/installer/Instalar Dependencias FarmaControl.exe`
+prepara `.venv` na raiz do projeto e instala `backend/requirements.txt`. Se Python
+3.12 não for localizado, baixa e instala Python 3.12.10 para o usuário atual.
+Execute-o na pasta original após extrair o projeto; consulte o [README](../README.md).
+A configuração do banco e de `backend/.env` continua sendo feita separadamente.
+
 `python backend/app.py` carrega `backend/.env` independentemente do diretório de trabalho. O servidor local escuta apenas em `127.0.0.1:5000`, com debug desligado por padrão. `runtime_config.py` valida a configuração antes de iniciar a aplicação.
 
 | Variável | Uso / padrão atual |

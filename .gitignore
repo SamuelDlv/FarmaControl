@@ -46,7 +46,11 @@ backend/backend.log
 backups/
 
 # Build
-dist/
+dist/*
+!dist/installer/
+dist/installer/*
+!dist/installer/Instalar Dependencias FarmaControl.exe
+installer/*.iss
 build/
 *.map
 

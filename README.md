@@ -43,6 +43,25 @@ Não há instalador automático do banco, conta administrativa criada automatica
 
 ## Executar localmente
 
+### Instalador de dependências (Windows)
+
+Depois de clonar ou extrair o projeto completo, execute
+[`dist/installer/Instalar Dependencias FarmaControl.exe`](dist/installer/Instalar%20Dependencias%20FarmaControl.exe).
+Mantenha o executável nessa pasta: ele encontra a raiz do projeto dois níveis
+acima, sem solicitar um caminho. Não o execute diretamente dentro do ZIP.
+
+Ele procura Python 3.12 e, se não encontrar, baixa Python 3.12.10 de 64 bits
+do site oficial e instala para o usuário atual. Depois cria `.venv`, instala
+`backend/requirements.txt` e executa `pip check`. É necessário acesso à internet
+para os downloads. A instalação automática do Python destina-se a Windows x64.
+
+A pasta `.venv` guarda o Python do ambiente e as bibliotecas isoladas do projeto;
+não deve ser versionada nem copiada para outra máquina. O banco MySQL e
+`backend/.env` precisam ser configurados separadamente. O arquivo-fonte `.iss`
+do instalador é mantido apenas localmente e não integra o repositório público.
+
+### Instalação manual
+
 Para mudar de máquina preservando os dados, siga o [guia de transferência](docs/TRANSFERENCIA.md).
 
 Validado com Python 3.12 e um banco MySQL/MariaDB já preparado. Pela raiz:

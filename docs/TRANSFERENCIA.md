@@ -38,6 +38,12 @@ migrações que estavam pendentes.
 
 ## 2. Preparar o Python
 
+No Windows x64, você pode executar `dist/installer/Instalar Dependencias FarmaControl.exe`
+na cópia extraída do projeto. Preserve essa posição dentro da pasta: o instalador
+localiza a raiz automaticamente, instala Python 3.12.10 se não localizar Python
+3.12 e prepara `.venv` com as dependências. É necessário acesso à internet.
+O instalador não transfere o banco nem configura `.env`. Para preparação manual:
+
 Instale Python 3.12 com suporte a `venv` e `pip`. Abra o PowerShell dentro da
 pasta copiada e execute:
 
@@ -93,7 +99,8 @@ Uma nova `SECRET_KEY` encerra as sessões antigas, mas não altera as senhas de 
 
 ## 4. Iniciar e conferir
 
-Execute `Iniciar-FarmaControl.bat`. Ele usa exclusivamente a `.venv` deste projeto,
+Execute `Iniciar-FarmaControl.bat`. Ele prioriza a `.venv` deste projeto e, se ela
+não existir, tenta o launcher `py -3` e depois o Python do PATH. O inicializador
 mostra os erros no terminal e abre o navegador após dois segundos.
 Mantenha a janela aberta durante o uso. Também é possível iniciar manualmente:
 

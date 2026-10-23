@@ -4,6 +4,11 @@ Revisado em 23/10/2026. Execute os comandos na raiz do projeto, com Git instalad
 
 ## Conteúdo do repositório
 
+O instalador compilado é publicado em `dist/installer/Instalar Dependencias FarmaControl.exe`.
+Essa é a única exceção de distribuição em `dist/`; mantenha o executável nessa
+posição ao copiar ou extrair o projeto. Os arquivos `installer/*.iss` ficam apenas
+na máquina de desenvolvimento, conforme a política de publicação deste projeto.
+
 Versione `backend/` sem o `.env`, `frontend/`, `tests/`, `scripts/`, `docs/`, `README.md`, `LICENSE`, os arquivos `.bat`, `.gitignore` e `.gitattributes`. Mantenha `backend/.env.example` como modelo sem credenciais.
 
 O `.gitignore` exclui ambientes virtuais, arquivos `.env` e suas variantes privadas, caches, logs, resultados de auditoria, backups e arquivos locais de banco. Arquivos SQL de schema e migrações são código do projeto e devem permanecer versionados. Exportações de dados reais não devem ser colocadas entre as migrações.

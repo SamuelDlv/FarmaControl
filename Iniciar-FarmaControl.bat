@@ -3,10 +3,13 @@ setlocal
 title FarmaControl - Servidor
 
 cd /d "%~dp0"
-rem Prefere o launcher do Windows; usa python do PATH como alternativa.
+rem Prefere o ambiente criado pelo instalador de dependencias.
 set "FARMACONTROL_PYTHON="
-py -3 -c "import sys; sys.exit(sys.version_info.major != 3)" >nul 2>&1
-if not errorlevel 1 set "FARMACONTROL_PYTHON=py -3"
+if exist ".venv\Scripts\python.exe" set "FARMACONTROL_PYTHON=.venv\Scripts\python.exe"
+if not defined FARMACONTROL_PYTHON (
+    py -3 -c "import sys; sys.exit(sys.version_info.major != 3)" >nul 2>&1
+    if not errorlevel 1 set "FARMACONTROL_PYTHON=py -3"
+)
 if not defined FARMACONTROL_PYTHON (
     python -c "import sys; sys.exit(sys.version_info.major != 3)" >nul 2>&1
     if not errorlevel 1 set "FARMACONTROL_PYTHON=python"

@@ -7,6 +7,7 @@ Referência revisada em **19/10/2026**, a partir do código e dos SQLs presentes
 | Objetivo | Documento |
 | --- | --- |
 | Instalar e conhecer os módulos | [README principal](../README.md) |
+| Instalar Python e dependências no Windows | [Instalador de dependências](../README.md#instalador-de-dependências-windows) |
 | Configurar API, ambiente e permissões | [Backend](../backend/README.md) |
 | Entender páginas, estilos e navegação | [Frontend](../frontend/README.md) |
 | Consultar login, convites e recuperação | [Autenticação](../frontend/src/pages/README-authentication.md) |
