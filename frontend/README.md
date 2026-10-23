@@ -2,9 +2,11 @@
 
 HTML, CSS e JavaScript clássico servidos pelo Flask em `frontend/src`. Cada tela do sistema tem seus próprios arquivos `.html`, `.css` e `.js`. As chamadas à API permanecem nos scripts de página; não existe camada `services/` nesta versão.
 
-Revisado em **19/10/2026**. São dez telas do sistema: dashboard, vendas, estoque, vencimentos, compras, financeiro, relatórios, usuários, log e configurações. Telas públicas tratam acesso, convites, recuperação e documentos legais. Veja o [índice](../docs/README.md) e o [fluxo de autenticação](src/pages/README-authentication.md).
+Revisado em **23/10/2026**. São dez telas do sistema: dashboard, vendas, estoque, vencimentos, compras, financeiro, relatórios, usuários, log e configurações. Telas públicas tratam acesso, convites, recuperação e documentos legais. Veja o [índice](../docs/README.md) e o [fluxo de autenticação](src/pages/README-authentication.md).
 
 ## Responsabilidades e ordem de carga
+
+Antes de entregar o HTML interno, o Flask valida sessão e permissão. `utils/auth-guard.js` deve ser o primeiro script no `<head>` de todas as telas do sistema: mantém a página oculta durante a carga, oculta ao sair e força revalidação no servidor ao restaurar do cache do histórico. O wrapper fetch chama essa guarda quando a API da mesma origem retorna 401; respostas 403 não encerram a sessão.
 
 1. O HTML aplica a paleta inicial antes da pintura e inclui CSS local, contraste, transições e responsividade.
    `styles/system-shell.css` compartilha estrutura, sidebar, badges e interação. Variações locais e media queries continuam nas páginas; preserve a ordem declarada de estilos de cada HTML ao editar contraste e responsividade.
@@ -36,13 +38,15 @@ Para comparar mudanças de CSS, execute `node scripts/check_theme.cjs baseline` 
 
 ```powershell
 node scripts/check_frontend.cjs
-node --test tests/frontend.test.cjs tests/log.test.cjs tests/vendas.test.cjs
+node --test tests/frontend.test.cjs tests/log.test.cjs tests/vendas.test.cjs tests/logout.test.cjs tests/login-attempts.test.cjs tests/auth-guard.test.cjs
 node scripts/check_navigation.cjs
 ```
 
 Executar pela raiz do projeto. `scripts/check_navigation.cjs` usa Chrome sem janela, perfil separado e servidor local com APIs/CDNs simuladas. Verifica 18 aberturas desktop/mobile, 12 trocas de tela, histórico real, envio de modal, leituras lentas, navegações rápidas, menu e estilos computados. Evidências ficam em `.audit-backup/navigation/`; não comprovam integração com o banco nem renderização real do Chart.js externo. `check_browser.cjs` é o verificador histórico da antiga SPA, mantido para reprodução do snapshot de 06/10.
 
 ## Alterar uma tela
+
+Mantenha `../../../utils/auth-guard.js` no início do `<head>` das páginas internas, antes dos demais scripts e do conteúdo. A proteção real depende da entrega autenticada pelo Flask; a guarda visual não substitui a validação no servidor.
 
 Edite o trio HTML/CSS/JS da página em `src/pages/sistema/`. Confira os caminhos dos assets, o tratamento de erro da API, carregamento vazio e ações de gravação. Use o wrapper de `global-settings.js` para preservar cookies e CSRF, e os registros de `page-lifecycle.js` para recursos que precisam de descarte.
 

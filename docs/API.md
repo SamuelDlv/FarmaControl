@@ -1,6 +1,6 @@
 # Referência da API
 
-Revisada em **19/10/2026** a partir dos decoradores de `backend/app.py`. Os caminhos não possuem prefixo `/api`. Em desenvolvimento a origem é `http://localhost:5000`; o frontend usa a mesma origem da página.
+Revisada em **23/10/2026** a partir dos decoradores de `backend/app.py`. Os caminhos não possuem prefixo `/api`. Em desenvolvimento a origem é `http://localhost:5000`; o frontend usa a mesma origem da página.
 
 ## Convenções
 
@@ -44,6 +44,10 @@ Exemplo de corpo para login, com dados fictícios:
 Recuperação recebe `email`; redefinição recebe `token` e `password`. A [documentação de autenticação](../frontend/src/pages/README-authentication.md) detalha os estados e a expiração.
 
 ## Autorização
+
+As mutações de `/auth/` compartilham 5 solicitações por IP/processo em uma janela fixa de 300 segundos, incluindo sucessos e logout. Erros de credenciais (401) retornam `tentativas_restantes` e `aguarde_segundos`. Quando restam zero tentativas, a resposta informa o tempo até a janela expirar e o cabeçalho `Retry-After`; novas solicitações recebem 429. O frontend exibe esse tempo em contagem regressiva.
+
+O acesso direto aos HTMLs internos em `/pages/sistema/` e no alias `/pages/proprietario/` também exige sessão e permissão. Sem sessão válida, a resposta é 302 para `/pages/acesso/acesso.html`; sem permissão, 403; indisponibilidade na validação, 503. Essas respostas e o HTML interno usam `Cache-Control: no-store`. A rota genérica de arquivos aplica a mesma proteção pelo destino físico. APIs continuam usando 401 para sessão inválida, sem redirecionamento HTTP.
 
 O middleware consulta o usuário e a matriz de módulos em cada requisição protegida. `/configuracoes/visual` é leitura pública. O conjunto de rotas de vendas/clientes/receitas usa perfis comerciais fixos; log é reservado a proprietário, admin e TI. Visualizador nunca pode executar mutações protegidas.
 

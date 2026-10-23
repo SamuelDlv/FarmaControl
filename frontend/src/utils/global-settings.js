@@ -38,7 +38,10 @@
         options.headers = headers;
       }
     }
-    return nativeFetch(input, options);
+    return nativeFetch(input, options).then(response => {
+      if (response.status === 401) window.fcRequireLogin?.();
+      return response;
+    });
   };
 
   /* ══ PALETAS PREDEFINIDAS ══ */

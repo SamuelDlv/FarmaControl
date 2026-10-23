@@ -169,15 +169,15 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(self.client.get("/estoque").status_code, 401)
 
     def test_static_alias_content_and_cache(self):
+        self.login_session()
         for extension, mime in (("html", "text/html"), ("css", "text/css"), ("js", "javascript")):
             path = f"dashboard/dashboard.{extension}"
             canonical = self.client.get("/pages/sistema/" + path)
             legacy = self.client.get("/pages/proprietario/" + path)
             self.assertEqual(canonical.status_code, 200)
             self.assertEqual(canonical.data, legacy.data)
-            self.assertEqual(canonical.headers["Cache-Control"], "no-cache")
+            self.assertEqual(canonical.headers["Cache-Control"], "no-store" if extension == "html" else "no-cache")
             self.assertIn(mime, canonical.content_type)
-        self.db.cursor.assert_not_called()
 
     def test_static_missing_and_traversal(self):
         for path in ("/pages/sistema/../app.py", "/pages/sistema/missing.html", "/../backend/app.py", "/.env"):
@@ -185,6 +185,7 @@ class BackendTests(unittest.TestCase):
                 self.assertEqual(self.client.get(path).status_code, 404)
 
     def test_all_html_css_js_assets_are_served(self):
+        self.login_session()
         for path in (ROOT / "frontend/src").rglob("*"):
             if path.suffix not in {".html", ".css", ".js", ".ico", ".png"}:
                 continue

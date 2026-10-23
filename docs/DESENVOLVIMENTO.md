@@ -1,6 +1,6 @@
 # Desenvolvimento e validação
 
-Revisado em 19/10/2026. Todos os comandos abaixo partem da raiz do projeto.
+Revisado em 23/10/2026. Todos os comandos abaixo partem da raiz do projeto.
 
 ## Ambiente de trabalho
 
@@ -19,7 +19,7 @@ Não copie ambientes virtuais entre máquinas. Configure o `.env` pelo modelo do
 ```powershell
 .\.venv\Scripts\python.exe -B -m unittest discover -s tests -v
 node scripts/check_frontend.cjs
-node --test tests/frontend.test.cjs tests/log.test.cjs tests/vendas.test.cjs
+node --test tests/frontend.test.cjs tests/log.test.cjs tests/vendas.test.cjs tests/logout.test.cjs tests/login-attempts.test.cjs tests/auth-guard.test.cjs
 ```
 
 | Arquivo | Cobertura principal |
@@ -30,6 +30,10 @@ node --test tests/frontend.test.cjs tests/log.test.cjs tests/vendas.test.cjs
 | `tests/test_audit.py` | Registro e consulta de atividades |
 | `tests/test_runtime_config.py` | Ambiente, cookies, origens e chave de sessão |
 | `tests/test_security.py` | Revogação, tokens, limite de acesso e entradas inválidas |
+| `tests/test_page_access.py` | HTML protegido, aliases, logout, permissões e falha de validação |
+| `tests/auth-guard.test.cjs` | Ocultação, histórico, sessão inválida e abertura como arquivo |
+| `tests/logout.test.cjs` | Saída lenta, cliques repetidos e nova tentativa após erro |
+| `tests/login-attempts.test.cjs` | Aviso persistente e contagem regressiva do bloqueio |
 | `tests/test_system_settings.py` | Preferências, alertas e notificações |
 | `tests/frontend.test.cjs` | Ciclo de vida, fetch, CSRF e preferências visuais |
 | `tests/log.test.cjs` | Filtros, paginação e detalhes do histórico |
@@ -81,6 +85,7 @@ No frontend, mantenha a ordem dos estilos e use os utilitários compartilhados. 
 | Falha na inicialização | Leia a validação de `APP_ENV`, chave, cookies e origens |
 | Erro de conexão MySQL | Confira serviço, host, porta, banco, usuário e privilégios |
 | Login retorna 401 | Verifique conta aprovada, sessão e alteração recente de senha/chave |
+| URL interna volta ao login | Comportamento esperado sem cookie válido; o servidor não entrega o HTML |
 | Operação retorna 403 | Confira permissões do módulo e envio de CSRF |
 | Autenticação retorna 429 | Respeite `Retry-After`; o limitador é por IP/processo |
 | Convite retorna 503 | O convite pode ter sido salvo; confira SMTP antes de reenviar |
@@ -93,4 +98,4 @@ Logs podem conter informações operacionais; mantenha-os fora do repositório. 
 
 Em 19/10/2026, antes da remoção do ambiente de auditoria: 120 testes Python aprovados e `pip check` sem inconsistências. Os 17 testes JavaScript passaram usando o runtime Node do VS Code com isolamento de processo desativado, pois o ambiente bloqueou a criação de subprocessos. O comando padrão acima é destinado a uma instalação normal do Node. A última verificação de sintaxe examinou 53 scripts.
 
-Esta revisão de documentação não repete esses testes nem constitui validação de produção. A conferência documental inclui caminhos relativos, inventário de rotas, tabelas e consistência com o código local.
+Em 23/10/2026, a proteção de páginas foi validada com 105 testes: 59 de backend, 19 de segurança, 9 de acesso a páginas, 14 de infraestrutura frontend e 4 da guarda visual. A sintaxe de 54 scripts externos e inline passou. As suítes usam banco e ambiente de navegador simulados; essa etapa não validou integração real com MySQL nem renderização em navegador. Os testes de logout e contador foram executados nas mudanças anteriores, separadamente desse total.

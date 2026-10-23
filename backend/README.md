@@ -2,7 +2,7 @@
 
 API Flask com PyMySQL e banco MySQL/MariaDB. As rotas estão em `app.py`; não há prefixo `/api`, JWT, Prisma ou servidor Node nesta implementação.
 
-Revisado em **19/10/2026**. Consulte também o [índice da documentação](../docs/README.md) e a [referência de endpoints](../docs/API.md).
+Revisado em **23/10/2026**. Consulte também o [índice da documentação](../docs/README.md) e a [referência de endpoints](../docs/API.md).
 
 ## Organização interna
 
@@ -53,7 +53,8 @@ Em produção, use `APP_ENV=production`, uma chave persistente válida e HTTPS. 
 - `proteger_api` consulta `perfil_permissoes` no banco e associa a rota a um módulo com `modulo_da_rota`. A função legada `roles_permitidos` não descreve sozinha a autorização efetiva atual.
 - Respostas usam `ok`, `mensagem` e, quando aplicável, `campo`; métodos e caminhos atuais estão na [referência da API](../docs/API.md).
 - `/pages/sistema/...` e `/pages/proprietario/...` servem as mesmas telas; o segundo caminho mantém compatibilidade com links existentes.
-- HTML/CSS/JS usam `Cache-Control: no-cache`; outros estáticos usam cache de 300 segundos.
+- HTMLs internos exigem sessão válida e permissão antes da leitura do arquivo, incluindo o alias legado e a rota genérica. Sem sessão, há redirecionamento 302 ao login; sem permissão, 403; falha de validação no banco, 503.
+- HTMLs internos e respostas de bloqueio usam `Cache-Control: no-store`. HTML público/CSS/JS usam `no-cache`; outros estáticos usam cache de 300 segundos.
 
 ### Autorização efetiva
 
@@ -73,7 +74,9 @@ A maior parte das rotas administrativas corresponde ao módulo `usuarios`. As pe
 
 A sessão usa cookie assinado, HttpOnly e SameSite=Lax. Um HMAC vincula o cookie à senha atual, invalidando sessões após troca de credencial. A chave de assinatura deve persistir entre reinícios e ser a mesma nos processos da instalação.
 
-Corpos de requisição têm limite de 1 MiB. Mutações de autenticação compartilham limite de 20 requisições por IP em 300 segundos, por processo. Há validação de `Origin` quando presente, JSON e tipos de campos; senhas novas exigem ao menos oito caracteres e no máximo 72 bytes UTF-8. APIs protegidas e autenticação recebem `no-store`. Cabeçalhos contra enquadramento e interpretação indevida de conteúdo são adicionados pelo servidor; HSTS depende do modo de produção.
+Corpos de requisição têm limite de 1 MiB. Mutações de autenticação compartilham limite de 5 requisições por IP em uma janela fixa de 300 segundos, por processo. O contador inclui login, logout e demais mutações de autenticação, bem-sucedidas ou não. Erros de credenciais informam `tentativas_restantes` e `aguarde_segundos`; ao esgotar o limite, há também `Retry-After`, e solicitações seguintes retornam 429. Há validação de `Origin` quando presente, JSON e tipos de campos; senhas novas exigem ao menos oito caracteres e no máximo 72 bytes UTF-8. APIs protegidas e autenticação recebem `no-store`. Cabeçalhos contra enquadramento e interpretação indevida de conteúdo são adicionados pelo servidor; HSTS depende do modo de produção.
+
+`validar_sessao()` é compartilhada pelas APIs e pela entrega dos HTMLs internos, revalidando situação, perfil e vínculo com a senha no banco. A proteção dos arquivos considera seu caminho físico em `frontend/src/pages/sistema`. Novas páginas internas devem permanecer nessa pasta e carregar a guarda visual descrita no [frontend](../frontend/README.md).
 
 O IP vem de `request.remote_addr`; encaminhamento por proxy precisa ser configurado deliberadamente. O limitador em memória não é compartilhado entre workers. O código não fornece implantação pronta nem agendador distribuído.
 

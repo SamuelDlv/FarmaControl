@@ -1,6 +1,6 @@
 # Versionamento e publicação no GitHub
 
-Revisado em 19/10/2026. Execute os comandos na raiz do projeto, com Git instalado. Publicar o código não hospeda a API Flask nem o banco MySQL.
+Revisado em 23/10/2026. Execute os comandos na raiz do projeto, com Git instalado. Publicar o código não hospeda a API Flask nem o banco MySQL.
 
 ## Conteúdo do repositório
 
@@ -66,6 +66,8 @@ cd FarmaControl
 
 Siga o [README](../README.md) para criar o ambiente e o [guia de transferência](TRANSFERENCIA.md) se houver dados a restaurar. O clone não inclui `.env`, dependências instaladas ou banco de dados.
 
-## Estado desta preparação
+## Estado do repositório
 
-Git não estava disponível no terminal usado para a preparação de 19/10; nenhum commit, remoto ou push foi criado. Alguns arquivos locais de `.audit-backup` e `.venv-audit` permaneceram por restrições de acesso do Windows; ambos os diretórios estão ignorados. Não use o ambiente parcialmente removido para executar a aplicação.
+O repositório é [SamuelDlv/FarmaControl](https://github.com/SamuelDlv/FarmaControl), com branch principal `main`. Em 23/10/2026, as correções de logout e limite de autenticação foram publicadas pelo conector GitHub. Esse envio não cria uma pasta `.git` nem configura um remoto no diretório local; os comandos de Git deste guia exigem um clone ou repositório local inicializado.
+
+Arquivos locais de `.audit-backup` e ambientes virtuais permanecem fora do versionamento. Publicar uma atualização no GitHub não reinicia o servidor local: depois de atualizar o código, reinicie o backend para carregar mudanças Python.

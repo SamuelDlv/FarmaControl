@@ -2,7 +2,7 @@
 
 Sistema de gestão farmacêutica com backend **Flask + MySQL/MariaDB** e frontend **HTML, CSS e JavaScript**.
 
-Documentação revisada em **19/10/2026**. A aplicação reúne catálogo, estoque por lote, compras, vendas de balcão, financeiro, usuários e histórico de atividades em uma interface web. O Flask serve tanto a API quanto as páginas; não é necessário instalar um servidor Node para usá-la.
+Documentação revisada em **23/10/2026**. A aplicação reúne catálogo, estoque por lote, compras, vendas de balcão, financeiro, usuários e histórico de atividades em uma interface web. O Flask serve tanto a API quanto as páginas; não é necessário instalar um servidor Node para usá-la.
 
 ## Funcionalidades
 
@@ -138,6 +138,8 @@ O FarmaControl permite **uso, estudo, cópia, modificação e redistribuição p
 **Uso comercial exige autorização prévia, expressa e por escrito de SamuelDlv**, incluindo venda, serviços pagos, monetização e uso interno na operação de farmácias ou empresas. Redistribuição sob outros termos, remoção de créditos ou uso da identidade do projeto para sugerir aprovação do titular também exigem autorização. Consulte o arquivo `LICENSE` para as condições completas, exceções e forma de contato.
 
 ## Documentação e colaboração
+
+As páginas internas exigem sessão e permissão no servidor antes da entrega do HTML. Acesso direto sem login redireciona à tela de acesso, e a guarda visual revalida páginas restauradas pelo histórico. A autenticação permite 5 solicitações por IP/processo em 5 minutos; erros de login exibem tentativas restantes e tempo de espera. Veja os detalhes e limites no [fluxo de autenticação](frontend/src/pages/README-authentication.md).
 
 Explore o **[Atlas EER do banco](docs/database_eer.md)**: 24 tabelas organizadas em sete áreas, diagramas de relacionamentos e dicionário de colunas com PK/FK, tipos e nulabilidade.
 

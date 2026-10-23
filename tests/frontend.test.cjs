@@ -57,6 +57,22 @@ function environment() {
   };
 }
 
+test('401 da API aciona guarda de sessão; 403 e origem externa não redirecionam', async () => {
+  const e = environment();
+  let status = 401;
+  let redirects = 0;
+  e.window.fetch = async () => ({ status });
+  e.window.fcRequireLogin = () => redirects++;
+  e.run('global-settings.js');
+  assert.equal((await e.window.fetch('/dashboard/stats')).status, 401);
+  assert.equal(redirects, 1);
+  await e.window.fetch('https://external.example/resource');
+  assert.equal(redirects, 1);
+  status = 403;
+  await e.window.fetch('/admin/usuarios');
+  assert.equal(redirects, 1);
+});
+
 test('timers de uma tela são cancelados; timers da próxima permanecem ativos', () => {
   const e = environment();
   e.run('page-lifecycle.js');

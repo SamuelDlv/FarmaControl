@@ -60,7 +60,7 @@ import bcrypt
 import pymysql
 import pymysql.cursors
 from dotenv import load_dotenv
-from flask import Flask, jsonify, request, g, session
+from flask import Flask, jsonify, request, g, session, redirect
 from flask_cors import CORS
 from runtime_config import runtime_config
 from security import AuthLimiter, credential_stamp
@@ -300,13 +300,8 @@ def security_headers(response):
     return response
 
 
-@app.before_request
-def proteger_api():
-    """Exige sessao assinada, perfil autorizado e token anti-CSRF nas mutacoes."""
-    path = request.path
-    # A tela de login conhece somente as preferencias visuais publicas.
-    if path == "/configuracoes/visual" or request.method == "OPTIONS" or not path.startswith(PROTECTED_API_PREFIXES):
-        return None
+def validar_sessao():
+    """Valida a sessão e a conta no banco tanto para HTML quanto para APIs."""
     usuario_id = session.get("usuario_id")
     perfil = session.get("perfil")
     if not usuario_id or perfil not in PERFIS_VALIDOS:
@@ -337,6 +332,24 @@ def proteger_api():
         return err("Sua credencial mudou. Entre novamente.", status=401)
     perfil = usuario_atual["perfil"]
     session["perfil"] = perfil
+    g.usuario_id = usuario_id
+    g.usuario_perfil = perfil
+    g.usuario_permissoes = permissoes
+    return None
+
+
+@app.before_request
+def proteger_api():
+    """Exige sessao assinada, perfil autorizado e token anti-CSRF nas mutacoes."""
+    path = request.path
+    if path == "/configuracoes/visual" or request.method == "OPTIONS" or not path.startswith(PROTECTED_API_PREFIXES):
+        return None
+    failure = validar_sessao()
+    if failure is not None:
+        return failure
+    usuario_id = g.usuario_id
+    perfil = g.usuario_perfil
+    permissoes = g.usuario_permissoes
     modulo = modulo_da_rota(path)
     # O Visualizador pode consultar exclusivamente; esta proteção não depende
     # do menu nem da configuração de módulos salva no banco.
@@ -3878,11 +3891,33 @@ def _serve_frontend_file(directory, filename, allowed_extensions=None):
         return err('Recurso não encontrado.', status=404)
     if allowed_extensions and not safe.lower().endswith(allowed_extensions):
         return err('Tipo de arquivo não suportado.', status=404)
+    # Verifica o destino físico: a rota genérica e aliases de caminho também
+    # precisam passar pela proteção, inclusive em sistemas sem case sensitivity.
+    system_root = os.path.realpath(FRONTEND_SRC)
+    protected_html = (target.lower().endswith('.html') and
+                      os.path.commonpath((system_root, target)) == system_root)
+    if protected_html:
+        failure = validar_sessao()
+        if failure is not None:
+            response = app.make_response(failure)
+            if response.status_code == 401:
+                response = redirect('/pages/acesso/acesso.html')
+            response.headers['Cache-Control'] = 'no-store'
+            return response
+        module = os.path.relpath(target, system_root).split(os.sep)[0]
+        allowed = (g.usuario_perfil in ADMIN_ROLES if module == 'log' else
+                   g.usuario_perfil in SALES_ROLES if module == 'vendas' else
+                   module in g.usuario_permissoes)
+        if not allowed:
+            response = app.make_response(err('Seu perfil nao tem permissao para acessar esta página.', status=403))
+            response.headers['Cache-Control'] = 'no-store'
+            return response
     mime, _ = mimetypes.guess_type(target)
     with open(target, 'rb') as fh:
         data = fh.read()
     resp = app.response_class(data, mimetype=mime or 'application/octet-stream')
     resp.headers['Cache-Control'] = (
+        'no-store' if protected_html else
         'no-cache' if safe.lower().endswith(('.html', '.css', '.js'))
         else 'public, max-age=300'
     )

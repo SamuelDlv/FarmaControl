@@ -1,6 +1,6 @@
 # Autenticação, contas e permissões
 
-Revisado em **19/10/2026**, a partir de `backend/app.py`, `runtime_config.py` e `security.py`. Consulte [backend](../../../backend/README.md) e [API](../../../docs/API.md).
+Revisado em **23/10/2026**, a partir de `backend/app.py`, `runtime_config.py` e `security.py`. Consulte [backend](../../../backend/README.md) e [API](../../../docs/API.md).
 
 ## Páginas públicas
 
@@ -46,6 +46,20 @@ Com lembrar acesso, a sessão usa `SESSION_HOURS` (oito horas por padrão); sem 
 
 `POST /auth/logout` limpa a sessão e exige CSRF quando há sessão ativa. Fechar o navegador não equivale a acionar essa rota ou registrar uma saída explícita.
 
+O botão Sair usa exclusivamente `sidebar-init.js`: aguarda a confirmação da API antes de limpar os dados locais e navegar. Cliques repetidos são ignorados enquanto a saída está pendente; uma falha mantém a sessão local e permite nova tentativa.
+
+## Acesso direto às páginas internas
+
+Antes de entregar qualquer HTML de `pages/sistema`, o servidor valida o cookie, a situação da conta, a credencial e a permissão do módulo. A verificação usa o destino físico do arquivo e também cobre a rota genérica e o alias `/pages/proprietario/`.
+
+- Sem sessão válida: redirecionamento HTTP 302 para `/pages/acesso/acesso.html`, sem entregar o HTML interno.
+- Sem permissão: HTTP 403. Se não for possível validar a sessão no banco: HTTP 503, sem entregar o HTML.
+- HTML interno e respostas de bloqueio usam `Cache-Control: no-store`. Páginas públicas de acesso, convite, recuperação e documentos legais continuam disponíveis.
+
+Todas as dez telas carregam `utils/auth-guard.js` no início do `<head>`. A guarda oculta o documento durante a carga e no `pagehide`; ao restaurar pelo cache de histórico, recarrega a página ainda oculta para repetir a validação no servidor. Uma resposta 401 da API na mesma origem aciona a guarda, limpa os dados locais da sessão e redireciona ao login. Abrir um HTML interno como `file://` também leva ao login servido pelo Flask.
+
+A guarda não usa a presença de sessionStorage como prova de autenticação: o cookie validado pelo servidor é a fonte de verdade. A proteção das APIs permanece obrigatória. Em outra infraestrutura de hospedagem, os HTMLs internos também devem passar pela validação do backend; servir essa pasta publicamente contorna a proteção de entrega.
+
 ## Recuperação de senha
 
 `POST /auth/recuperar-senha` recebe e-mail e responde genericamente para não revelar a existência da conta. Para uma conta aprovada, grava o hash de um token válido por uma hora e envia um link baseado em `APP_PUBLIC_URL`.
@@ -58,7 +72,9 @@ Sem SMTP não há entrega do link, mesmo com resposta genérica de sucesso. Uma 
 
 O middleware reconsulta status, perfil, credencial e módulos permitidos. A maioria das rotas usa `perfil_permissoes`. Vendas, clientes e receitas usam os perfis comerciais fixos; `/admin/logs` aceita proprietário, admin e TI. Visualizador não pode alterar dados nas APIs protegidas.
 
-Mutações autenticadas enviam `X-CSRF-Token`. O wrapper fetch o adiciona apenas à origem da API. Mutações públicas de autenticação validam `Origin` quando presente e compartilham limite de 20 requisições por IP/processo em 300 segundos.
+Mutações autenticadas enviam `X-CSRF-Token`. O wrapper fetch o adiciona apenas à origem da API. Mutações de autenticação validam `Origin` quando presente e compartilham limite de **5 requisições por IP/processo em uma janela fixa de 300 segundos**. O contador inclui login, logout e demais mutações em `/auth/`, inclusive solicitações bem-sucedidas; não é um contador exclusivo de senhas erradas por conta.
+
+Credenciais incorretas retornam HTTP 401 com `tentativas_restantes` e `aguarde_segundos`. Na última tentativa disponível, o 401 já informa zero restantes e o tempo até a janela expirar; solicitações seguintes recebem 429. Quando há espera, `Retry-After` contém a duração em segundos. A tela mantém o aviso visível e mostra uma contagem regressiva. O prazo começa na primeira solicitação da janela, não na última senha errada. Reiniciar o processo limpa o limitador em memória; múltiplos workers precisam de controle compartilhado na infraestrutura.
 
 | Código | Interpretação comum |
 | --- | --- |
