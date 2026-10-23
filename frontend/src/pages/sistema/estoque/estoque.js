@@ -1106,14 +1106,8 @@ function showToast(msg, type = 'ok') {
 /* ══════════════════════════════
    SIDEBAR SEARCH + LOGOUT + INIT
 ══════════════════════════════ */
-document.getElementById('btn-logout')?.addEventListener('click', e => {
-  e.preventDefault();
-  sessionStorage.removeItem('farmacontrol_usuario');
-  showToast('Sessão encerrada. Redirecionando…', 'ok');
-  setTimeout(() => {
-    window.location.href = '../../acesso/acesso.html';
-  }, 1000);
-});
+// O logout é controlado exclusivamente por sidebar-init.js, que aguarda a API
+// encerrar a sessão antes de limpar os dados locais e abrir o login.
 
 /* ── INIT ── */
 

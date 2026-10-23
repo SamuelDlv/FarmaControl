@@ -384,6 +384,28 @@ class BackendTests(unittest.TestCase):
             self.assertFalse(sess.permanent)
         self.db.commit.assert_called_once()
 
+    def test_login_logout_login_accepts_same_password_and_renews_csrf(self):
+        self.cur.fetchone.return_value = {
+            "id": 42, "nome": "Teste", "sobrenome": "Local", "email": "teste@example.com",
+            "senha_hash": "hash-simulado", "status": "aprovado",
+            "perfil": "proprietario", "perfil_nome": "Proprietário",
+        }
+        credentials = {"email": "teste@example.com", "password": "simulada"}
+        with patch.object(api, "verificar_senha", return_value=True):
+            first = self.client.post("/auth/login", json=credentials)
+            self.assertEqual(first.status_code, 200)
+            logout = self.client.post("/auth/logout", headers={
+                "X-CSRF-Token": first.json["csrf_token"],
+            })
+            self.assertEqual(logout.status_code, 200)
+            with self.client.session_transaction() as sess:
+                self.assertNotIn("usuario_id", sess)
+            second = self.client.post("/auth/login", json=credentials)
+            self.assertEqual(second.status_code, 200)
+            self.assertNotEqual(first.json["csrf_token"], second.json["csrf_token"])
+            with self.client.session_transaction() as sess:
+                self.assertEqual(sess["usuario_id"], 42)
+
     def test_remember_access_creates_a_persistent_session(self):
         self.cur.fetchone.return_value = {
             "id": 42, "nome": "Teste", "sobrenome": "Local", "email": "teste@example.com",

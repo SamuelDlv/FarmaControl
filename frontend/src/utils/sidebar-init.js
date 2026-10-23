@@ -304,17 +304,21 @@
   function initLogout() {
     if (globalLogoutAttached) return;
     globalLogoutAttached = true;
+    let logoutPending = false;
     document.addEventListener('click', async e => {
       const logoutBtn = e.target.closest('[data-logout]') || e.target.closest('#btn-logout');
       if (!logoutBtn) return;
       e.preventDefault();
       e.stopPropagation();
+      if (logoutPending) return;
+      logoutPending = true;
       const apiBase = window.FarmaControlSettings?.API_BASE || 'http://localhost:5000';
       // keepalive permite invalidar o cookie mesmo quando a navegacao comeca em seguida.
       try {
         const response = await fetch(`${apiBase}/auth/logout`, { method: 'POST', keepalive: true });
         if (!response.ok) throw new Error('Não foi possível encerrar a sessão. Tente novamente.');
       } catch (_) {
+        logoutPending = false;
         window.FarmaControlSettings?.showToast?.(
           'Não foi possível encerrar a sessão. Tente novamente.',
           'error'
