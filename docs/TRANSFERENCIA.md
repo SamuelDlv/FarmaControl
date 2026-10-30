@@ -39,9 +39,11 @@ migrações que estavam pendentes.
 ## 2. Preparar o Python
 
 No Windows x64, você pode executar `dist/installer/Instalar Dependencias FarmaControl.exe`
-na cópia extraída do projeto. Preserve essa posição dentro da pasta: o instalador
-localiza a raiz automaticamente, instala Python 3.12.10 se não localizar Python
-3.12 e prepara `.venv` com as dependências. É necessário acesso à internet.
+na cópia extraída do projeto. O instalador sugere a raiz automaticamente;
+confirme ou selecione a pasta que contém `backend/app.py` e `backend/requirements.txt`.
+Ele instala Python 3.12.10 se não localizar Python 3.12 e prepara `.venv` com
+as dependências. Uma falha impede a conclusão; consulte
+`instalacao-dependencias.log` na pasta selecionada. É necessário acesso à internet.
 O instalador não transfere o banco nem configura `.env`. Para preparação manual:
 
 Instale Python 3.12 com suporte a `venv` e `pip`. Abra o PowerShell dentro da

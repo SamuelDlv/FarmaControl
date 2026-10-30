@@ -48,12 +48,15 @@ Não há instalador automático do banco, conta administrativa criada automatica
 
 Depois de clonar ou extrair o projeto completo, execute
 [`dist/installer/Instalar Dependencias FarmaControl.exe`](dist/installer/Instalar%20Dependencias%20FarmaControl.exe).
-Mantenha o executável nessa pasta: ele encontra a raiz do projeto dois níveis
-acima, sem solicitar um caminho. Não o execute diretamente dentro do ZIP.
+O instalador sugere a raiz do projeto dois níveis acima do executável;
+confirme ou selecione a pasta que contém `backend/app.py` e
+`backend/requirements.txt`. Não o execute diretamente dentro do ZIP.
 
 Ele procura Python 3.12 e, se não encontrar, baixa Python 3.12.10 de 64 bits
 do site oficial e instala para o usuário atual. Depois cria `.venv`, instala
-`backend/requirements.txt` e executa `pip check`. É necessário acesso à internet
+`backend/requirements.txt`, executa `pip check` e verifica o carregamento das
+bibliotecas. Uma falha impede a conclusão e os detalhes ficam em
+`instalacao-dependencias.log`, na raiz selecionada. É necessário acesso à internet
 para os downloads. A instalação automática do Python destina-se a Windows x64.
 
 A pasta `.venv` guarda o Python do ambiente e as bibliotecas isoladas do projeto;
