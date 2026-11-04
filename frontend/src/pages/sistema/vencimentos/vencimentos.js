@@ -484,6 +484,9 @@ function openDetail(l) {
 /* ══ MODAL: Descarte ══ */
 function openDescarte(l) {
   selectedLoteId = l.id;
+  baixaTipo = 'descarte';
+  document.getElementById('baixa-btn-descarte').classList.add('selected');
+  document.getElementById('baixa-btn-devolucao').classList.remove('selected');
   document.getElementById('descarte-product-name').textContent = `${l.nome} · ${l.lote}`;
   document.getElementById('descarte-current-qty').textContent = l.qty;
   document.getElementById('descarte-qty').value = '';
@@ -543,7 +546,7 @@ document.getElementById('descarte-save')?.addEventListener('click', async () => 
   const l = lotes.find(x => x.id === selectedLoteId);
   if (!l) return;
   const qty = +document.getElementById('descarte-qty').value;
-  if (!qty || qty <= 0 || qty > l.qty) {
+  if (!Number.isInteger(qty) || qty <= 0 || qty > l.qty) {
     showToast('Quantidade inválida.', 'warn');
     return;
   }
@@ -559,8 +562,7 @@ document.getElementById('descarte-save')?.addEventListener('click', async () => 
     return;
   }
 
-  const tipoMov = baixaTipo === 'devolucao' ? 'transferencia' : 'saida';
-  const obsCompleta = `${baixaTipo === 'descarte' ? 'Descarte' : 'Devolução'}: ${motivo}${obs ? ' — ' + obs : ''}`;
+  const finalidade = baixaTipo === 'devolucao' ? 'devolucao_fornecedor' : 'descarte';
 
   try {
     const res = await fetch(`${API_BASE}/movimentacoes-estoque`, {
@@ -568,10 +570,11 @@ document.getElementById('descarte-save')?.addEventListener('click', async () => 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         estoque_id: l.id,
-        usuario_id: uid,
-        tipo_movimentacao: tipoMov,
+        tipo_movimentacao: 'saida',
+        finalidade,
+        motivo,
         quantidade: qty,
-        observacao: obsCompleta
+        observacao: obs || null
       })
     });
     const result = await res.json();
@@ -579,7 +582,7 @@ document.getElementById('descarte-save')?.addEventListener('click', async () => 
       closeOverlay('descarte-overlay');
       await fetchLotes();
       showToast(
-        `${baixaTipo === 'descarte' ? 'Descarte' : 'Devolução'} registrado: ${qty}x ${l.nome}.`,
+        `${baixaTipo === 'descarte' ? 'Descarte' : 'Devolução ao fornecedor'} registrado: ${qty}x ${l.nome}.`,
         'ok'
       );
     } else {

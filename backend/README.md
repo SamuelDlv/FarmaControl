@@ -253,3 +253,33 @@ não traduzem a aplicação, convertem quantidades/moedas nem recalculam custos 
 Verificações: `python -m unittest discover -s tests -p "test_*.py"`,
 `node --test tests/frontend.test.cjs` e `node scripts/check_settings.cjs`.
 O último usa Chrome isolado e API simulada, sem gravar no banco real.
+
+### Baixa por descarte (migração 022)
+
+Antes de iniciar esta versão em uma base existente, aplique uma vez
+`backend/migrations/022_finalidade_movimentacao.sql`. Instalações novas usam
+`schema.sql`. Alternativamente, execute `python scripts/migrate_descarte.py --apply`
+no ambiente virtual para atualizar a instância local configurada em `backend/.env`;
+o utilitário verifica colunas existentes e pode ser reaplicado.
+A migração apenas acrescenta `finalidade` e `motivo`, ambos
+nullable; não altera saldos nem reclassifica histórico com base em texto livre.
+
+`POST /movimentacoes-estoque` aceita `finalidade` opcional apenas para `saida`:
+`venda`, `descarte` ou `devolucao_fornecedor`. Clientes antigos continuam
+funcionando sem finalidade, sujeitos ao bloqueio usual de vencimento.
+Descarte exige motivo textual não vazio (até 255 caracteres), CSRF, módulo
+`estoque` habilitado e perfil administrativo de estoque (`proprietario`,
+`admin`, `farmaceutico`, `compras` ou `ti`). Visualizador e atendente não
+podem autorizar descarte, mesmo com módulo estoque habilitado. A autoria
+vem exclusivamente da sessão validada no servidor.
+
+Somente descarte pode baixar lote vencido com bloqueio ativo. Devolução
+reduz estoque como saída administrativa e continua sujeita ao bloqueio de
+vencimento; transferência interna continua exigindo lote de destino.
+Quantidade inteira positiva, saldo, bloqueio `FOR UPDATE`, movimentação e
+log transacional são preservados. Se a gravação do log falhar, a baixa é
+revertida. Histórico, tabela de movimentos e CSV identificam finalidade e
+motivo. Os indicadores de dispensação excluem descartes e devoluções
+estruturados; registros legados sem finalidade mantêm o tratamento anterior.
+O contador de lotes descartados usa a finalidade estruturada, sem inferir
+que observações antigas sejam autorizações de descarte.

@@ -104,8 +104,8 @@ def concluir_pdv():
                     (venda_id,produto_id,quantidade,preco_unitario,desconto,lote_vendido)
                     VALUES (%s,%s,%s,%s,0,%s)""", (sale_id,row['produto_id'],qty,price,row['lote']))
                 cur.execute("""INSERT INTO movimentacoes_estoque
-                    (estoque_id,usuario_id,tipo_movimentacao,quantidade,observacao)
-                    VALUES (%s,%s,'saida',%s,%s)""", (row['id'],g.usuario_id,qty,f'Venda PDV {sale_id}'))
+                    (estoque_id,usuario_id,tipo_movimentacao,quantidade,observacao,finalidade)
+                    VALUES (%s,%s,'saida',%s,%s,'venda')""", (row['id'],g.usuario_id,qty,f'Venda PDV {sale_id}'))
             cur.execute("""INSERT INTO financeiro_transacoes
                 (categoria_id,usuario_id,venda_id,descricao,valor,status,metodo_pagamento)
                 VALUES (%s,%s,%s,%s,%s,'pago',%s)""",
@@ -225,8 +225,8 @@ def create_venda():
                     # Registrar movimentação de estoque
                     cur.execute(
                         """
-                        INSERT INTO movimentacoes_estoque (estoque_id, usuario_id, tipo_movimentacao, quantidade, observacao)
-                        VALUES (%s, %s, %s, %s, %s)
+                        INSERT INTO movimentacoes_estoque (estoque_id, usuario_id, tipo_movimentacao, quantidade, observacao, finalidade)
+                        VALUES (%s, %s, %s, %s, %s, 'venda')
                         """,
                         (estoque_item["id"], usuario_id, "saida", quantidade, f"Saída por venda {venda_id}")
                     )
@@ -300,8 +300,8 @@ def update_venda(venda_id):
                     # Registrar movimentação de estoque
                     cur.execute(
                         """
-                        INSERT INTO movimentacoes_estoque (estoque_id, usuario_id, tipo_movimentacao, quantidade, observacao)
-                        VALUES (%s, %s, %s, %s, %s)
+                        INSERT INTO movimentacoes_estoque (estoque_id, usuario_id, tipo_movimentacao, quantidade, observacao, finalidade)
+                        VALUES (%s, %s, %s, %s, %s, 'venda')
                         """,
                         (estoque_item["id"], usuario_id, "saida", quantidade, f"Saída por venda {venda_id}")
                     )

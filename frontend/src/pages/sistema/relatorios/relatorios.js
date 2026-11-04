@@ -227,7 +227,8 @@ function renderMovimentacoesPage() {
         : '—';
       const tipo = m.tipo_movimentacao || 'saida';
       const pillCls = tipo === 'entrada' ? 'in' : 'out';
-      const pillLabel =
+      const pillLabel = m.finalidade === 'descarte' ? 'Descarte' :
+        m.finalidade === 'devolucao_fornecedor' ? 'Devolução ao fornecedor' :
         { entrada: 'Entrada', saida: 'Saída', ajuste: 'Ajuste', transferencia: 'Transferência' }[
           tipo
         ] || tipo;
@@ -645,6 +646,8 @@ async function gerarRelatorioSaidas() {
         m.valor_unitario ?? 0,
         ((m.quantidade || 0) * (m.valor_unitario || 0)).toFixed(2).replace('.', ','),
         m.usuario_nome || '—',
+        m.finalidade || 'Não informada (legado)',
+        m.motivo || '',
         m.observacao || ''
       ]);
     downloadFile('relatorio_saidas_periodo.csv', rows, [
@@ -656,6 +659,8 @@ async function gerarRelatorioSaidas() {
       'Valor Unitário (R$)',
       'Valor Total (R$)',
       'Usuário',
+      'Finalidade',
+      'Motivo',
       'Observação'
     ]);
     toast('Relatório de saídas baixado.', 'ok');
@@ -730,7 +735,7 @@ async function gerarRelatorioFinanceiro() {
       return;
     }
     const rows = (data.movimentacoes || []).map(m => {
-      const tipo = (m.tipo_movimentacao || 'saida') === 'entrada' ? 'Entrada (compra)' : 'Saída';
+      const tipo = m.finalidade === 'descarte' ? 'Descarte' : m.finalidade === 'devolucao_fornecedor' ? 'Devolução ao fornecedor' : (m.tipo_movimentacao || 'saida') === 'entrada' ? 'Entrada (compra)' : 'Saída';
       const valorTotal = (m.quantidade || 0) * (m.valor_unitario || 0);
       return [
         m.data_movimentacao ? new Date(m.data_movimentacao).toLocaleDateString('pt-BR') : '—',

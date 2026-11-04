@@ -1,5 +1,6 @@
 """routes.estoque: responsabilidades extraídas da aplicação Flask."""
 
+from farmacontrol.core.access import INVENTORY_ROLES
 from farmacontrol.core import database
 from farmacontrol.core import responses
 from farmacontrol.services.audit import commit_audit
@@ -311,7 +312,7 @@ def get_historico_estoque(estoque_id):
             if not cur.fetchone():
                 return responses.err("Item de estoque não encontrado.", status=404)
             cur.execute("""
-                SELECT me.id, me.tipo_movimentacao, me.quantidade, me.observacao,
+                SELECT me.id, me.tipo_movimentacao, me.finalidade, me.motivo, me.fornecedor_id, me.quantidade, me.observacao,
                        me.data_movimentacao,
                        u.nome AS usuario_nome
                 FROM   movimentacoes_estoque me
@@ -425,6 +426,32 @@ def create_movimentacao_estoque():
     quantidade = data.get("quantidade")
     observacao = data.get("observacao")
     estoque_destino_id = data.get("estoque_destino_id")
+    finalidade = data.get("finalidade")
+    motivo = data.get("motivo")
+    fornecedor_id = None
+    if data.get("fornecedor_id") is not None:
+        supplied = data["fornecedor_id"]
+        if finalidade != "devolucao_fornecedor" or isinstance(supplied, bool) or not isinstance(supplied, int) or supplied <= 0:
+            return responses.err("Fornecedor inválido para esta operação.", campo="fornecedor_id", status=400)
+    if finalidade == "devolucao_fornecedor" and estoque_destino_id is not None:
+        return responses.err("Devolução ao fornecedor não possui estoque interno de destino.", campo="estoque_destino_id", status=400)
+    if finalidade is not None:
+        if not isinstance(finalidade, str) or finalidade not in {"descarte", "venda", "devolucao_fornecedor"}:
+            return responses.err("Finalidade inválida.", campo="finalidade", status=400)
+        if tipo_movimentacao != "saida":
+            return responses.err("Finalidade só é permitida em saídas.", campo="finalidade", status=400)
+    if finalidade in ("descarte", "devolucao_fornecedor"):
+        # Autorização administrativa adicional à permissão persistida de estoque
+        # e ao CSRF verificados pelo middleware. Nunca deriva de texto livre.
+        if g.usuario_perfil not in INVENTORY_ROLES or "estoque" not in g.usuario_permissoes:
+            return responses.err("Seu perfil não tem permissão para baixa administrativa.", status=403)
+        if not isinstance(motivo, str) or not motivo.strip() or len(motivo.strip()) > 255:
+            return responses.err("Informe um motivo de até 255 caracteres.", campo="motivo", status=400)
+        motivo = motivo.strip()
+    elif motivo is not None:
+        return responses.err("Motivo exige uma finalidade administrativa.", campo="motivo", status=400)
+    if observacao is not None and (not isinstance(observacao, str) or len(observacao) > 255):
+        return responses.err("Observação deve ter até 255 caracteres.", campo="observacao", status=400)
 
     if not estoque_id or not tipo_movimentacao or not quantidade:
         return responses.err("ID do estoque, tipo de movimentação e quantidade são obrigatórios.", status=400)
@@ -463,10 +490,20 @@ def create_movimentacao_estoque():
             if tipo_movimentacao == "transferencia" and item_destino["produto_id"] != item_estoque["produto_id"]:
                 return responses.err("A transferência deve ocorrer entre lotes do mesmo produto.", campo="estoque_destino_id", status=400)
 
+            if finalidade == "devolucao_fornecedor":
+                # Captura o vínculo vigente no cadastro, sem aceitar fornecedor arbitrário.
+                cur.execute("SELECT fornecedor_id FROM produtos WHERE id = %s FOR UPDATE", (item_estoque["produto_id"],))
+                produto = cur.fetchone()
+                if not produto:
+                    return responses.err("Produto não encontrado.", status=400)
+                fornecedor_id = produto.get("fornecedor_id")
+                if data.get("fornecedor_id") is not None and data["fornecedor_id"] != fornecedor_id:
+                    return responses.err("Fornecedor não corresponde ao cadastro do produto.", campo="fornecedor_id", status=400)
+
             settings = read_settings(cur)
-            if tipo_movimentacao == 'saida':
+            if tipo_movimentacao == 'saida' and finalidade not in ('descarte', 'devolucao_fornecedor'):
                 require_usable_stock(settings, item_estoque)
-            elif tipo_movimentacao in ('entrada', 'transferencia'):
+            elif tipo_movimentacao in ('entrada', 'transferencia') or finalidade in ('descarte', 'devolucao_fornecedor'):
                 require_lot(settings, item_estoque.get('lote'))
                 if item_destino:
                     require_lot(settings, item_destino.get('lote'))
@@ -496,10 +533,10 @@ def create_movimentacao_estoque():
 
             cur.execute(
                 """
-                INSERT INTO movimentacoes_estoque (estoque_id, usuario_id, tipo_movimentacao, quantidade, observacao)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO movimentacoes_estoque (estoque_id, usuario_id, tipo_movimentacao, quantidade, observacao, finalidade, motivo, fornecedor_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """,
-                (estoque_id, usuario_id, tipo_movimentacao, quantidade, observacao)
+                (estoque_id, usuario_id, tipo_movimentacao, quantidade, observacao, finalidade, motivo, fornecedor_id)
             )
             if tipo_movimentacao == "transferencia":
                 cur.execute(
@@ -509,8 +546,11 @@ def create_movimentacao_estoque():
                     """,
                     (estoque_destino_id, usuario_id, quantidade, observacao or f"Transferência recebida do lote {estoque_id}"),
                 )
-            commit_audit(db, cur.lastrowid)
-            return responses.ok({"mensagem": "Movimentação de estoque criada com sucesso.", "id": cur.lastrowid}, status=201)
+            movimentacao_id = cur.lastrowid
+            if finalidade in ("descarte", "devolucao_fornecedor"):
+                g.audit_values = {"finalidade": finalidade, "motivo": motivo, "lote": item_estoque["lote"], "produto_id": item_estoque["produto_id"], "fornecedor_id": fornecedor_id}
+            commit_audit(db, movimentacao_id)
+            return responses.ok({"mensagem": "Movimentação de estoque criada com sucesso.", "id": movimentacao_id}, status=201)
     except ValueError as exc:
         db.rollback()
         return responses.err(str(exc), status=400)

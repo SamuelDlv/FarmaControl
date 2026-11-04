@@ -18,7 +18,7 @@ FIELDS = {
     "produtos": ("nome", "categoria_id", "tipo_produto", "preco_custo", "preco_venda", "estoque_minimo", "ativo"),
     "categorias-produto": ("nome",),
     "estoque": ("produto_id", "produto_nome", "lote", "quantidade", "data_validade", "localizacao"),
-    "movimentacoes-estoque": ("estoque_id", "estoque_destino_id", "tipo_movimentacao", "quantidade"),
+    "movimentacoes-estoque": ("estoque_id", "estoque_destino_id", "tipo_movimentacao", "quantidade", "finalidade", "motivo", "lote", "produto_id", "fornecedor_id"),
     "vendas": ("cliente_id", "status", "valor_total", "tipo_pagamento"),
     "compras": ("fornecedor_id", "status", "valor_total", "data_recebimento"),
     "financeiro": ("categoria_id", "tipo", "valor", "status", "metodo_pagamento", "data_vencimento"),
@@ -48,6 +48,10 @@ def event_description(resource, data):
             description = {"recebido": "Recebeu compra", "cancelado": "Cancelou compra"}.get(data.get("status"), description)
         elif resource == "movimentacoes-estoque":
             description = {"entrada": "Registrou entrada de estoque", "saida": "Registrou saída de estoque", "ajuste": "Ajustou estoque", "transferencia": "Transferiu estoque"}.get(data.get("tipo_movimentacao"), description)
+            if data.get("finalidade") == "descarte":
+                description = "Registrou descarte de estoque"
+            elif data.get("finalidade") == "devolucao_fornecedor":
+                description = "Registrou devolução ao fornecedor"
         elif resource == "analisar-cadastro":
             description = "Aprovou cadastro" if data.get("decisao") == "aprovado" else "Rejeitou cadastro"
     return description

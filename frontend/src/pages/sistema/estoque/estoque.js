@@ -895,8 +895,8 @@ async function openHistoryModal(id) {
           <div class="history-item">
             <div class="history-dot ${dotClass}"></div>
             <div class="history-info">
-              <div class="history-action">${tipoLabel[tipo] || tipo}</div>
-              <div class="history-detail">${h.observacao || ''} · ${h.usuario_nome || ''} · ${dataFmt}</div>
+              <div class="history-action">${h.finalidade === 'descarte' ? 'Descarte' : h.finalidade === 'devolucao_fornecedor' ? 'Devolução ao fornecedor' : tipoLabel[tipo] || tipo}</div>
+              <div class="history-detail">${h.motivo ? stockEscape(h.motivo) + ' · ' : ''}${h.observacao || ''} · ${h.usuario_nome || ''} · ${dataFmt}</div>
             </div>
             <div class="history-qty ${qtyClass}">${qtySign}${h.quantidade}</div>
           </div>`;
