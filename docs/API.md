@@ -190,3 +190,7 @@ Total: **88 declarações de rota** nos [módulos de rotas](../backend/farmacont
 | `GET` | `/financeiro/categorias` | `financeiro_categorias` |
 | `GET` | `/financeiro/transacoes` | `financeiro_transacoes` |
 | `POST` | `/financeiro/transacoes` | `create_financeiro_transacao` |
+
+## Pesquisas e listagens (04/11/2026)
+
+Consulte o [inventário e os contratos de pesquisa](PESQUISAS_BACKEND.md) para validação de busca e paginação, diferenças de LIKE/LOCATE, parâmetros legados e metadados adicionados a movimentações, logs e transações financeiras.

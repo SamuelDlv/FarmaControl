@@ -3,6 +3,7 @@
 from farmacontrol.core.access import INVENTORY_ROLES
 from farmacontrol.core import database
 from farmacontrol.core import responses
+from farmacontrol.core.query import QueryError, query_int, search_text
 from farmacontrol.services.audit import commit_audit
 from farmacontrol.services.product_rules import normalize_product
 from farmacontrol.services.product_rules import save_product
@@ -332,27 +333,21 @@ def get_historico_estoque(estoque_id):
 
 
 def get_movimentacoes_estoque():
-    produto_id = request.args.get("produto_id", type=int)
+    try:
+        produto_id = query_int(request.args, "produto_id", minimum=1)
+        periodo_dias = query_int(request.args, "periodo_dias", minimum=1, maximum=3650)
+        limite = query_int(request.args, "limite", default=1000, minimum=1, maximum=5000)
+        offset = query_int(request.args, "offset", default=0)
+        search = search_text(request.args)
+    except QueryError as exc:
+        return responses.err(str(exc), campo=exc.campo)
     tipo = request.args.get("tipo")
-    periodo_dias = request.args.get("periodo_dias", type=int)
-    limite = request.args.get("limite", default=1000, type=int)
-    offset = request.args.get('offset', default=0, type=int)
-    period = request.args.get('periodo')
-    search = request.args.get('busca', '').strip()
-    if offset is None or offset < 0:
-        return responses.err('Página inválida.', campo='offset', status=400)
+    period = request.args.get("periodo")
     if period is not None and period not in PERIOD_START:
         return responses.err('Período inválido.', campo='periodo', status=400)
     tipos_validos = {"entrada", "saida", "ajuste", "transferencia"}
     if tipo and tipo not in tipos_validos:
         return responses.err("Tipo de movimentação inválido.", campo="tipo", status=400)
-    if produto_id is not None and produto_id <= 0:
-        return responses.err("Produto inválido.", campo="produto_id", status=400)
-    if periodo_dias is not None and not 1 <= periodo_dias <= 3650:
-        return responses.err("Período deve estar entre 1 e 3650 dias.", campo="periodo_dias", status=400)
-    if limite is None or not 1 <= limite <= 5000:
-        return responses.err("Limite deve estar entre 1 e 5000.", campo="limite", status=400)
-
     filtros, parametros = [], []
     if produto_id is not None:
         filtros.append("e.produto_id = %s")
@@ -369,8 +364,8 @@ def get_movimentacoes_estoque():
         filtros.append("p.nome LIKE %s")
         parametros.append('%' + search + '%')
     where = f"WHERE {' AND '.join(filtros)}" if filtros else ""
-    db = database.get_db()
     try:
+        db = database.get_db()
         with db.cursor() as cur:
             cur.execute("""
                 SELECT me.*, e.lote, p.nome AS produto_nome,
@@ -398,7 +393,12 @@ def get_movimentacoes_estoque():
                 row["data_movimentacao"] = row["data_movimentacao"].isoformat()
             if row.get("valor_unitario") is not None:
                 row["valor_unitario"] = float(row["valor_unitario"])
-        return responses.ok({"movimentacoes": movimentacoes, **({"total": total} if total is not None else {})})
+        result = {"movimentacoes": movimentacoes, "limite": limite, "offset": offset}
+        if total is not None:
+            more = bool(movimentacoes) and offset + len(movimentacoes) < total
+            result.update(total=total, tem_mais=more,
+                          proximo_offset=offset + len(movimentacoes) if more else None)
+        return responses.ok(result)
     except pymysql.MySQLError as exc:
         log.error("Erro DB ao buscar movimentações de estoque: %s", exc)
         return responses.err("Erro interno ao buscar movimentações de estoque.", status=500)

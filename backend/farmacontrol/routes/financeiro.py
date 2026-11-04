@@ -4,6 +4,7 @@ from datetime import datetime
 from datetime import timedelta
 from farmacontrol.core import database
 from farmacontrol.core import responses
+from farmacontrol.core.query import QueryError, query_int
 from farmacontrol.services.audit import commit_audit
 from flask import g
 from flask import jsonify
@@ -223,15 +224,17 @@ def financeiro_categorias():
 
 def financeiro_transacoes():
     """Retorna lista de transações do período."""
+    try:
+        limit = query_int(request.args, "limit", default=50, minimum=1, maximum=500, clamp=True)
+    except QueryError as exc:
+        return responses.err(str(exc), campo=exc.campo)
     if not _fin_tables_exist():
         return responses.err('Tabelas financeiras não configuradas. Execute a migração 005_tabela_financeiro.sql', status=503)
     days = request.args.get('days', '30', type=int)
     if days not in (7, 30, 90):
         days = 30
-    limit = request.args.get('limit', 50, type=int)
-    limit = min(max(limit, 1), 500)
-    db = database.get_db()
     try:
+        db = database.get_db()
         with db.cursor() as cur:
             cur.execute("""
                 SELECT t.id, t.descricao, t.valor, t.data_transacao,
@@ -241,7 +244,7 @@ def financeiro_transacoes():
                 JOIN financeiro_categorias fc ON fc.id = t.categoria_id
                 WHERE t.data_transacao >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
                   AND t.data_transacao < CURDATE() + INTERVAL 1 DAY
-                ORDER BY t.data_transacao DESC
+                ORDER BY t.data_transacao DESC, t.id DESC
                 LIMIT %s
             """, (days, limit))
             rows = cur.fetchall()
@@ -257,7 +260,7 @@ def financeiro_transacoes():
             'categoria_nome': r['categoria_nome']
         } for r in rows]
 
-        return jsonify({'ok': True, 'transacoes': transacoes})
+        return responses.ok({'transacoes': transacoes, 'limite': limit})
     except pymysql.MySQLError as exc:
         log.error("Erro DB em financeiro/transacoes: %s", exc)
         return responses.err('Erro interno ao consultar transações financeiras.', status=500)

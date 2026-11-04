@@ -7,6 +7,7 @@ from farmacontrol.core import access
 from farmacontrol.core import credentials
 from farmacontrol.core import database
 from farmacontrol.core import responses
+from farmacontrol.core.query import QueryError, query_int, search_text
 from farmacontrol.services import email as email_service
 from farmacontrol.services.audit import commit_audit
 from flask import g
@@ -66,12 +67,11 @@ def listar_usuarios():
 def listar_logs():
     """Histórico somente para consulta, com paginação por cursor estável."""
     try:
-        limit = max(1, min(100, int(request.args.get("limit", "50"))))
-        before = int(request.args.get("antes", "0"))
-        if before < 0:
-            raise ValueError
-    except (ValueError, TypeError):
-        return responses.err("Paginação inválida.")
+        limit = query_int(request.args, "limit", default=50, minimum=1, maximum=100, clamp=True)
+        before = query_int(request.args, "antes", default=0)
+        search = search_text(request.args)
+    except QueryError as exc:
+        return responses.err(str(exc), campo=exc.campo)
     conditions, params = [], []
     if before:
         conditions.append("id < %s")
@@ -104,9 +104,8 @@ def listar_logs():
             params.append(dates["data_fim"] + timedelta(days=1, hours=3))
     except (ValueError, TypeError, OverflowError):
         return responses.err("Informe um usuário válido e um período de datas válido.")
-    search = request.args.get("busca", "").strip()
     activity = request.args.get("atividade", "")
-    if len(search) > 120 or activity not in {"", "alteracoes", "consultas"}:
+    if activity not in {"", "alteracoes", "consultas"}:
         return responses.err("Informe uma busca de até 120 caracteres e uma atividade válida.")
     if search:
         conditions.append("(LOCATE(%s, acao) > 0 OR LOCATE(%s, detalhes) > 0 OR LOCATE(%s, usuario_nome) > 0)")
@@ -141,6 +140,7 @@ def listar_logs():
             if isinstance(row.get("criado_em"), datetime):
                 row["criado_em"] = row["criado_em"].replace(tzinfo=timezone.utc).isoformat()
         result = {"logs": rows, "proximo": rows[-1]["id"] if more else None,
+                  "limite": limit, "tem_mais": more,
                   "filtros": {key: request.args.get(key, "") for key in ("usuario_id", "data_inicio", "data_fim", "busca", "atividade")}}
         if users is not None:
             result["usuarios"] = users
