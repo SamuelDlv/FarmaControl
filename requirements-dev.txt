@@ -1,3 +1,5 @@
 -r backend/requirements.txt
+# Autenticação caching_sha2_password da instância MySQL descartável.
+PyMySQL[rsa]==1.2.0
 # Navegador dos testes de integração; instalar Chromium com python -m playwright install chromium.
 playwright==1.64.1
