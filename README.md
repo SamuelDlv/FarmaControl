@@ -106,6 +106,12 @@ Copie o resultado apenas para `SECRET_KEY` no `.env` privado. Sem uma chave vál
 
 ## Verificar
 
+As verificações agora rodam automaticamente no GitHub em pushes para `main` e
+pull requests, incluindo MySQL e navegador em ambiente descartável. Consulte
+[CI e reprodução local](docs/CI.md). O controle de migrações permite consultar
+pendências com `python scripts/migrate.py status`; consulte a
+[adoção da baseline e aplicação](backend/migrations/README.md) antes de gravar.
+
 Para atualizar uma base existente após a remoção da Previsão IA, execute
 [`021_remove_previsao_ia.sql`](backend/migrations/021_remove_previsao_ia.sql)
 no banco do FarmaControl, após as migrações anteriores. O script remove somente

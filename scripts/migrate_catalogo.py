@@ -1,5 +1,6 @@
 """Aplica as migrações 012 e 019 na instância local configurada em backend/.env."""
 import argparse
+import os
 from pathlib import Path
 import pymysql
 from pymysql.constants import CLIENT
@@ -9,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def connection(database=None):
-    config = dotenv_values(ROOT / 'backend/.env')
+    config = {**dotenv_values(ROOT / 'backend/.env'), **os.environ}
     host = config.get('DB_HOST', 'localhost')
     if host not in ('localhost', '127.0.0.1', '::1'):
         raise SystemExit('Este utilitário aceita somente o banco local. Execute o SQL diretamente para outra instância.')

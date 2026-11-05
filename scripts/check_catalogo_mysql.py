@@ -27,9 +27,8 @@ def main():
             created = True
         db.select_db(name)
         schema = (ROOT / 'backend/schema.sql').read_text(encoding='utf-8')
-        schema = schema.replace('CREATE DATABASE IF NOT EXISTS farmacontrol', f'CREATE DATABASE IF NOT EXISTS `{name}`')
-        schema = schema.replace('USE farmacontrol;', f'USE `{name}`;')
-        execute_sql(db, schema)
+        # Apenas objetos da base temporária; não altera roles globais do servidor.
+        execute_sql(db, schema[schema.index('CREATE TABLE IF NOT EXISTS perfis'):])
         with db.cursor() as cur:
             cur.execute("SELECT nome FROM categorias_produto")
             names = {row['nome'] for row in cur.fetchall()}

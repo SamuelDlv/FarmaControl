@@ -12,6 +12,7 @@ import secrets
 import sys
 import threading
 import uuid
+from pathlib import Path
 
 from dotenv import dotenv_values
 from migrate_catalogo import ROOT, connection, execute_sql
@@ -44,7 +45,7 @@ def main(browser=False):
         execute_sql(db, sql)
         report['checks'].append('migrações 022 e 023 e reaplicação de 023 aprovadas')
 
-        config = dotenv_values(ROOT / 'backend/.env')
+        config = {**dotenv_values(ROOT / 'backend/.env'), **os.environ}
         for key in ('DB_HOST', 'DB_PORT', 'DB_USER', 'DB_PASSWORD'):
             if config.get(key) is not None:
                 os.environ[key] = config[key]
@@ -128,7 +129,11 @@ def main(browser=False):
             thread.start()
             origin = f'http://127.0.0.1:{server.server_port}'
             with sync_playwright() as pw:
-                chrome = pw.chromium.launch(executable_path=os.environ.get('CHROME_PATH', r'C:\Program Files\Google\Chrome\Application\chrome.exe'), headless=True)
+                chrome_path = os.environ.get('CHROME_PATH')
+                local_chrome = Path(r'C:\Program Files\Google\Chrome\Application\chrome.exe')
+                if not chrome_path and os.name == 'nt' and local_chrome.exists():
+                    chrome_path = str(local_chrome)
+                chrome = pw.chromium.launch(executable_path=chrome_path, headless=True)
                 try:
                     page = chrome.new_page(viewport={'width': 1440, 'height': 1000})
                     errors = []

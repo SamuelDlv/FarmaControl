@@ -1,0 +1,79 @@
+name: Validação
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: Unitários e auditoria
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python -m pip install -r backend/requirements.txt
+      - run: python -m pip check
+      - run: python -B -m unittest discover -s tests -v
+      - run: node --test tests/*.test.cjs
+      - run: node scripts/check_frontend.cjs
+      - run: python -B scripts/audit_static.py
+
+  integration:
+    name: MySQL e navegador
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: '3306'
+      DB_USER: root
+      DB_PASSWORD: ci-disposable-password
+      DB_NAME: farmacontrol
+      APP_ENV: test
+      APP_DEBUG: 'false'
+      COOKIE_SECURE: 'false'
+      SECRET_KEY: ci-only-disposable-key-with-more-than-32-characters
+    services:
+      mysql:
+        image: mysql:8.0.46
+        env:
+          MYSQL_ROOT_PASSWORD: ci-disposable-password
+          MYSQL_ROOT_HOST: '%'
+          MYSQL_DATABASE: farmacontrol
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pci-disposable-password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            requirements-dev.txt
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m playwright install --with-deps chromium
+      - run: python -B scripts/check_migrations_mysql.py
+      - run: python -B scripts/check_catalogo_mysql.py
+      - run: python -B scripts/check_devolucao_mysql.py --browser

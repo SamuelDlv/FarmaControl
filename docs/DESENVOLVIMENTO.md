@@ -1,5 +1,10 @@
 # Desenvolvimento e validação
 
+Atualização de manutenção em 05/11/2026: consulte [CI e integração real](CI.md)
+para a rotina automatizada e [migrações controladas](../backend/migrations/README.md)
+para status, adoção da baseline e novas versões. `requirements-dev.txt` inclui
+as dependências da aplicação e o Playwright usado nos testes de navegador.
+
 Revisado em 23/10/2026. Todos os comandos abaixo partem da raiz do projeto.
 
 ## Ambiente de trabalho

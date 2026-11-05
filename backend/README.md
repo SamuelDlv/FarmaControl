@@ -97,6 +97,11 @@ O IP vem de `request.remote_addr`; encaminhamento por proxy precisa ser configur
 
 ## Banco e testes
 
+O controle de versões do banco está documentado em
+[migrations/README.md](migrations/README.md). `python scripts/migrate.py status`
+consulta o histórico sem gravar; adoção da baseline e aplicação são comandos
+explícitos. O [CI](../docs/CI.md) verifica migrações em bases descartáveis.
+
 O catálogo aceita medicamentos e outros produtos no mesmo estoque, compras e vendas. O campo `tipo_produto` distingue `medicamento` de `outro`; categorias organizam alimentos (incluindo bebidas), higiene, cosméticos, saúde sexual, itens infantis, suplementos, acessórios e primeiros socorros. Categorias não determinam o tipo: um creme pode ser medicamento ou cosmético conforme seu cadastro.
 
 Instalações novas usam `schema.sql`. Para atualizar uma instalação existente, aplique `migrations/012_catalogo_multicategoria.sql` **antes** de iniciar a API atualizada. Aplique também `migrations/019_reorganiza_categorias_produto.sql`: transfere Bebidas para Alimentos e substitui a categoria combinada por Acessórios, criando Primeiros socorros separadamente. Os produtos da categoria combinada ficam em Acessórios e podem ser reclassificados pelo cadastro. O utilitário `python scripts/migrate_catalogo.py --apply` aplica as duas migrações no banco local. A migração pode ser reaplicada; mantém IDs, lotes, histórico e a classificação dos produtos antigos como medicamentos. Não corrige automaticamente validades antigas (inclusive datas fictícias cadastradas pela versão anterior).

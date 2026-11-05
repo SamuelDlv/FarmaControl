@@ -1,0 +1,253 @@
+{
+  "version": 23,
+  "description": "Contrato de tabelas e colunas ate 023. Tipos, indices e dados exigem revisao do legado.",
+  "tables": {
+    "perfis": [
+      "id",
+      "slug",
+      "nome",
+      "descricao",
+      "criado_em"
+    ],
+    "perfil_permissoes": [
+      "perfil_id",
+      "modulo",
+      "permitido"
+    ],
+    "usuarios": [
+      "id",
+      "nome",
+      "sobrenome",
+      "email",
+      "senha_hash",
+      "perfil_id",
+      "status",
+      "ultimo_login",
+      "token_reset",
+      "token_expira_em",
+      "criado_em",
+      "atualizado_em"
+    ],
+    "analises_cadastro": [
+      "id",
+      "usuario_id",
+      "analisado_por",
+      "decisao",
+      "motivo",
+      "analisado_em"
+    ],
+    "log_acessos": [
+      "id",
+      "usuario_id",
+      "ip",
+      "user_agent",
+      "sucesso",
+      "motivo_falha",
+      "criado_em"
+    ],
+    "clientes": [
+      "id",
+      "nome",
+      "sobrenome",
+      "cpf",
+      "telefone",
+      "email",
+      "endereco",
+      "data_nascimento",
+      "criado_em",
+      "atualizado_em"
+    ],
+    "categorias_produto": [
+      "id",
+      "nome",
+      "descricao",
+      "criado_em",
+      "atualizado_em"
+    ],
+    "fornecedores": [
+      "id",
+      "nome_fantasia",
+      "razao_social",
+      "cnpj",
+      "contato_nome",
+      "contato_telefone",
+      "contato_email",
+      "endereco",
+      "ativo",
+      "criado_em",
+      "atualizado_em"
+    ],
+    "produtos": [
+      "id",
+      "nome",
+      "tipo_produto",
+      "exige_validade",
+      "nome_generico",
+      "descricao",
+      "fabricante",
+      "preco_custo",
+      "preco_venda",
+      "codigo_barras",
+      "categoria_id",
+      "requer_receita",
+      "ativo",
+      "estoque_minimo",
+      "fornecedor_id",
+      "criado_em",
+      "atualizado_em"
+    ],
+    "estoque": [
+      "id",
+      "produto_id",
+      "lote",
+      "quantidade",
+      "data_validade",
+      "localizacao",
+      "criado_em",
+      "atualizado_em"
+    ],
+    "movimentacoes_estoque": [
+      "id",
+      "estoque_id",
+      "usuario_id",
+      "tipo_movimentacao",
+      "finalidade",
+      "motivo",
+      "fornecedor_id",
+      "quantidade",
+      "observacao",
+      "data_movimentacao"
+    ],
+    "compras": [
+      "id",
+      "fornecedor_id",
+      "usuario_id",
+      "data_pedido",
+      "data_recebimento",
+      "valor_total",
+      "status",
+      "criado_em",
+      "atualizado_em"
+    ],
+    "itens_compra": [
+      "id",
+      "compra_id",
+      "produto_id",
+      "quantidade",
+      "preco_unitario",
+      "lote_recebido",
+      "data_validade_recebida"
+    ],
+    "vendas": [
+      "id",
+      "cliente_id",
+      "usuario_id",
+      "data_venda",
+      "valor_total",
+      "tipo_pagamento",
+      "status",
+      "criado_em",
+      "atualizado_em"
+    ],
+    "itens_venda": [
+      "id",
+      "venda_id",
+      "produto_id",
+      "quantidade",
+      "preco_unitario",
+      "desconto",
+      "lote_vendido"
+    ],
+    "receitas": [
+      "id",
+      "cliente_id",
+      "medico_nome",
+      "crm",
+      "data_prescricao",
+      "data_validade",
+      "observacoes",
+      "arquivo_receita_url",
+      "criado_em",
+      "atualizado_em"
+    ],
+    "receitas_itens": [
+      "id",
+      "receita_id",
+      "produto_id",
+      "quantidade",
+      "dosagem",
+      "instrucoes_uso"
+    ],
+    "configuracoes_sistema": [
+      "chave",
+      "valor",
+      "descricao",
+      "criado_em",
+      "atualizado_em"
+    ],
+    "aceites_legais": [
+      "id",
+      "usuario_id",
+      "termos_versao",
+      "privacidade_versao",
+      "aceito_em",
+      "ip"
+    ],
+    "convites_cadastro": [
+      "id",
+      "nome",
+      "sobrenome",
+      "email",
+      "perfil_id",
+      "convidado_por_usuario_id",
+      "token_hash",
+      "status",
+      "expira_em",
+      "respondido_em",
+      "aceito_usuario_id",
+      "criado_em"
+    ],
+    "alertas": [
+      "id",
+      "tipo_alerta",
+      "referencia_id",
+      "mensagem",
+      "status",
+      "resolvido_em",
+      "resolvido_por_usuario_id",
+      "criado_em",
+      "atualizado_em"
+    ],
+    "financeiro_categorias": [
+      "id",
+      "nome",
+      "tipo",
+      "slug",
+      "criado_em"
+    ],
+    "financeiro_transacoes": [
+      "id",
+      "categoria_id",
+      "usuario_id",
+      "venda_id",
+      "compra_id",
+      "descricao",
+      "valor",
+      "data_transacao",
+      "status",
+      "metodo_pagamento",
+      "criado_em",
+      "atualizado_em"
+    ],
+    "log_atividades": [
+      "id",
+      "usuario_id",
+      "usuario_nome",
+      "perfil",
+      "acao",
+      "detalhes",
+      "status_http",
+      "criado_em"
+    ]
+  }
+}

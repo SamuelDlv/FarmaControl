@@ -82,4 +82,8 @@ def audit():
 
 
 if __name__ == "__main__":
-    print(json.dumps(audit(), ensure_ascii=False, indent=2))
+    result = audit()
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    raise SystemExit(1 if any(result[key] for key in (
+        'missing_assets', 'duplicate_html_ids', 'unused_backend_imports'
+    )) else 0)
