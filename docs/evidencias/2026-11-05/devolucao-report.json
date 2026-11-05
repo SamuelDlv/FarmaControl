@@ -1,0 +1,24 @@
+{
+  "checks": [
+    "schema atual criado sem alterar roles globais",
+    "migrações 022 e 023 e reaplicação de 023 aprovadas",
+    "login real, sessão assinada e CSRF",
+    "lote vencido: descarte 23→18, devolução 18→14; fornecedor capturado e referência nula permitida",
+    "quantidade inválida, excesso, motivo vazio, fornecedor divergente, saída comum vencida e ausência de CSRF rejeitados sem baixa",
+    "histórico, consulta de movimentações, validação de paginação e auditoria persistida"
+  ],
+  "browser": [
+    "descarte: clique real → HTTP 201 → MySQL saldo 18 → tela atualizada",
+    "devolucao: clique real → HTTP 201 → MySQL saldo 14 → tela atualizada",
+    "título e explicação acompanham seleção, alternância e reabertura do modal",
+    "quantidade excessiva bloqueada pela interface",
+    "modal cabe em 390px; screenshots desktop/mobile; sem exceções JavaScript"
+  ],
+  "database_removed": true,
+  "mysql": {
+    "version": "8.0.46",
+    "collation": "utf8mb4_0900_ai_ci"
+  },
+  "chrome": "156.0.8078.80",
+  "passed": true
+}

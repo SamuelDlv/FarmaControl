@@ -484,9 +484,7 @@ function openDetail(l) {
 /* ══ MODAL: Descarte ══ */
 function openDescarte(l) {
   selectedLoteId = l.id;
-  baixaTipo = 'descarte';
-  document.getElementById('baixa-btn-descarte').classList.add('selected');
-  document.getElementById('baixa-btn-devolucao').classList.remove('selected');
+  setBaixaTipo('descarte');
   document.getElementById('descarte-product-name').textContent = `${l.nome} · ${l.lote}`;
   document.getElementById('descarte-current-qty').textContent = l.qty;
   document.getElementById('descarte-qty').value = '';
@@ -530,15 +528,24 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 });
 
 /* ── Baixa tipo buttons ── */
+function setBaixaTipo(tipo) {
+  baixaTipo = tipo;
+  const devolucao = tipo === 'devolucao';
+  document.getElementById('baixa-btn-descarte').classList.toggle('selected', !devolucao);
+  document.getElementById('baixa-btn-devolucao').classList.toggle('selected', devolucao);
+  document.getElementById('baixa-title').textContent = devolucao
+    ? 'Registrar Devolução ao Fornecedor'
+    : 'Registrar Descarte';
+  document.getElementById('baixa-description').textContent = devolucao
+    ? 'Devolução ao fornecedor retira unidades da farmácia; não transfere para outro estoque interno.'
+    : 'Descarte retira unidades do estoque por vencimento, avaria ou outro motivo informado.';
+}
+
 document.getElementById('baixa-btn-descarte')?.addEventListener('click', () => {
-  baixaTipo = 'descarte';
-  document.getElementById('baixa-btn-descarte').classList.add('selected');
-  document.getElementById('baixa-btn-devolucao').classList.remove('selected');
+  setBaixaTipo('descarte');
 });
 document.getElementById('baixa-btn-devolucao')?.addEventListener('click', () => {
-  baixaTipo = 'devolucao';
-  document.getElementById('baixa-btn-devolucao').classList.add('selected');
-  document.getElementById('baixa-btn-descarte').classList.remove('selected');
+  setBaixaTipo('devolucao');
 });
 
 /* ── Salvar descarte ── */
