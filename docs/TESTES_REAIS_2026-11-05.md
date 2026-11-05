@@ -56,13 +56,9 @@ gravadas com a finalidade correta.
 ## Evidências e reprodução
 
 - Script: `scripts/check_devolucao_mysql.py --browser`.
-- Evidências publicadas: [resultado estruturado](evidencias/2026-11-05/devolucao-report.json),
-  [descarte desktop](evidencias/2026-11-05/vencimentos-desktop.png),
-  [descarte móvel](evidencias/2026-11-05/vencimentos-mobile.png),
-  [devolução desktop](evidencias/2026-11-05/devolucao-desktop.png) e
-  [devolução móvel](evidencias/2026-11-05/devolucao-mobile.png).
+- Evidência publicada: [resultado estruturado](evidencias/2026-11-05/devolucao-report.json).
 - A execução gera as evidências em `.audit-backup/integration-20261105/`;
-  as cópias acima registram a execução após a correção visual.
+  os prints permanecem apenas nessa pasta local, fora do versionamento.
 - Executar pela raiz com Python, dependências do backend, Playwright Python e
   Chrome instalado. `CHROME_PATH` permite indicar outro caminho do Chrome.
 - O usuário MySQL precisa poder criar e remover a base temporária de testes.
