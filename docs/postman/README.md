@@ -1,15 +1,17 @@
 # FarmaControl no Postman
 
+Revisado em **09/11/2026**, comparando a Collection com os contratos de rotas do projeto.
+
 Importe `FarmaControl.postman_collection.json` pelo botão **Import** do Postman. O arquivo usa Collection v2.1 e contém todas as 43 rotas GET e 21 POST registradas em `backend/farmacontrol/routes/`, incluindo três rotas de arquivos do frontend. PUT e DELETE não fazem parte desta Collection. A modularização preserva as URLs e os métodos da Collection.
 
 ## Configuração e login
 
-1. Inicie o banco e o backend conforme `backend/README.md`.
+1. Inicie o banco e o backend conforme o [README do backend](../../backend/README.md), com schema e migrações conferidos.
 2. Abra a Collection e, em **Variables**, configure `base_url` (padrão `http://localhost:5000`), `email` e `password` de uma conta aprovada.
 3. Envie **POST /auth/login**, na pasta **Autenticacao**. O Postman armazena o cookie de sessão; o script da requisição salva `csrf_token` automaticamente.
 4. Execute as requisições desejadas com **Send**. Os POST protegidos já enviam `X-CSRF-Token`.
 
-Mantenha o cookie jar habilitado e use o mesmo host durante a sessão: `localhost` e `127.0.0.1` não compartilham cookies. Não há Bearer token. Se a sessão expirar ou o backend reiniciar, faça login novamente. Um 403 pode indicar falta de permissão do perfil ou token CSRF inválido.
+Mantenha o cookie jar habilitado e use o mesmo host durante a sessão: `localhost` e `127.0.0.1` não compartilham cookies. Não há Bearer token. Se a sessão expirar ou for invalidada, faça login novamente. Reiniciar com uma chave de sessão temporária invalida os cookies anteriores; uma chave persistente preserva a assinatura entre reinícios. Um 403 pode indicar falta de permissão do perfil ou token CSRF inválido.
 
 Não defina no ambiente variáveis com os mesmos nomes dos IDs e de `csrf_token`: elas têm precedência sobre as variáveis da Collection atualizadas pelos scripts. As credenciais estão vazias no arquivo entregue; preencha-as localmente.
 
@@ -25,7 +27,7 @@ Os IDs iniciais (`1`) são exemplos. Substitua-os por IDs das consultas GET ou c
 
 POSTs que retornam `id` salvam a variável correspondente automaticamente. As requisições GET de detalhe reutilizam esses IDs. Consultas de lista não selecionam registros automaticamente. Filtros disponíveis estão na aba **Params**, inicialmente desmarcados; habilite e preencha os desejados.
 
-Para o PDV, consulte **GET /vendas/catalogo** e ajuste `estoque_id` e `preco_venda` ao lote e preço atuais. **POST /vendas/balcao** conclui a venda e altera estoque e financeiro. Os exemplos de **POST /compras** e **POST /vendas** usam status pendente.
+Para o PDV, consulte **GET /vendas/catalogo** e ajuste as variáveis `estoque_id` e `preco_venda` ao lote e preço atuais. A variável `preco_venda` preenche o campo JSON `preco_unitario`; o servidor confere o preço e o saldo sob bloqueio. **POST /vendas/balcao** conclui a venda e altera estoque e financeiro. Os exemplos de **POST /compras** e **POST /vendas** usam status pendente.
 
 Para transações financeiras, obtenha `financeiro_categoria_id` em **GET /financeiro/categorias**, escolhendo uma categoria do mesmo tipo do corpo (o exemplo usa `despesa`). Atualize datas conforme necessário; `data_prescricao` é um exemplo fixo e `data_validade` precisa ser adequada ao lote.
 
@@ -40,3 +42,23 @@ Para transações financeiras, obtenha `financeiro_categoria_id` em **GET /finan
 Use a Collection como catálogo de requisições individuais. Executar tudo no Runner mistura fluxos alternativos de cadastro, recuperação, recusa de convite e logout, além de gravar dados e enviar e-mails. Repetir cadastros pode gerar conflitos por campos únicos. Os testes de resposta esperam sucesso (200/201 e `ok: true`); respostas de validação aparecem como testes falhos para facilitar a identificação.
 
 O JSON, os corpos após substituição das variáveis e a cobertura GET/POST foram conferidos estaticamente. As requisições não foram enviadas a uma instância com banco e credenciais reais.
+
+
+## Devolução, migrações e limites da validação
+
+`POST /movimentacoes-estoque` também atende descarte e devolução. Para testar
+devolução, ajuste o corpo com `tipo_movimentacao: "saida"`,
+`finalidade: "devolucao_fornecedor"`, `estoque_id`, quantidade inteira positiva
+e `motivo`. Não envie `estoque_destino_id`. O fornecedor vem do produto no
+servidor; se informado, precisa corresponder ao cadastro. O contrato completo
+está em [devolução ao fornecedor](../devolucao-fornecedor.md).
+
+Essas baixas administrativas podem retirar lote vencido; isso não libera vendas
+de lotes vencidos. Revise a preparação 022/023 e a baseline no
+[guia de migrações](../../backend/migrations/README.md) antes do teste.
+
+A conferência documental de 09/11 preservou os 64 exemplos (43 GET e 21 POST).
+O [CI de referência](https://github.com/SamuelDlv/FarmaControl/actions/runs/42654607638)
+passou com testes de API e integração MySQL/navegador; ele não executa esta
+Collection no Postman. Para o roteiro manual, veja [ordem de execução](ORDEM-DE-EXECUCAO.md).
+PUT e DELETE estão descritos na [referência da API](../API.md).

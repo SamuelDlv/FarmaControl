@@ -1,6 +1,6 @@
 # Autenticação, contas e permissões
 
-Revisado em **23/10/2026**, a partir de `backend/farmacontrol/routes/auth.py`, `backend/farmacontrol/middleware.py` e dos módulos `access.py`, `credentials.py`, `runtime_config.py` e `security.py` em `backend/farmacontrol/core/`. Consulte [backend](../../../backend/README.md) e [API](../../../docs/API.md).
+Revisado em **09/11/2026**, a partir de `backend/farmacontrol/routes/auth.py`, `backend/farmacontrol/middleware.py` e dos módulos `access.py`, `credentials.py`, `runtime_config.py` e `security.py` em `backend/farmacontrol/core/`. Consulte [backend](../../../backend/README.md) e [API](../../../docs/API.md).
 
 ## Páginas públicas
 
@@ -66,7 +66,7 @@ A guarda não usa a presença de sessionStorage como prova de autenticação: o 
 
 `POST /auth/redefinir-senha` recebe `token` e `password`, bloqueia a linha durante a validação, atualiza o hash e apaga o token na mesma transação. Token expirado ou consumido é recusado. Sessões antigas deixam de ser aceitas após a mudança da credencial.
 
-Sem SMTP não há entrega do link, mesmo com resposta genérica de sucesso. Uma URL pública com `localhost` só funciona no computador do servidor.
+Sem SMTP não há entrega do link, mesmo com resposta genérica de sucesso. O limitador de tentativas também se aplica a essa solicitação. Uma URL pública com `localhost` só funciona no computador do servidor.
 
 ## Autorização e proteção HTTP
 
@@ -91,3 +91,29 @@ Credenciais incorretas retornam HTTP 401 com `tentativas_restantes` e `aguarde_s
 `LEGAL_DOCUMENT_VERSION` define a versão dos aceites (`2026-10-05` no código revisado). O registro fica em `aceites_legais`. Mudanças nos textos legais precisam considerar também essa versão e o fluxo de consentimento.
 
 Os testes de backend/segurança usam banco simulado. Na homologação, valide cadastro, aprovação, convite, recuperação, logout e revogação usando contas fictícias e SMTP de teste. A atualização desta documentação não representa validação jurídica dos textos apresentados aos usuários.
+
+
+## Verificação e manutenção
+
+Na raiz, com as dependências Python instaladas e Node 22 ou superior:
+
+```powershell
+python -B -m unittest discover -s tests -v
+node --test tests/*.test.cjs
+node scripts/check_frontend.cjs
+```
+
+Os contratos de autenticação estão principalmente em `tests/test_backend.py`,
+`tests/test_security.py` e `tests/test_page_access.py`. As regressões visuais de
+sessão, logout e contador ficam em `tests/auth-guard.test.cjs`,
+`tests/logout.test.cjs`, `tests/login-attempts.test.cjs` e `tests/frontend.test.cjs`.
+
+Em 09/11/2026, a suíte geral passou com 195 testes Python e 25 JavaScript, além
+da sintaxe de 55 scripts frontend. O
+[CI de referência](https://github.com/SamuelDlv/FarmaControl/actions/runs/42654607638)
+também concluiu os cinco jobs. Os testes de autenticação usam dependências
+simuladas; a integração MySQL/navegador do CI não comprova entrega SMTP nem
+homologa todos os fluxos de conta com um serviço de e-mail real.
+
+Os comentários próximos aos hooks, handlers e utilitários explicam a ordem de
+validação e o descarte de recursos; veja o [guia de manutenção](../../../docs/COMENTARIOS_MANUTENCAO.md).

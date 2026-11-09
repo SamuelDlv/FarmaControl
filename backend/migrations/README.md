@@ -1,5 +1,7 @@
 # Migrações do banco
 
+Revisado em **09/11/2026**. A pasta controlada ainda não contém SQL posterior à baseline 023.
+
 Publicar no GitHub não executa migrações na instalação. Use uma conta com permissão
 de alteração de schema, faça backup e valide a restauração antes de mudanças em dados reais.
 Os comandos abaixo partem da raiz e usam `backend/.env`; variáveis de ambiente
@@ -55,7 +57,7 @@ O runner executa apenas SQLs dessa pasta. Registra nome, versão, checksum SHA-2
 estado e datas. Um bloqueio MySQL por banco impede dois runners simultâneos.
 Arquivos já aplicados são imutáveis; correções recebem outra versão. Finais de
 linha LF e CRLF produzem o mesmo checksum. O contrato de baseline também é imutável.
-Não há migração 024 nesta entrega: o recurso novo é o controle de versões.
+Na revisão de 09/11/2026 não existe migração 024; a próxima alteração de estrutura deve receber uma versão nova nesta pasta. A revisão dos comentários e READMEs não exige migração de banco.
 
 ## Falhas e recuperação
 
@@ -86,3 +88,14 @@ antigas permanecem nulos.
 `python scripts/check_migrations_mysql.py` valida baseline, reaplicação, checksum,
 concorrência e falha parcial de DDL em base temporária, removida ao terminar.
 O CI executa esse teste no MySQL 8.0.46; MariaDB não está coberto por essa matriz.
+
+
+O [CI de referência de 09/11/2026](https://github.com/SamuelDlv/FarmaControl/actions/runs/42654607638)
+aprovou o runner no job MySQL/navegador e a importação/reimportação do schema
+em MySQL 8.0.46 e MariaDB 10.4. A matriz de schema MariaDB não equivale à
+validação do runner nessa plataforma. Nenhuma dessas execuções aplica migrações
+na instalação do usuário.
+
+Os comentários de manutenção foram acrescentados aos utilitários Python; os
+SQLs históricos e `baseline_023.json` permaneceram intactos. Consulte o
+[guia de manutenção](../../docs/COMENTARIOS_MANUTENCAO.md) e a [reprodução do CI](../../docs/CI.md).

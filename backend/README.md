@@ -2,7 +2,7 @@
 
 API Flask com PyMySQL e banco MySQL/MariaDB. As rotas estão separadas por área em `farmacontrol/routes/`, com entrada em `app.py`; não há prefixo `/api`, JWT, Prisma ou servidor Node nesta implementação.
 
-Revisado em **23/10/2026**. Consulte também o [índice da documentação](../docs/README.md) e a [referência de endpoints](../docs/API.md).
+Revisado em **09/11/2026**. Consulte também o [índice da documentação](../docs/README.md) e a [referência de endpoints](../docs/API.md).
 
 ## Organização interna
 
@@ -13,10 +13,12 @@ Revisado em **23/10/2026**. Consulte também o [índice da documentação](../do
 | `farmacontrol/core/` | Conexão por requisição, permissões, credenciais, respostas HTTP e caminhos |
 | `farmacontrol/core/runtime_config.py` | Validação de ambiente, sessão, origens e limites HTTP |
 | `farmacontrol/core/security.py` | Vínculo da sessão com a credencial e limitador de autenticação |
+| `farmacontrol/core/local_server.py` | Servidor local e encerramento cooperativo por instância no Windows |
 | `farmacontrol/middleware.py` | Validação de entrada, autorização, CSRF, cabeçalhos, auditoria de consultas e agendamento |
 | `farmacontrol/routes/` | Rotas por área: autenticação, administração, clientes, catálogo, fornecedores, estoque, compras, vendas, receitas, alertas, configurações, dashboard, relatórios e financeiro; saúde e frontend |
 | `farmacontrol/services/audit.py` | Eventos de auditoria e detalhes permitidos |
 | `farmacontrol/services/product_rules.py` | Normalização e validação do catálogo |
+| `farmacontrol/services/contact_rules.py` | Formato e limites dos contatos e documentos de fornecedores |
 | `farmacontrol/services/reporting.py` | Funções compartilhadas de relatórios |
 | `farmacontrol/services/system_settings.py` | Preferências, validação e alertas |
 | `farmacontrol/services/email.py` | Templates e envio transacional pela Brevo |
@@ -25,7 +27,7 @@ Revisado em **23/10/2026**. Consulte também o [índice da documentação](../do
 
 Cada módulo de rotas expõe `register_routes(app)`, preservando as URLs, os métodos HTTP e os nomes dos endpoints. Os handlers usam o contexto Flask atual; a conexão permanece em `g` e é encerrada ao terminar o contexto. O limitador de autenticação pertence à instância da aplicação (`app.extensions`).
 
-Para adicionar uma área, crie um módulo em `farmacontrol/routes/` e registre-o em `create_app()`. Regras reutilizáveis ficam em `services/`; infraestrutura HTTP e segurança ficam em `core/`. Testes e scripts importam a responsabilidade diretamente do módulo correspondente.
+Para adicionar uma área, crie um módulo em `farmacontrol/routes/` e registre-o em `create_app()`. Regras reutilizáveis ficam em `services/`; infraestrutura HTTP e segurança ficam em `core/`. Testes e scripts importam a responsabilidade diretamente do módulo correspondente. Os comentários no código identificam entradas, dependências SQL e limites de transação; consulte o [guia de manutenção](../docs/COMENTARIOS_MANUTENCAO.md).
 
 ## Configuração
 
@@ -104,7 +106,7 @@ explícitos. O [CI](../docs/CI.md) verifica migrações em bases descartáveis.
 
 O catálogo aceita medicamentos e outros produtos no mesmo estoque, compras e vendas. O campo `tipo_produto` distingue `medicamento` de `outro`; categorias organizam alimentos (incluindo bebidas), higiene, cosméticos, saúde sexual, itens infantis, suplementos, acessórios e primeiros socorros. Categorias não determinam o tipo: um creme pode ser medicamento ou cosmético conforme seu cadastro.
 
-Instalações novas usam `schema.sql`. Para atualizar uma instalação existente, aplique `migrations/012_catalogo_multicategoria.sql` **antes** de iniciar a API atualizada. Aplique também `migrations/019_reorganiza_categorias_produto.sql`: transfere Bebidas para Alimentos e substitui a categoria combinada por Acessórios, criando Primeiros socorros separadamente. Os produtos da categoria combinada ficam em Acessórios e podem ser reclassificados pelo cadastro. O utilitário `python scripts/migrate_catalogo.py --apply` aplica as duas migrações no banco local. A migração pode ser reaplicada; mantém IDs, lotes, histórico e a classificação dos produtos antigos como medicamentos. Não corrige automaticamente validades antigas (inclusive datas fictícias cadastradas pela versão anterior).
+Instalações novas usam `schema.sql`, seguido da conferência e do registro da baseline descritos no [guia de migrações](migrations/README.md). Em bases antigas ainda sem o catálogo multicategoria, revise e aplique `migrations/012_catalogo_multicategoria.sql` **antes** de iniciar a API atualizada. Nessas bases, confira também `migrations/019_reorganiza_categorias_produto.sql`: transfere Bebidas para Alimentos e substitui a categoria combinada por Acessórios, criando Primeiros socorros separadamente. Os produtos da categoria combinada ficam em Acessórios e podem ser reclassificados pelo cadastro. O utilitário `python scripts/migrate_catalogo.py --apply` prepara as alterações de 012/019 no banco local e pode ser reaplicado; mantém IDs, lotes, histórico e a classificação dos produtos antigos como medicamentos. Não reaplique SQLs do legado em bases cuja baseline já foi revisada e registrada. O utilitário não corrige automaticamente validades antigas (inclusive datas fictícias cadastradas pela versão anterior).
 
 Na raiz do projeto, com as dependências Python instaladas:
 
@@ -113,7 +115,6 @@ python scripts/migrate_catalogo.py          # inspeção sem alterações
 python scripts/migrate_catalogo.py --apply  # apenas o banco local de backend/.env
 python -m unittest discover -s tests
 python scripts/check_catalogo_mysql.py      # banco temporário; exige CREATE/DROP DATABASE
-node scripts/check_browser.cjs catalogo     # Chrome isolado e API simulada
 ```
 
 `exige_validade` inicia habilitado, inclusive para alimentos e bebidas; somente outros produtos podem desabilitá-lo. Uma data preenchida continua participando de vencimentos mesmo com a exigência desligada. Medicamentos mantêm princípio ativo e indicação de receita. Outros produtos não armazenam princípio ativo nem podem exigir receita. Não há validação clínica ou nova integração regulatória.
@@ -135,9 +136,10 @@ cadastro, 20 fornecedores, 500 clientes, 200 produtos, 600 lotes, 800 compras,
 alertas de vencimento/estoque baixo e logs. Inclui produtos sem validade,
 lotes vencidos, pedidos pendentes/cancelados e quatro formas de pagamento.
 
-Após aplicar o schema atual e as migrações necessárias (inclusive 012 e 016),
-abra o arquivo no MySQL Workbench, selecione o banco **de teste** e execute o
-arquivo completo. Também é possível abrir o cliente na raiz do projeto:
+Prepare uma base **de teste** pelo schema atual, ou confira as migrações
+necessárias de uma base antiga (inclusive 012 e 016). Não reaplique essas
+migrações sobre o schema novo. Abra a carga no MySQL Workbench, selecione
+o banco de teste e execute o arquivo completo. Também é possível abrir o cliente na raiz do projeto:
 
 ```text
 mysql -u root -p --default-character-set=utf8mb4 farmacontrol
@@ -246,7 +248,7 @@ restaurar os últimos valores gravados. **Recarregar dados** busca os valores do
 Os alertas do dashboard respeitam os interruptores de estoque mínimo, vencimentos
 (incluindo a antecedência em dias) e compras pendentes há mais de 48 horas. O estoque mínimo padrão é usado no cadastro de novos produtos. Produtos existentes preservam seu mínimo próprio. O controle de lote é
 validado no cadastro/recebimento e o bloqueio de vencidos nas saídas e vendas.
-Ajustes de saldo continuam disponíveis para registrar descarte de produtos vencidos.
+Descarte e devolução de lotes vencidos usam saídas administrativas com finalidade e motivo explícitos, conforme a seção abaixo.
 
 Resumos por e-mail usam a configuração SMTP da Brevo já existente no servidor.
 São avaliados em segundo plano ao consultar o dashboard, no máximo uma vez por minuto.
@@ -262,28 +264,31 @@ Verificações: `python -m unittest discover -s tests -p "test_*.py"`,
 `node --test tests/frontend.test.cjs` e `node scripts/check_settings.cjs`.
 O último usa Chrome isolado e API simulada, sem gravar no banco real.
 
-### Baixa por descarte (migração 022)
+### Descarte e devolução ao fornecedor (migrações 022/023)
 
-Antes de iniciar esta versão em uma base existente, aplique uma vez
-`backend/migrations/022_finalidade_movimentacao.sql`. Instalações novas usam
-`schema.sql`. Alternativamente, execute `python scripts/migrate_descarte.py --apply`
-no ambiente virtual para atualizar a instância local configurada em `backend/.env`;
-o utilitário verifica colunas existentes e pode ser reaplicado.
-A migração apenas acrescenta `finalidade` e `motivo`, ambos
-nullable; não altera saldos nem reclassifica histórico com base em texto livre.
+Em uma base antiga, confira os campos de 022 (`finalidade`, `motivo`) e 023
+(`fornecedor_id`) antes de usar as saídas administrativas. O utilitário
+`python scripts/migrate_devolucao.py` inspeciona a estrutura e, com `--apply`,
+acrescenta somente os campos ausentes no banco local configurado. Instalações
+novas já recebem esses campos por `schema.sql`. Consulte o [guia de migrações](migrations/README.md)
+antes de aplicar SQL ou registrar a baseline. A preparação não altera saldos nem
+reclassifica histórico com base em texto livre.
 
 `POST /movimentacoes-estoque` aceita `finalidade` opcional apenas para `saida`:
 `venda`, `descarte` ou `devolucao_fornecedor`. Clientes antigos continuam
 funcionando sem finalidade, sujeitos ao bloqueio usual de vencimento.
-Descarte exige motivo textual não vazio (até 255 caracteres), CSRF, módulo
+Descarte e devolução exigem motivo textual não vazio (até 255 caracteres), CSRF, módulo
 `estoque` habilitado e perfil administrativo de estoque (`proprietario`,
 `admin`, `farmaceutico`, `compras` ou `ti`). Visualizador e atendente não
-podem autorizar descarte, mesmo com módulo estoque habilitado. A autoria
+podem autorizar essas baixas, mesmo com módulo estoque habilitado. A autoria
 vem exclusivamente da sessão validada no servidor.
 
-Somente descarte pode baixar lote vencido com bloqueio ativo. Devolução
-reduz estoque como saída administrativa e continua sujeita ao bloqueio de
-vencimento; transferência interna continua exigindo lote de destino.
+Descarte e devolução ao fornecedor podem baixar lotes vencidos com o bloqueio
+comercial ativo. Saídas comuns e vendas preservam suas regras de vencimento.
+Devolução não aceita estoque interno de destino: o servidor captura o fornecedor
+do cadastro do produto e rejeita um `fornecedor_id` enviado que não corresponda.
+Sem fornecedor cadastrado, a referência pode permanecer nula. Transferência
+interna continua exigindo lote de destino do mesmo produto.
 Quantidade inteira positiva, saldo, bloqueio `FOR UPDATE`, movimentação e
 log transacional são preservados. Se a gravação do log falhar, a baixa é
 revertida. Histórico, tabela de movimentos e CSV identificam finalidade e
@@ -291,3 +296,25 @@ motivo. Os indicadores de dispensação excluem descartes e devoluções
 estruturados; registros legados sem finalidade mantêm o tratamento anterior.
 O contador de lotes descartados usa a finalidade estruturada, sem inferir
 que observações antigas sejam autorizações de descarte.
+
+
+## Validação de referência
+
+Em 09/11/2026, a suíte geral passou com 195 testes Python e 25 JavaScript, além
+da verificação de 55 scripts frontend, auditoria estática e `pip check`. O
+[CI de referência](https://github.com/SamuelDlv/FarmaControl/actions/runs/42654607638)
+aprovou os cinco jobs, incluindo schema MySQL/MariaDB, integração MySQL/navegador
+e encerramento real no Windows. Isso não confirma o estado do banco instalado
+nem a entrega de e-mails por um SMTP operacional.
+
+Comandos pela raiz do projeto, no ambiente Python configurado:
+
+```powershell
+python -B -m unittest discover -s tests -v
+python -m pip check
+python -B scripts/audit_static.py
+node --test tests/*.test.cjs
+node scripts/check_frontend.cjs
+```
+
+Os pré-requisitos dos testes adicionais estão em [CI](../docs/CI.md).

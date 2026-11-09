@@ -2,7 +2,7 @@
 
 Sistema de gestão farmacêutica com backend **Flask + MySQL/MariaDB** e frontend **HTML, CSS e JavaScript**.
 
-Documentação revisada em **23/10/2026**. A aplicação reúne catálogo, estoque por lote, compras, vendas de balcão, financeiro, usuários e histórico de atividades em uma interface web. O Flask serve tanto a API quanto as páginas; não é necessário instalar um servidor Node para usá-la.
+Documentação revisada em **09/11/2026**. A aplicação reúne catálogo, estoque por lote, compras, vendas de balcão, financeiro, usuários e histórico de atividades em uma interface web. O Flask serve tanto a API quanto as páginas; não é necessário instalar um servidor Node para usá-la.
 
 ## Funcionalidades
 
@@ -10,7 +10,7 @@ Documentação revisada em **23/10/2026**. A aplicação reúne catálogo, estoq
 | --- | --- |
 | Dashboard | Indicadores, gráficos e alertas operacionais |
 | Vendas / PDV | Pesquisa, comparação, carrinho, seleção de lotes e conclusão com baixa e financeiro |
-| Estoque | Medicamentos e outros produtos, categorias, lotes, validade e movimentações |
+| Estoque | Medicamentos e outros produtos, categorias, lotes, validade, movimentações, descarte e devolução ao fornecedor |
 | Vencimentos | Consulta de lotes e acompanhamento de validade |
 | Compras | Pedidos, fornecedores, itens e recebimento em estoque |
 | Financeiro | Categorias, transações, indicadores e fluxo |
@@ -76,7 +76,7 @@ python -m venv .venv
 if (-not (Test-Path backend/.env)) { Copy-Item backend/.env.example backend/.env }
 ```
 
-Preencha `backend/.env` e, em uma instalação nova, execute `backend/schema.sql` no MySQL Workbench ou importe-o pelo phpMyAdmin do XAMPP. O schema cria a base `farmacontrol`; use esse nome em `DB_NAME`. As roles técnicas são opcionais e ficam em `backend/setup/technical_roles.sql`, para execução separada pela TI. Depois inicie:
+Preencha `backend/.env` e, em uma instalação nova, execute `backend/schema.sql` no MySQL Workbench ou importe-o pelo phpMyAdmin do XAMPP. O schema cria a base `farmacontrol`; use esse nome em `DB_NAME`. Confira a estrutura e registre a baseline conforme o [guia de migrações](backend/migrations/README.md). O schema atual já inclui 022/023; não reaplique migrações antigas sobre uma instalação nova. As roles técnicas são opcionais e ficam em `backend/setup/technical_roles.sql`, para execução separada pela TI. Depois inicie:
 
 ```powershell
 .\.venv\Scripts\python.exe backend/app.py
@@ -84,7 +84,7 @@ Preencha `backend/.env` e, em uma instalação nova, execute `backend/schema.sql
 
 Configure `backend/.env` a partir de `backend/.env.example`, com `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` e `SECRET_KEY`. Para receber e-mails de cadastro/análise, preencha também as credenciais SMTP da Brevo e um remetente verificado. Consulte [backend/README.md](backend/README.md) para as demais opções. O ponto de entrada é [a tela de acesso local](http://localhost:5000/pages/acesso/acesso.html).
 
-Os SQLs não são executados pelos comandos Python. Para uma base existente, revise as migrações necessárias antes de aplicá-las. Scripts marcados como opcionais incluem cargas de demonstração e limpeza de dados; não execute todos automaticamente. Para transferir dados existentes, siga o guia de transferência.
+Iniciar o backend não aplica SQL nem atualiza o banco. Os utilitários de migração têm comandos explícitos de inspeção e aplicação. Para uma base existente, revise o legado até 023 e adote o controle de versões conforme o [guia](backend/migrations/README.md); versões novas ficam em `backend/migrations/managed/`. Scripts opcionais incluem cargas de demonstração e limpeza de dados; não execute a pasta inteira. Para transferir dados existentes, siga o guia de transferência.
 
 ### Primeiro acesso
 
@@ -98,7 +98,7 @@ Após a configuração, `Iniciar-FarmaControl.bat` usa `.venv/Scripts/python.exe
 
 Após atualizar de uma versão antiga, encerre uma vez com `Ctrl+C` e reinicie pelo iniciador para habilitar o novo sinal de encerramento. O modo local mantém `APP_DEBUG` para diagnóstico, sem recarga automática. Para usar XAMPP, inicie o MySQL pelo painel antes da aplicação; pare o banco pelo próprio painel somente depois de encerrar o FarmaControl. Apache é necessário para o phpMyAdmin, mas não para servir o FarmaControl. Veja [compatibilidade e diagnóstico do banco](docs/MYSQL_XAMPP.md).
 
-O servidor local escuta em `127.0.0.1:5000`. O `.env` distribuído nesta preparação está sem credenciais: preencha os dados da sua instalação. Gere uma chave persistente com:
+O servidor local escuta em `127.0.0.1:5000`. O repositório distribui `backend/.env.example`; crie o `.env` privado com os dados da sua instalação. Gere uma chave persistente com:
 
 ```powershell
 .\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_hex(32))"
@@ -124,27 +124,40 @@ utilizam o [`schema.sql`](backend/schema.sql) atualizado.
 .\.venv\Scripts\python.exe -B -m unittest discover -s tests -v
 .\.venv\Scripts\python.exe -m pip check
 node scripts/check_frontend.cjs
-node --test tests/frontend.test.cjs tests/log.test.cjs tests/vendas.test.cjs
+node --test tests/*.test.cjs
+.\.venv\Scripts\python.exe -B scripts/audit_static.py
 ```
 
-Node é usado apenas nas verificações, não na aplicação. Use Node 22 ou superior. Os testes Python bloqueiam conexões reais ao MySQL. As verificações opcionais de navegador, como `node scripts/check_navigation.cjs`, exigem Chrome; configure `CHROME_PATH` se necessário. Scripts de integração MySQL em `scripts/` têm requisitos próprios descritos na documentação do backend.
+Node é usado apenas nas verificações, não na aplicação. Use Node 22 ou superior. A suíte unitária Python usa conexões simuladas para os contratos de banco; os testes de servidor local também exercitam HTTP e encerramento no Windows. As verificações opcionais de navegador, como `node scripts/check_navigation.cjs`, exigem Chrome; configure `CHROME_PATH` se necessário. Scripts de integração MySQL em `scripts/` têm requisitos próprios descritos na documentação do backend.
 
 ## Publicar no GitHub
 
 O arquivo `backend/.env.example` contém apenas valores de exemplo. O `.env` local, ambientes virtuais, caches, logs e backups ficam fora do versionamento pelo `.gitignore`. Não inclua exportações do banco com dados reais.
 
-Com Git instalado, crie um repositório vazio no GitHub e execute na raiz (substitua a URL pela do seu repositório):
+O repositório do projeto é [SamuelDlv/FarmaControl](https://github.com/SamuelDlv/FarmaControl), branch `main`. Para obter uma cópia de trabalho com histórico Git:
 
 ```powershell
-git init -b main
-git add .
-git status --short
-git diff --cached --stat
-git check-ignore backend/.env
-git commit -m "Prepara FarmaControl para versionamento"
-git remote add origin https://github.com/SEU_USUARIO/FarmaControl.git
-git push -u origin main
+git clone https://github.com/SamuelDlv/FarmaControl.git
+cd FarmaControl
 ```
+
+Em uma cópia já clonada, confira mudanças locais antes de atualizar. Para publicar,
+selecione somente os arquivos revisados (o exemplo abaixo inclui o README principal):
+
+```powershell
+git status --short
+git pull --ff-only origin main
+# Faça as alterações e execute as verificações pertinentes.
+git add README.md
+git diff --cached --stat
+git diff --cached
+git check-ignore backend/.env
+git commit -m "Atualiza a documentação do projeto"
+git push origin main
+```
+
+Uma pasta extraída de ZIP não contém o histórico Git; prefira clonar e transportar
+as alterações revisadas, preservando arquivos locais e a configuração privada.
 
 Revise a lista de arquivos antes do commit. `git check-ignore` deve mostrar `backend/.env`; somente o exemplo deve ser publicado. O envio ao GitHub versiona o projeto, mas não coloca a aplicação em funcionamento na internet.
 
@@ -174,6 +187,15 @@ As páginas internas exigem sessão e permissão no servidor antes da entrega do
 
 Explore o **[Atlas EER do banco](docs/database_eer.md)**: 24 tabelas organizadas em sete áreas, diagramas de relacionamentos e dicionário de colunas com PK/FK, tipos e nulabilidade.
 
-Acesse o [índice completo](docs/README.md), o [guia de desenvolvimento](docs/DESENVOLVIMENTO.md) e a [referência da API](docs/API.md). Para propor uma mudança, descreva o problema, o comportamento esperado, testes executados e eventual migração de banco.
+Acesse o [índice completo](docs/README.md), o [guia de desenvolvimento](docs/DESENVOLVIMENTO.md), a [referência da API](docs/API.md) e o [guia dos comentários para manutenção](docs/COMENTARIOS_MANUTENCAO.md). Para propor uma mudança, descreva o problema, o comportamento esperado, testes executados e eventual migração de banco.
 
-Os relatórios datados são registros históricos. Na preparação de 19/10/2026 passaram 120 testes Python e 17 JavaScript; integração real com MySQL, navegador e infraestrutura publicada não foi revalidada nessa etapa.
+Na revisão de 09/11/2026, passaram **195 testes Python**, **25 testes JavaScript**,
+a sintaxe de **55 scripts frontend**, `pip check` e a auditoria estática. O
+[CI do commit 710e9dc](https://github.com/SamuelDlv/FarmaControl/actions/runs/42654607638)
+também aprovou os cinco jobs: unitários/auditoria, encerramento Windows, schema
+MySQL 8.0.46, schema MariaDB 10.4 e integração MySQL/navegador. Esses resultados
+pertencem à execução indicada; confira o Actions de cada atualização.
+
+Os relatórios datados preservam resultados históricos. Entrega SMTP real,
+compilação do instalador e uma instalação operacional específica não foram
+validadas por essa execução.

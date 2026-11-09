@@ -1,6 +1,6 @@
 # Documentação do FarmaControl
 
-Referência revisada em **23/10/2026**, a partir do código e dos SQLs presentes nesta cópia. A revisão documental não executa migrações nem confirma a estrutura de um banco instalado.
+Referência revisada em **09/11/2026**, a partir do código e dos SQLs presentes nesta cópia. A revisão documental não executa migrações nem confirma a estrutura de um banco instalado.
 
 ## Por onde começar
 
@@ -17,6 +17,13 @@ Referência revisada em **23/10/2026**, a partir do código e dos SQLs presentes
 | Consultar endpoints | [Referência da API](API.md) |
 | Operar vendas de balcão | [Vendas e PDV](pdv.md) |
 | Desenvolver e executar verificações | [Desenvolvimento](DESENVOLVIMENTO.md) |
+| Entender os comentários e acompanhar um fluxo no código | [Manutenção e transferência do código](COMENTARIOS_MANUTENCAO.md) |
+| Consultar verificações automáticas e testes de integração | [CI e reprodução local](CI.md) |
+| Conferir baseline e aplicar migrações novas | [Migrações do banco](../backend/migrations/README.md) |
+| Criar uma migração controlada | [Convenção de migrações](../backend/migrations/managed/README.md) |
+| Registrar devolução ao fornecedor | [Devolução](devolucao-fornecedor.md) |
+| Configurar e diagnosticar MySQL/MariaDB no XAMPP | [MySQL e XAMPP](MYSQL_XAMPP.md) |
+| Consultar a API pelo Postman | [Collection e instruções](postman/README.md) |
 | Transferir arquivos e banco | [Transferência](TRANSFERENCIA.md) |
 | Preparar commits e publicar código | [GitHub](GITHUB.md) |
 
@@ -34,6 +41,18 @@ Documentação não substitui esses contratos. Ao alterar uma rota, configuraç�
 
 Esses documentos preservam os resultados e limitações das respectivas revisões. Contagens antigas, caminhos de evidências locais e descrições da antiga SPA não representam necessariamente a versão atual. A consulta de vulnerabilidades de 15/10 não foi repetida nesta atualização documental.
 
-## Verificação registrada em 19/10
+## Validação de referência em 09/11/2026
 
-Na preparação desta cópia para GitHub passaram 120 testes Python, 17 testes JavaScript e a verificação de dependências Python. A verificação final de sintaxe cobriu 53 scripts externos e inline. Não foram executados testes de navegador ou integração com MySQL nessa preparação. O ambiente virtual utilizado foi removido parcialmente durante a limpeza e deve ser recriado como `.venv`.
+- 195 testes Python e 25 testes JavaScript aprovados.
+- Sintaxe de 55 scripts frontend e dependências Python verificadas.
+- Auditoria sem assets ausentes, IDs HTML duplicados ou imports de backend não utilizados.
+- [GitHub Actions do commit 710e9dc](https://github.com/SamuelDlv/FarmaControl/actions/runs/42654607638): cinco jobs aprovados, cobrindo unitários/auditoria, encerramento Windows, schema MySQL 8.0.46, schema MariaDB 10.4 e integração MySQL/navegador.
+
+As contagens descrevem essa revisão, não uma garantia sobre versões futuras.
+Confira a execução associada ao commit instalado. O CI usa bases descartáveis;
+não confirma o estado da base operacional, entrega SMTP real ou compilação do
+instalador. Veja os detalhes e limites em [CI](CI.md) e no [registro de manutenção](COMENTARIOS_MANUTENCAO.md).
+
+Os resultados de 19/10 (120 testes Python, 17 JavaScript e 53 scripts) são
+históricos. Para preparar outra máquina, crie uma nova `.venv`; não copie
+ambientes virtuais da instalação anterior.
