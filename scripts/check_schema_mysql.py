@@ -15,14 +15,18 @@ def main():
     with connection() as admin:
         try:
             with admin.cursor() as cur:
+                # Em containers, o servidor enxerga o IP da bridge, não localhost.
+                # Limita a conta descartável à mesma origem da conexão administrativa.
+                cur.execute('SELECT USER() AS identity')
+                client_host = cur.fetchone()['identity'].rsplit('@', 1)[1]
                 cur.execute(f'CREATE DATABASE `{name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci')
                 created_db = True
-                cur.execute('CREATE USER %s@\'localhost\' IDENTIFIED BY %s', (user, password))
+                cur.execute('CREATE USER %s@%s IDENTIFIED BY %s', (user, client_host, password))
                 created_user = True
-                cur.execute(f'GRANT ALL PRIVILEGES ON `{name}`.* TO %s@\'localhost\'', (user,))
+                cur.execute(f'GRANT ALL PRIVILEGES ON `{name}`.* TO %s@%s', (user, client_host))
             # Não utiliza a senha operacional para a conexão de importação.
             import pymysql
-            with pymysql.connect(host='127.0.0.1', port=admin.port, user=user,
+            with pymysql.connect(host=admin.host, port=admin.port, user=user,
                                  password=password, database=name, charset='utf8mb4',
                                  client_flag=pymysql.constants.CLIENT.MULTI_STATEMENTS) as db:
                 schema = (Path(__file__).resolve().parents[1] / 'backend/schema.sql').read_text(encoding='utf-8')
@@ -44,7 +48,7 @@ def main():
         finally:
             with admin.cursor() as cur:
                 if created_user:
-                    cur.execute('DROP USER %s@\'localhost\'', (user,))
+                    cur.execute('DROP USER %s@%s', (user, client_host))
                 if created_db:
                     cur.execute(f'DROP DATABASE `{name}`')
 
