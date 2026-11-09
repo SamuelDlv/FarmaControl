@@ -1,3 +1,5 @@
+# Guia de manutenção — Coordena venda, baixa por lote e receita financeira, incluindo o PDV de balcão.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """routes.vendas: responsabilidades extraídas da aplicação Flask."""
 
 from decimal import Decimal
@@ -15,7 +17,10 @@ import pymysql.cursors
 log = logging.getLogger("farmacontrol")
 
 
+# Consulta vendas.
 def get_vendas():
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # clientes, usuarios, vendas.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -27,8 +32,11 @@ def get_vendas():
         return responses.err("Erro interno ao buscar vendas.", status=500)
 
 
+# Consulta comercial independente da permissão de edição de estoque.
 def catalogo_pdv():
     """Consulta comercial independente da permissão de edição de estoque."""
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # categorias_produto, estoque, produtos.
     try:
         with database.get_db().cursor() as cur:
             cur.execute("""SELECT p.id AS produto_id, p.nome, p.nome_generico,
@@ -50,8 +58,17 @@ def catalogo_pdv():
         return responses.err('Não foi possível consultar o catálogo.', status=503)
 
 
+# Valida o pedido antes de gravar e reconsulta preço, receita e saldo sob bloqueio.
+# Venda, itens, baixa, movimentação, financeiro e auditoria precisam confirmar em conjunto.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def concluir_pdv():
     """Saldo, preço, receita e financeiro validados na mesma transação."""
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # itens, receita_conferida, tipo_pagamento.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # estoque, financeiro_categorias, financeiro_transacoes, itens_venda, movimentacoes_estoque, produtos.
+    # vendas.
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
         return responses.err('Venda inválida.')
@@ -73,6 +90,8 @@ def concluir_pdv():
     try:
         with db.cursor() as cur:
             validated, total = [], Decimal('0.00')
+            # Uma ordem estável reduz ciclos de espera entre duas vendas que usam
+            # os mesmos lotes. FOR UPDATE mantém cada saldo protegido até o commit.
             for item in sorted(items, key=lambda value: value['estoque_id']):
                 cur.execute("""SELECT e.*, p.nome, p.preco_venda, p.requer_receita,
                     (e.data_validade IS NULL OR e.data_validade >= CURDATE()) AS valido
@@ -82,6 +101,8 @@ def concluir_pdv():
                 if not row or not row['valido'] or row['quantidade'] < item['quantidade']:
                     raise ValueError('Saldo indisponível ou lote vencido. Atualize o catálogo e revise a venda.')
                 price = Decimal(str(row['preco_venda']))
+                # O preço enviado pela tela é uma cotação, não a fonte de verdade.
+                # A divergência obriga a atualizar o catálogo antes de confirmar.
                 quoted = Decimal(str(item.get('preco_unitario', 'NaN')))
                 if not price.is_finite() or price <= 0 or not quoted.is_finite() or quoted != price:
                     raise ValueError('O preço mudou ou está inválido. Atualize o catálogo e revise a venda.')
@@ -97,6 +118,8 @@ def concluir_pdv():
                 raise ValueError('Categoria financeira de vendas não configurada.')
             cur.execute("""INSERT INTO vendas (usuario_id, valor_total, tipo_pagamento, status)
                 VALUES (%s,%s,%s,'concluida')""", (g.usuario_id, total, payment))
+            # Capture o ID do cabeçalho agora: os INSERTs de itens e movimentos
+            # alteram lastrowid e não podem substituir a referência da venda.
             sale_id = cur.lastrowid
             for row, qty, price in validated:
                 cur.execute('UPDATE estoque SET quantidade=quantidade-%s WHERE id=%s', (qty, row['id']))
@@ -117,15 +140,20 @@ def concluir_pdv():
             commit_audit(db, sale_id)
         return responses.ok({'id': sale_id, 'valor_total': str(total)}, status=201)
     except (ValueError, InvalidOperation) as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         return responses.err(str(exc) if isinstance(exc, ValueError) else 'Preço inválido.', status=409)
     except pymysql.MySQLError:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.exception('Falha ao concluir PDV')
         return responses.err('Não foi possível concluir a venda.', status=503)
 
 
+# Consulta venda.
 def get_venda(venda_id):
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # clientes, usuarios, vendas.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -139,8 +167,12 @@ def get_venda(venda_id):
         return responses.err("Erro interno ao buscar venda.", status=500)
 
 
+# Atualiza a receita existente e insere somente se ainda não houver vínculo.
+# Usa o cursor da venda: não confirmar uma transação financeira separada aqui.
 def sync_venda_financeiro(cur, venda_id):
     """Mantém a receita vinculada na mesma transação da venda (inclusive na API antiga)."""
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # financeiro_categorias, financeiro_transacoes, vendas.
     cur.execute("SELECT id FROM financeiro_categorias WHERE slug='venda_medicamentos' AND tipo='receita'")
     category = cur.fetchone()
     if not category:
@@ -161,7 +193,14 @@ def sync_venda_financeiro(cur, venda_id):
         (category['id'], venda_id))
 
 
+# Cadastra venda.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def create_venda():
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # cliente_id, itens, status, tipo_pagamento, valor_total.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # clientes, estoque, itens_venda, movimentacoes_estoque, produtos, vendas.
     data = request.get_json(silent=True) or {}
     cliente_id = data.get("cliente_id")
     usuario_id = g.usuario_id
@@ -204,11 +243,13 @@ def create_venda():
                 lote_vendido = (item.get("lote_vendido") or "").strip() or "SEM-LOTE"
 
                 if not produto_id or not quantidade or not preco_unitario:
+                    # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
                     db.rollback()
                     return responses.err("Dados incompletos para item de venda.", status=400)
 
                 cur.execute("SELECT id FROM produtos WHERE id = %s", (produto_id,))
                 if not cur.fetchone():
+                    # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
                     db.rollback()
                     return responses.err(f"Produto com ID {produto_id} não encontrado.", status=400)
 
@@ -217,6 +258,7 @@ def create_venda():
                     cur.execute("SELECT id, quantidade, lote, data_validade FROM estoque WHERE produto_id = %s AND lote = %s FOR UPDATE", (produto_id, lote_vendido))
                     estoque_item = cur.fetchone()
                     if not estoque_item or estoque_item["quantidade"] < quantidade:
+                        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
                         db.rollback()
                         return responses.err(f"Estoque insuficiente para o produto {produto_id} no lote {lote_vendido}.", status=400)
 
@@ -244,15 +286,24 @@ def create_venda():
             commit_audit(db, venda_id)
             return responses.ok({"mensagem": "Venda criada com sucesso.", "id": venda_id}, status=201)
     except ValueError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         return responses.err(str(exc), status=400)
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao criar venda: %s", exc)
         return responses.err("Erro interno ao criar venda.", status=500)
 
 
+# Atualiza venda.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def update_venda(venda_id):
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # cliente_id, status, tipo_pagamento, valor_total.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # clientes, estoque, itens_venda, movimentacoes_estoque, vendas.
     data = request.get_json(silent=True) or {}
     cliente_id = data.get("cliente_id")
     usuario_id = g.usuario_id
@@ -292,6 +343,7 @@ def update_venda(venda_id):
                     cur.execute("SELECT id, quantidade, lote, data_validade FROM estoque WHERE produto_id = %s AND lote = %s FOR UPDATE", (produto_id, lote_vendido))
                     estoque_item = cur.fetchone()
                     if not estoque_item or estoque_item["quantidade"] < quantidade:
+                        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
                         db.rollback()
                         return responses.err(f"Estoque insuficiente para o produto {produto_id} no lote {lote_vendido}.", status=400)
 
@@ -320,15 +372,21 @@ def update_venda(venda_id):
             commit_audit(db, venda_id)
             return responses.ok({"mensagem": "Venda atualizada com sucesso."})
     except ValueError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         return responses.err(str(exc), status=400)
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao atualizar venda: %s", exc)
         return responses.err("Erro interno ao atualizar venda.", status=500)
 
 
+# Exclui venda.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def delete_venda(venda_id):
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # vendas.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -340,11 +398,14 @@ def delete_venda(venda_id):
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Venda excluída com sucesso."})
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao excluir venda: %s", exc)
         return responses.err("Erro interno ao excluir venda.", status=500)
 
 
+# Liga URLs, métodos HTTP e nomes de endpoint à instância recebida.
+# Alterar estes contratos exige revisar as telas e tests/fixtures/api_routes.json.
 def register_routes(app):
     """Registra as URLs e nomes de endpoints existentes."""
     app.add_url_rule('/vendas', view_func=get_vendas, methods=['GET'])

@@ -1,3 +1,6 @@
+/* Guia de manutenção — Consulta e recusa de convite; o token da URL pertence ao fluxo de cadastro.
+ * A ordem das regras participa da cascata; confira os estilos compartilhados e os breakpoints antes de mover seletores.
+ */
 .invite-page {
   max-width: 560px;
   margin: 8vh auto;

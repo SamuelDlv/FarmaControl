@@ -1,3 +1,7 @@
+# Guia de manutenção — Testes de security.
+# Os cenários e asserts abaixo definem os contratos esperados e os casos de regressão.
+# Leia os mocks e fixtures de cada caso antes de interpretar o resultado como integração real.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """Reproduções de segurança isoladas; não conectam ao banco nem enviam e-mail."""
 import unittest
 from unittest.mock import patch
@@ -13,10 +17,13 @@ from farmacontrol.core.security import credential_stamp
 from farmacontrol.services import email
 
 
+# Agrupa os cenários de teste e suas fixtures.
 class SecurityTests(unittest.TestCase):
     setUp = base.BackendTests.setUp
     login_session = base.BackendTests.login_session
 
+    # Cenário de regressão: auth rate limit cannot be bypassed with forwarded header.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_auth_rate_limit_cannot_be_bypassed_with_forwarded_header(self):
         for index in range(5):
             response = self.client.post('/auth/login', json={},
@@ -27,11 +34,15 @@ class SecurityTests(unittest.TestCase):
         self.assertGreater(int(response.headers['Retry-After']), 0)
         database.get_db.assert_not_called()
 
+    # Cenário de regressão: untrusted origin cannot mutate auth.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_untrusted_origin_cannot_mutate_auth(self):
         response = self.client.post('/auth/login', json={}, headers={'Origin': 'https://evil.example'})
         self.assertEqual(response.status_code, 403)
         database.get_db.assert_not_called()
 
+    # Cenário de regressão: wrong password reports remaining attempts and wait until reset.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_wrong_password_reports_remaining_attempts_and_wait_until_reset(self):
         api.app.extensions["auth_limiter"] = AuthLimiter(limit=2, window=300)
         credentials = {'email': 'teste@example.com', 'password': 'incorreta'}
@@ -60,6 +71,8 @@ class SecurityTests(unittest.TestCase):
         self.assertEqual(renewed.status_code, 401)
         self.assertEqual(renewed.json['tentativas_restantes'], 1)
 
+    # Cenário de regressão: unknown email has same attempt feedback as wrong password.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_unknown_email_has_same_attempt_feedback_as_wrong_password(self):
         self.cur.fetchone.return_value = None
         response = self.client.post('/auth/login', json={
@@ -70,12 +83,16 @@ class SecurityTests(unittest.TestCase):
         self.assertEqual(response.json['aguarde_segundos'], 0)
         self.assertIn('E-mail ou senha incorretos.', response.json['mensagem'])
 
+    # Cenário de regressão: unicode csrf header is rejected without server error.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_unicode_csrf_header_is_rejected_without_server_error(self):
         self.login_session()
         response = self.client.post('/estoque', json={}, headers={'X-CSRF-Token': 'é'})
         self.assertEqual(response.status_code, 403)
         self.db.commit.assert_not_called()
 
+    # Cenário de regressão: nested permission payload is rejected.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_nested_permission_payload_is_rejected(self):
         self.login_session()
         response = self.client.put('/admin/perfis/permissoes',
@@ -84,6 +101,8 @@ class SecurityTests(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.db.commit.assert_not_called()
 
+    # Cenário de regressão: invitation consumption failure rolls back account.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_invitation_consumption_failure_rolls_back_account(self):
         self.cur.fetchone.side_effect = [
             {'nome': 'Teste', 'sobrenome': 'Pessoa', 'email': 'a@example.com', 'perfil': 'atendente'},
@@ -99,6 +118,8 @@ class SecurityTests(unittest.TestCase):
         self.db.commit.assert_not_called()
         mail.assert_not_called()
 
+    # Cenário de regressão: invitation creates credential bound session.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_invitation_creates_credential_bound_session(self):
         self.cur.fetchone.side_effect = [
             {'nome': 'Teste', 'sobrenome': 'Pessoa', 'email': 'a@example.com', 'perfil': 'atendente'},
@@ -113,6 +134,8 @@ class SecurityTests(unittest.TestCase):
         with self.client.session_transaction() as sess:
             self.assertEqual(sess['credential_stamp'], credential_stamp(api.app.secret_key, 'hash'))
 
+    # Cenário de regressão: malformed auth inputs are client errors.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_malformed_auth_inputs_are_client_errors(self):
         for data in ([], [1], 'text', {'email': 123}, {'password': ['x']},
                      {'password': 'x' * 73}, {'password': 'é' * 37},
@@ -123,17 +146,23 @@ class SecurityTests(unittest.TestCase):
                 self.assertEqual(self.client.post('/auth/login', json=data).status_code, 400)
         database.get_db.assert_not_called()
 
+    # Cenário de regressão: bcrypt limit is bytes and boundary is accepted.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_bcrypt_limit_is_bytes_and_boundary_is_accepted(self):
         self.cur.fetchone.return_value = None
         self.assertEqual(self.client.post('/auth/login', json={
             'email': 'a@example.com', 'password': 'é' * 36}).status_code, 401)
 
+    # Cenário de regressão: large json is rejected before database.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_large_json_is_rejected_before_database(self):
         response = self.client.post('/auth/login', json={'email': 'a' * (1024 * 1024)})
         self.assertEqual(response.status_code, 413)
         self.assertFalse(response.json['ok'])
         database.get_db.assert_not_called()
 
+    # Cenário de regressão: password change revokes existing cookie.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_password_change_revokes_existing_cookie(self):
         self.login_session()
         self.cur.fetchone.return_value['senha_hash'] = 'different-hash'
@@ -141,17 +170,23 @@ class SecurityTests(unittest.TestCase):
         with self.client.session_transaction() as sess:
             self.assertNotIn('usuario_id', sess)
 
+    # Cenário de regressão: legacy session requires new login.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_legacy_session_requires_new_login(self):
         self.login_session()
         with self.client.session_transaction() as sess:
             sess.pop('credential_stamp')
         self.assertEqual(self.client.get('/estoque').status_code, 401)
 
+    # Cenário de regressão: cookie stamp does not expose password hash.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_cookie_stamp_does_not_expose_password_hash(self):
         stamp = credential_stamp('secret', 'bcrypt-value')
         self.assertNotIn('bcrypt-value', stamp)
         self.assertNotEqual(stamp, credential_stamp('other', 'bcrypt-value'))
 
+    # Cenário de regressão: reset locks token before consumption.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_reset_locks_token_before_consumption(self):
         self.cur.fetchone.return_value = {'id': 9}
         with patch.object(credentials_module, 'hash_senha', return_value='new-hash'):
@@ -161,6 +196,8 @@ class SecurityTests(unittest.TestCase):
         self.assertIn('FOR UPDATE', next(q for q in queries if 'SELECT id FROM usuarios' in q))
         self.assertIn('token_reset = NULL', next(q for q in queries if 'SET senha_hash' in q))
 
+    # Cenário de regressão: admin password change also cancels reset.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_admin_password_change_also_cancels_reset(self):
         self.login_session()
         with patch.object(credentials_module, 'hash_senha', return_value='new-hash'):
@@ -170,12 +207,16 @@ class SecurityTests(unittest.TestCase):
         query = next(c.args[0] for c in self.cur.execute.call_args_list if 'UPDATE usuarios SET' in c.args[0])
         self.assertIn('token_reset = NULL', query)
 
+    # Cenário de regressão: forwarded ip is not trusted in access log.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_forwarded_ip_is_not_trusted_in_access_log(self):
         with api.app.test_request_context('/auth/login', headers={'X-Forwarded-For': 'forged'},
                                          environ_base={'REMOTE_ADDR': '127.0.0.1'}):
             credentials_module.registrar_acesso(self.cur, 42, False)
         self.assertEqual(self.cur.execute.call_args.args[1][1], '127.0.0.1')
 
+    # Cenário de regressão: headers protect errors and secret responses.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_headers_protect_errors_and_secret_responses(self):
         response = self.client.get('/estoque')
         self.assertEqual(response.headers['Cache-Control'], 'no-store')
@@ -184,6 +225,8 @@ class SecurityTests(unittest.TestCase):
         self.assertEqual(response.headers['Referrer-Policy'], 'no-referrer')
         self.assertIn("frame-ancestors 'none'", response.headers['Content-Security-Policy'])
 
+    # Cenário de regressão: limiter expires and caps memory without eviction bypass.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_limiter_expires_and_caps_memory_without_eviction_bypass(self):
         limiter = AuthLimiter(limit=1, window=10, capacity=1)
         with patch('farmacontrol.core.security.time.monotonic', return_value=0):

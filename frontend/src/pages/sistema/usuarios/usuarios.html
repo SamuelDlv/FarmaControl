@@ -1,4 +1,6 @@
 <!doctype html>
+<!-- Guia de manutenção — Cadastro por convite, aprovação, edição de contas e permissões dos perfis.
+     Preserve a ordem dos assets compartilhados e os IDs usados pelos scripts. -->
 <html lang="pt-BR">
   <!-- Tela usuarios: o HTML define o conteúdo; CSS/JS locais cuidam da apresentação e das ações.
      global-settings aplica preferências; page-lifecycle e sidebar-init coordenam a navegação. -->
@@ -12,6 +14,7 @@
     </style>
     <script>
       (function () {
+        // Força a leitura do layout para atualizar a apresentação antes de liberar o documento.
         function forceRecalc() {
           try {
             if (document.body && document.documentElement) {
@@ -21,6 +24,7 @@
             }
           } catch (e) {}
         }
+        // Remove o bloqueio visual inicial depois do carregamento dos estilos ou de sua falha.
         function unlock() {
           var l = document.getElementById('fc-body-lock');
           if (l) l.remove();
@@ -512,6 +516,8 @@
       <div class="sb-overlay" id="sb-overlay"></div>
 
       <!-- ══ SIDEBAR ══ -->
+      <!-- Menu lateral: os utilitários compartilhados aplicam navegação e permissões visuais. -->
+
       <aside class="sidebar" id="sidebar">
         <div class="sb-head">
           <div class="sb-brand">
@@ -538,6 +544,8 @@
             </svg>
           </button>
         </div>
+
+        <!-- Navegação: mantenha destinos e indicação da página atual coerentes. -->
 
         <nav class="sb-nav">
           <p class="sb-group-label">Principal</p>
@@ -797,6 +805,8 @@
       <!-- ══ MAIN ══ -->
       <div class="main">
         <!-- Topbar -->
+        <!-- Cabeçalho: identificação, contexto da tela e ações de acesso rápido. -->
+
         <header class="topbar">
           <div class="topbar-left">
             <button class="mobile-menu-btn" id="btn-mobile-menu">
@@ -857,6 +867,8 @@
 
         <div class="page-body">
           <!-- ══ MAIN CONTENT ══ -->
+          <!-- Região principal: conteúdo específico desta tela e seus estados de carregamento. -->
+
           <main class="page-main" id="main-content">
             <!-- Page Header -->
             <div class="page-header">
@@ -960,6 +972,7 @@
                 Abra o editor para consultar e alterar a matriz completa dos sete cargos.
               </p>
               <div class="table-wrapper" hidden>
+                <!-- Tabela: cabeçalhos e colunas precisam acompanhar a marcação gerada pelo JavaScript. -->
                 <table>
                   <thead>
                     <tr>

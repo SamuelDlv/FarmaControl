@@ -1,3 +1,6 @@
+/* Guia de manutenção — Verificador de pdv: confira pré-requisitos, argumentos e cenários antes de executar.
+ * Os resultados cobrem os cenários descritos neste arquivo; mocks não comprovam integração real.
+ */
 /* Integração da tela em Chrome isolado, com API simulada e sem banco real. */
 const fs = require('node:fs');
 const path = require('node:path');

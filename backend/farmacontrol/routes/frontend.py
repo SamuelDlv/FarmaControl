@@ -1,3 +1,5 @@
+# Guia de manutenção — Entrega arquivos estáticos e protege o HTML das telas internas no servidor.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """routes.frontend: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import access
@@ -20,6 +22,7 @@ FRONTEND_SRC = os.path.join(FRONTEND_ASSETS, 'pages', 'sistema')
 PAGE_ASSET_EXTENSIONS = ('.html', '.css', '.js', '.png', '.jpg', '.jpeg', '.svg', '.woff', '.woff2', '.json')
 
 
+# Entrega estáticos com o mesmo MIME/cache das rotas canônica e legada.
 def _serve_frontend_file(directory, filename, allowed_extensions=None):
     """Entrega estáticos com o mesmo MIME/cache das rotas canônica e legada.
 
@@ -72,11 +75,13 @@ def _serve_frontend_file(directory, filename, allowed_extensions=None):
     return resp
 
 
+# Serve as telas compartilhadas por perfil nas duas URLs compatíveis.
 def serve_sistema_page(filename):
     """Serve as telas compartilhadas por perfil nas duas URLs compatíveis."""
     return _serve_frontend_file(FRONTEND_SRC, filename, PAGE_ASSET_EXTENSIONS)
 
 
+# Entrega utilitários, estilos, login e imagens relativos a frontend/src.
 def serve_frontend_asset(filename):
     """Entrega utilitários, estilos, login e imagens relativos a frontend/src.
 
@@ -86,6 +91,8 @@ def serve_frontend_asset(filename):
     return _serve_frontend_file(FRONTEND_ASSETS, filename)
 
 
+# Liga URLs, métodos HTTP e nomes de endpoint à instância recebida.
+# Alterar estes contratos exige revisar as telas e tests/fixtures/api_routes.json.
 def register_routes(app):
     """Registra as URLs e nomes de endpoints existentes."""
     app.add_url_rule('/pages/proprietario/<path:filename>', view_func=serve_sistema_page)

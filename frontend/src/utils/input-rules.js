@@ -1,19 +1,28 @@
+/* Guia de manutenção — Filtra digitação, colagem e arraste conforme o tipo de campo antes da submissão.
+ * Os seletores dependem do HTML da tela; dados e permissões devem continuar validados na API.
+ */
 /* Restrições de edição compartilhadas, inclusive para campos criados em modais. */
 (() => {
   'use strict';
   const previous = new WeakMap();
 
+  // Regras explícitas por data-input-kind têm prioridade sobre o tipo nativo.
+  // Campos desabilitados ou somente leitura ficam fora do tratamento de edição.
   function kind(input) {
     if (!input || input.tagName !== 'INPUT' || input.disabled || input.readOnly) return '';
     return input.dataset.inputKind || (input.type === 'number' ? 'number' :
       input.type === 'email' ? 'email' : '');
   }
 
+  // O step do HTML define a precisão aceita; step=any permite até 20 casas.
   function decimals(input) {
     const step = input.getAttribute('step') || '1';
     return step === 'any' ? 20 : (step.split('.')[1] || '').length;
   }
 
+  // Valida tanto valores completos quanto estados intermediários de digitação.
+  // Por isso, vazio e separador decimal isolado podem ser aceitos durante a edição;
+  // obrigatoriedade e limites de negócio continuam sendo verificados na submissão.
   function allowed(input, value) {
     if (input.maxLength >= 0 && value.length > input.maxLength) return false;
     switch (kind(input)) {
@@ -26,6 +35,8 @@
     }
   }
 
+  // Ajusta teclado virtual e guarda um valor recuperável antes de o usuário editar.
+  // WeakMap acompanha o elemento sem impedir a coleta dos campos removidos do DOM.
   function prepare(input) {
     const rule = kind(input);
     if (rule === 'number') {
@@ -41,12 +52,14 @@
     if (rule) previous.set(input, allowed(input, input.value) ? input.value : '');
   }
 
+  // Simula a substituição da seleção para validar o resultado da próxima edição.
   function candidate(input, text) {
     if (input.selectionStart == null) return null; // type=number não expõe o cursor.
     return input.value.slice(0, input.selectionStart) + text + input.value.slice(input.selectionEnd);
   }
 
   document.addEventListener('focusin', event => prepare(event.target), true);
+  // Filtra caracteres digitados sem bloquear atalhos de edição ou navegação.
   document.addEventListener('keydown', event => {
     const input = event.target;
     if (!kind(input) || event.ctrlKey || event.metaKey || event.altKey || event.key.length !== 1) return;
@@ -62,6 +75,8 @@
     if (!allowed(input, event.data) || (value !== null && !allowed(input, value))) event.preventDefault();
   }, true);
 
+  // Colagem e arraste seguem a mesma regra: só inserem o texto integral quando
+  // o candidato é válido, sem extrair números de uma entrada arbitrária inválida.
   function transfer(event) {
     const input = event.target;
     const rule = kind(input);
@@ -92,6 +107,7 @@
     previous.set(input, input.value);
   }, true);
 
+  // Prepara os inputs existentes; campos criados depois são preparados em focusin.
   function initialize() {
     document.querySelectorAll('input').forEach(prepare);
   }

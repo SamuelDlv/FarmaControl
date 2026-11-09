@@ -1,3 +1,6 @@
+/* Guia de manutenção — Atualiza a data exibida no cabeçalho sem exigir recarregamento da página.
+ * Os seletores dependem do HTML da tela; dados e permissões devem continuar validados na API.
+ */
 /** Data local, por extenso, em todos os cabeçalhos do sistema. */
 (function () {
   'use strict';
@@ -9,6 +12,8 @@
     month: 'long',
     year: 'numeric'
   });
+  // Recalcula a data local e só escreve no DOM quando o texto muda, evitando
+  // substituições desnecessárias a cada disparo do timer de um segundo.
   function update() {
     const text = formatter.format(new Date());
     labels.forEach(label => {

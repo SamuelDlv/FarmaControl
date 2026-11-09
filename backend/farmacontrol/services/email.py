@@ -1,3 +1,5 @@
+# Guia de manutenção — Monta mensagens HTML e realiza o envio SMTP usado pelos fluxos da aplicação.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """services.email: responsabilidades extraídas da aplicação Flask."""
 
 from email.message import EmailMessage
@@ -12,6 +14,7 @@ import ssl
 log = logging.getLogger("farmacontrol")
 
 
+# Monta o visual padrão dos e-mails transacionais do FarmaControl.
 def montar_email_html(titulo, conteudo_html, acao_principal=None, acao_secundaria=None):
     """Monta o visual padrão dos e-mails transacionais do FarmaControl."""
     botoes = ""
@@ -81,6 +84,7 @@ def montar_email_html(titulo, conteudo_html, acao_principal=None, acao_secundari
 </html>"""
 
 
+# Envia e-mail transacional sem deixar indisponível o fluxo principal.
 def enviar_email_brevo(destinatario, assunto, conteudo_html):
     """Envia e-mail transacional sem deixar indisponível o fluxo principal.
 

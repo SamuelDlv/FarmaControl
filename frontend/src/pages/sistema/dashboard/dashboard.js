@@ -1,3 +1,6 @@
+/* Guia de manutenção — Indicadores da operação e atalhos para as áreas do sistema.
+ * Os seletores dependem do HTML da tela; dados e permissões devem continuar validados na API.
+ */
 /* ══════════════════════════════════════════════════════════════════════
  * FARMAControl — DASHBOARD DO PROPRIETÁRIO
  * ══════════════════════════════════════════════════════════════════════
@@ -25,6 +28,8 @@ var EASE = t => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
 var _dashboardKpis = {};
 var _criticalProductsSorted = [];
 
+// Atualiza a apresentação de Critical Product Row.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function renderCriticalProductRow(p) {
   const statusLabel = p.status_classe === 'crit' ? 'Crítico' : 'Baixo';
   const validade = p.data_validade
@@ -47,6 +52,8 @@ function renderCriticalProductRow(p) {
 }
 
 /* loadDashboardStats(): Carrega todos os dados do dashboard da API (KPIs, produtos críticos, ranking, movimentações). Atualiza o DOM com os valores reais do banco. */
+// Carrega Dashboard Stats para uso na tela.
+// Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
 async function loadDashboardStats() {
   if (!document.getElementById('kpi-vendas-hoje') && !document.querySelector('.kpi-grid')) return;
   /* Token de página — se mudou durante o await, silenciosamente aborta */
@@ -249,6 +256,8 @@ async function loadDashboardStats() {
 }
 
 /* initCounters(): Anima os números dos KPIs de 0 até o valor final (efeito de contagem crescente). Usa IntersectionObserver para iniciar quando visível. */
+// Inicializa Counters.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initCounters() {
   document.querySelectorAll('.kpi-value[data-target]').forEach(el => {
     const target = +el.dataset.target;
@@ -276,6 +285,8 @@ function initCounters() {
 var _activeFilter = 'all';
 
 /* initFilter(): Configura os botões de filtro da tabela (Todos, Críticos, Baixos). Ao clicar, filtra as linhas da tabela. */
+// Inicializa Filter.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initFilter() {
   const tableBody = document.getElementById('table-body');
   if (!tableBody) return;
@@ -291,6 +302,7 @@ function initFilter() {
 }
 
 /* applyCriticalFilter(): Aplica o filtro ativo na tabela de produtos críticos. Mostra/oculta linhas conforme o filtro selecionado. */
+// Obtém os elementos do documento usados por apply Critical Filter.
 function applyCriticalFilter() {
   const tableBody = document.getElementById('table-body');
   if (!tableBody) return;
@@ -324,6 +336,8 @@ var toast = window.FarmaControlSettings
   : () => console.warn('Toast indisponível');
 
 /* initEvents(): Configura todos os event listeners da página: botão atualizar, exportar CSV, modal de movimentação, botões "Ver todos/relatório/análise". */
+// Inicializa Events.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initEvents() {
   // Botão Atualizar — recarrega dados reais do banco
   document.getElementById('btn-refresh')?.addEventListener('click', async () => {
@@ -382,6 +396,8 @@ function initEvents() {
 }
 
 /* handleViewLink(): Abre modais de visualização para "Ver todos →", "Ver relatório →" — apenas visualização, sem interação. */
+// Trata a ação handle View Link.
+// Os efeitos e mensagens abaixo devem acompanhar o resultado confirmado pelo fluxo.
 function handleViewLink(linkText, btn) {
   if (!window.fcOpenViewModal) return;
   const card = btn.closest('.card, .panel-section');
@@ -520,6 +536,8 @@ function handleViewLink(linkText, btn) {
 }
 
 /* handleExport(): Exporta os dados do dashboard para CSV (produtos críticos com status, quantidades e datas). */
+// Trata a ação handle Export.
+// Os efeitos e mensagens abaixo devem acompanhar o resultado confirmado pelo fluxo.
 function handleExport() {
   const k = _dashboardKpis;
   const csv = [
@@ -563,6 +581,8 @@ var _dashboardData = {
 };
 
 /* fetchEstoqueFull(): Busca a lista completa de produtos do estoque para os modais de detalhe. */
+// Carrega Estoque Full para uso na tela.
+// Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
 async function fetchEstoqueFull() {
   /* Token de página — se mudou durante o await, silenciosamente aborta */
   const token = window.__fcPageToken;
@@ -636,6 +656,7 @@ window.openMovModal = function () {
 };
 
 /* getUsuarioId(): Retorna o ID do usuário logado (salvo no localStorage durante o login). */
+// Consulta ou atualiza o estado desta aba usado por get Usuario Id.
 function getUsuarioId() {
   try {
     const raw = sessionStorage.getItem('farmacontrol_usuario');
@@ -677,6 +698,8 @@ window.fcPageListen(window, 'click', e => {
 });
 
 /* initClock(): Atualiza o relógio no topo da página a cada segundo. */
+// Inicializa Clock.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initClock() {
   const el = document.querySelector('.page-subtitle');
 
@@ -692,6 +715,8 @@ function initClock() {
 
 // Inicialização segura
 /* initDashboard(): Inicialização automática: carrega dados, configura filtros, eventos e relógio. */
+// Inicializa Dashboard.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 async function initDashboard() {
   const bootStartedAt = performance.now();
   const firstVisit = document.documentElement.classList.contains('fc-dashboard-first-visit');
@@ -778,6 +803,8 @@ function dashboardEscape(value) {
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
   );
 }
+// Atualiza a apresentação de Upcoming.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function renderUpcoming(items) {
   return (
     items

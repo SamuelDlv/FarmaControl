@@ -1,3 +1,6 @@
+/* Guia de manutenção — Consulta e recusa de convite; o token da URL pertence ao fluxo de cadastro.
+ * Os seletores dependem do HTML da tela; dados e permissões devem continuar validados na API.
+ */
 'use strict';
 const API_BASE = window.FarmaControlSettings
   ? window.FarmaControlSettings.API_BASE
@@ -6,6 +9,7 @@ const params = new URLSearchParams(location.search),
   token = params.get('convite'),
   statusEl = document.getElementById('status'),
   form = document.getElementById('invite-form');
+// Apresenta a falha do fluxo no elemento de status para orientar a próxima ação.
 function fail(message) {
   statusEl.textContent = message;
   statusEl.className = 'error';
@@ -21,6 +25,7 @@ document.querySelectorAll('.eye-toggle').forEach(button => {
     button.setAttribute('aria-label', label);
   });
 });
+// Coordena o fluxo principal deste utilitário ou documento e o tratamento de seus resultados.
 async function main() {
   if (!token) return fail('Convite ausente.');
   if (params.get('recusar') === '1') {
@@ -45,6 +50,7 @@ async function main() {
   statusEl.textContent = 'Confira seus dados, defina sua senha e confirme os documentos legais.';
   form.hidden = false;
 }
+// Intercepta a submissão para tratar validação e envio neste documento.
 form.addEventListener('submit', async e => {
   e.preventDefault();
   const senha = document.getElementById('senha').value;

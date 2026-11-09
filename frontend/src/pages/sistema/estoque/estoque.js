@@ -1,3 +1,6 @@
+/* Guia de manutenção — Lotes, produtos e movimentações; mantém filtros, formulários e saldos apresentados na tela.
+ * Os seletores dependem do HTML da tela; dados e permissões devem continuar validados na API.
+ */
 /* ══════════════════════════════════════════════════════════════════════
  * FARMAControl — GESTÃO DE ESTOQUE (PROPRIETÁRIO)
  * ══════════════════════════════════════════════════════════════════════
@@ -30,6 +33,7 @@ var produtos = [];
 var categoriasCache = [];
 var catalogoCache = [];
 
+// Escapa os campos do estoque antes de compor marcação HTML dinâmica.
 function stockEscape(value) {
   return String(value ?? '').replace(
     /[&<>"']/g,
@@ -37,6 +41,7 @@ function stockEscape(value) {
   );
 }
 
+// Ajusta campos de medicamento e de outros produtos conforme a seleção do formulário.
 function syncProductFields(prefix) {
   const medicine = document.getElementById(`${prefix}-tipo`).value === 'medicamento';
   for (const field of ['principio', 'receita']) {
@@ -58,6 +63,8 @@ for (const prefix of ['add', 'edit']) {
     ?.addEventListener('change', () => syncProductFields(prefix));
 }
 
+// Lê os campos do formulário e converte para o contrato de produto aceito pela API.
+// O prefixo distingue cadastro e edição sem duplicar as regras de montagem.
 function productPayload(prefix) {
   const medicine = document.getElementById(`${prefix}-tipo`).value === 'medicamento';
   return {
@@ -72,6 +79,8 @@ function productPayload(prefix) {
   };
 }
 
+// Aponta inconsistências de validade e preço antes do envio.
+// A API repete as validações: a verificação da tela serve para orientar o preenchimento.
 function validateProductForm(prefix) {
   if (
     document.getElementById(`${prefix}-exige-validade`).checked &&
@@ -91,6 +100,8 @@ function validateProductForm(prefix) {
   return true;
 }
 
+// Carrega Catalog para uso na tela.
+// Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
 async function populateCatalog() {
   try {
     const res = await fetch(`${API_BASE}/produtos`);
@@ -156,6 +167,8 @@ document.getElementById('add-existente')?.addEventListener('change', () => {
 });
 
 /* fetchProdutos(): Busca todos os produtos do estoque via API com paginação e filtros. */
+// Carrega Produtos para uso na tela.
+// Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
 async function fetchProdutos() {
   const token = window.__fcPageToken;
   try {
@@ -263,6 +276,7 @@ var currentPage = 1;
 var PAGE_SIZE = 10;
 
 /* getSorted(): Ordena os produtos por coluna selecionada (nome, lote, qtd, validade). */
+// Ordena o conjunto informado segundo a coluna e a direção escolhidas na tela.
 function getSorted(data) {
   if (!sortField) return data;
   return [...data].sort((a, b) => {
@@ -276,6 +290,7 @@ function getSorted(data) {
 }
 
 /* getFiltered(): Filtra os produtos conforme busca textual e categoria selecionada. */
+// Seleciona os registros que atendem aos filtros atuais antes da paginação.
 function getFiltered() {
   const q = document.getElementById('search-input').value.toLowerCase();
   const cat = document.getElementById('filter-cat').value;
@@ -295,6 +310,8 @@ function getFiltered() {
 }
 
 /* renderTable(): Renderiza a tabela de produtos com os dados filtrados e ordenados. */
+// Atualiza a apresentação de Table.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function renderTable() {
   if (!document.getElementById('table-body')) return;
   const filtered = getFiltered();
@@ -354,6 +371,7 @@ function renderTable() {
 }
 
 /* renderPagination(): Renderiza os botões de paginação (1, 2, 3...) conforme total de páginas. */
+// Recalcula os controles de página conforme a quantidade de resultados filtrados.
 function renderPagination(pages) {
   const container = document.getElementById('page-btns');
   let html = '';
@@ -445,6 +463,7 @@ document.getElementById('filter-status')?.addEventListener('change', () => {
 });
 
 /* ── Row action bindings ── */
+// Religa as ações das linhas após reconstruir a tabela; elementos antigos foram substituídos.
 function bindRowActions() {
   document.querySelectorAll('.btn-edit').forEach(btn => {
     btn.addEventListener('click', () => openEditModal(parseInt(btn.dataset.id)));
@@ -461,6 +480,8 @@ function bindRowActions() {
 }
 
 /* deleteItemEstoque(): Remove um produto do estoque (com confirmação do usuário). */
+// Trata a ação delete Item Estoque.
+// Os efeitos e mensagens abaixo devem acompanhar o resultado confirmado pelo fluxo.
 async function deleteItemEstoque(id) {
   const p = produtos.find(x => x.id === id);
   if (!p) return;
@@ -493,6 +514,7 @@ async function deleteItemEstoque(id) {
 /* ══════════════════════════════
    ADD PRODUCT MODAL
 ══════════════════════════════ */
+// Obtém os elementos do documento usados por add Overlay.
 var addOverlay = () => document.getElementById('modal-overlay');
 
 document.getElementById('btn-add')?.addEventListener('click', () => {
@@ -517,6 +539,8 @@ window.fcPageListen(document, 'click', e => {
 });
 
 /* populateAddCategories(): Carrega as categorias disponíveis no select do modal de adicionar. */
+// Carrega Add Categories para uso na tela.
+// Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
 async function populateAddCategories() {
   const sel = document.getElementById('add-categoria');
   if (!sel) return;
@@ -537,6 +561,7 @@ async function populateAddCategories() {
 }
 
 /* clearAddForm(): Limpa todos os campos do formulário de adicionar produto. */
+// Obtém os elementos do documento usados por clear Add Form.
 async function clearAddForm() {
   document.querySelectorAll('#modal-overlay input, #modal-overlay select').forEach(el => {
     el.disabled = false;
@@ -579,6 +604,8 @@ async function clearAddForm() {
 }
 
 /* populateFornecedores(): Carrega a lista de fornecedores no select do modal. */
+// Carrega Fornecedores para uso na tela.
+// Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
 async function populateFornecedores() {
   const addSel = document.getElementById('add-fornecedor');
   const editSel = document.getElementById('edit-fornecedor');
@@ -650,6 +677,7 @@ document.getElementById('modal-save')?.addEventListener('click', async () => {
 /* ══════════════════════════════
    EDIT MODAL
 ══════════════════════════════ */
+// Obtém os elementos do documento usados por edit Overlay.
 var editOverlay = () => document.getElementById('edit-overlay');
 document
   .getElementById('edit-close')
@@ -663,6 +691,7 @@ window.fcPageListen(document, 'click', e => {
 });
 
 /* openEditModal(): Abre o modal de edição com os dados atuais do produto preenchidos. */
+// Abre e prepara Edit Modal.
 async function openEditModal(id) {
   const p = produtos.find(x => x.id === id);
   if (!p) return;
@@ -764,6 +793,7 @@ document.getElementById('edit-save')?.addEventListener('click', async () => {
 /* ══════════════════════════════
    MOVE (MOVIMENTAÇÃO) MODAL
 ══════════════════════════════ */
+// Obtém os elementos do documento usados por move Overlay.
 var moveOverlay = () => document.getElementById('move-overlay');
 var moveDirection = 'in';
 document
@@ -780,6 +810,7 @@ window.fcPageListen(document, 'click', e => {
 document.getElementById('move-btn-in')?.addEventListener('click', () => setMoveDir('in'));
 document.getElementById('move-btn-out')?.addEventListener('click', () => setMoveDir('out'));
 
+// Obtém os elementos do documento usados por set Move Dir.
 function setMoveDir(dir) {
   moveDirection = dir;
   document.getElementById('move-btn-in').classList.toggle('selected', dir === 'in');
@@ -787,6 +818,7 @@ function setMoveDir(dir) {
 }
 
 /* openMoveModal(): Abre o modal de movimentação de estoque para um produto específico. */
+// Abre e prepara Move Modal.
 function openMoveModal(id) {
   const p = produtos.find(x => x.id === id);
   if (!p) return;
@@ -843,6 +875,7 @@ document.getElementById('move-save')?.addEventListener('click', async () => {
 /* ══════════════════════════════
    HISTORY MODAL
 ══════════════════════════════ */
+// Obtém os elementos do documento usados por history Overlay.
 var historyOverlay = () => document.getElementById('history-overlay');
 document
   .getElementById('history-close')
@@ -853,6 +886,7 @@ window.fcPageListen(document, 'click', e => {
 });
 
 /* openHistoryModal(): Abre o modal com o histórico de movimentações de um produto. */
+// Abre e prepara History Modal.
 async function openHistoryModal(id) {
   const p = produtos.find(x => x.id === id);
   if (!p) return;
@@ -957,6 +991,8 @@ document.getElementById('btn-export')?.addEventListener('click', () => {
    KPI UPDATE
 ══════════════════════════════ */
 /* updateKPIs(): Atualiza os contadores de KPI (total itens, valor estoque, etc.). */
+// Atualiza a apresentação de KPIs.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function updateKPIs() {
   const total = produtos.length;
   const criticos = produtos.filter(p => p.status === 'err');
@@ -1062,6 +1098,7 @@ function updateKPIs() {
    TOAST — usa o visual local (#toast no HTML); fallback para o global
 ══════════════════════════════ */
 var toastTimer;
+// Exibe uma mensagem temporária para comunicar o resultado da ação ao usuário.
 function showToast(msg, type = 'ok') {
   clearTimeout(toastTimer);
   const t = document.getElementById('toast');
@@ -1120,9 +1157,13 @@ fetchProdutos();
 var fornecedoresCache = [];
 var editandoFornecedorId = null;
 
+// Obtém os elementos do documento usados por sup Overlay.
 var supOverlay = () => document.getElementById('suppliers-overlay');
+// Obtém os elementos do documento usados por sup Form Overlay.
 var supFormOverlay = () => document.getElementById('supplier-form-overlay');
 
+// Carrega Fornecedores Estoque para uso na tela.
+// Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
 async function fetchFornecedoresEstoque() {
   try {
     const res = await fetch(`${API_BASE}/fornecedores`);
@@ -1138,6 +1179,8 @@ async function fetchFornecedoresEstoque() {
   }
 }
 
+// Atualiza a apresentação de Fornecedores List.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function renderFornecedoresList() {
   const list = document.getElementById('suppliers-list');
   if (!list) return;
@@ -1207,6 +1250,7 @@ function renderFornecedoresList() {
   });
 }
 
+// Abre e prepara Suppliers Modal.
 function openSuppliersModal() {
   const so = supOverlay();
   if (!so) return;
@@ -1214,11 +1258,13 @@ function openSuppliersModal() {
   so.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
+// Fecha Suppliers Modal.
 function closeSuppliersModal() {
   const so = supOverlay();
   if (so) so.classList.remove('open');
   document.body.style.overflow = '';
 }
+// Abre e prepara Supplier Form Modal.
 function openSupplierFormModal() {
   const sfo = supFormOverlay();
   if (!sfo) return;
@@ -1239,17 +1285,20 @@ function openSupplierFormModal() {
   sfo.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
+// Fecha Supplier Form Modal.
 function closeSupplierFormModal() {
   const sfo = supFormOverlay();
   if (sfo) sfo.classList.remove('open');
   document.body.style.overflow = '';
   editandoFornecedorId = null;
 }
+// Abre e prepara Fornecedor Form.
 async function openFornecedorForm(id) {
   const f = fornecedoresCache.find(x => x.id === id);
   if (!f) return;
   editandoFornecedorId = id;
   document.getElementById('supplier-form-title').textContent = 'Editar Fornecedor';
+  // Obtém os elementos do documento usados por v.
   const v = (idEl, val) => {
     const el = document.getElementById(idEl);
     if (el) el.value = val ?? '';
@@ -1267,6 +1316,8 @@ async function openFornecedorForm(id) {
   if (sfo2) sfo2.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
+// Trata a ação salvar Fornecedor.
+// Os efeitos e mensagens abaixo devem acompanhar o resultado confirmado pelo fluxo.
 async function salvarFornecedor() {
   for (const input of document.querySelectorAll('#supplier-form-overlay input')) {
     if (!input.reportValidity()) return;
@@ -1334,6 +1385,8 @@ window.fcPageListen(document, 'click', e => {
 });
 
 /* ── Relógio em tempo real ── */
+// Atualiza a apresentação de Realtime Clock.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function updateRealtimeClock() {
   const subtitle = document.getElementById('page-subtitle');
   if (!subtitle) return;

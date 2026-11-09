@@ -1,3 +1,6 @@
+/* Guia de manutenção — Estrutura comum das telas: menu, cabeçalho e região principal.
+ * A ordem das regras participa da cascata; confira os estilos compartilhados e os breakpoints antes de mover seletores.
+ */
 /* Estrutura, sidebar, badges e interação compartilhados pelas nove telas.
  * Carregar antes do CSS local; contraste e responsividade permanecem depois.
  * Somente regras idênticas nas nove telas foram extraídas. Variações locais
@@ -11,6 +14,7 @@
   overflow: hidden;
 }
 
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .sidebar {
   width: var(--sb-w);
   min-width: var(--sb-w);
@@ -27,21 +31,25 @@
   z-index: 100;
 }
 
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .sidebar.collapsed {
   width: var(--sb-w-sm);
   min-width: var(--sb-w-sm);
 }
 
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .fc-sidebar-pending .sidebar {
   visibility: hidden;
 }
 
 /* Geometria e preferencias disponiveis antes do JS de fim de pagina. */
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .sidebar .sb-nav {
   overflow-x: hidden;
   scrollbar-gutter: stable;
 }
 
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .sidebar .sb-item {
   flex-shrink: 0;
   line-height: 19.5px;
@@ -50,6 +58,7 @@
 .sb-collapse svg { display: none !important; }
 .sb-collapse::after { content: '\2630'; font-size: 15px; line-height: 1; }
 .fc-density-compact { font-size: 13px; }
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .fc-density-compact .topbar { height: 50px; min-height: 50px; }
 .fc-density-compact .sb-head { padding: 14px 12px 10px; }
 .fc-density-compact .sb-item { padding: 6px 8px; gap: 8px; }
@@ -131,10 +140,12 @@
     color 0.15s;
 }
 
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .sidebar.collapsed .sb-collapse svg {
   transform: rotate(180deg);
 }
 
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .sidebar.collapsed .sb-brand-text,
 .sidebar.collapsed .sb-group-label,
 .sidebar.collapsed .sb-label,
@@ -277,6 +288,7 @@
   color: #e86060;
 }
 
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .sb-overlay {
   display: none;
   position: fixed;
@@ -286,6 +298,7 @@
   backdrop-filter: blur(2px);
 }
 
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .sb-overlay.visible {
   display: block;
 }
@@ -294,6 +307,7 @@
   pointer-events: auto !important;
 }
 
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .modal-overlay:not(.open),
 .sb-overlay:not(.visible),
 .notif-panel:not(.open) {
@@ -301,11 +315,13 @@
   pointer-events: none !important;
 }
 
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .modal-overlay.open {
   visibility: visible;
   pointer-events: auto !important;
 }
 
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .sb-overlay.visible {
   visibility: visible;
   pointer-events: auto;

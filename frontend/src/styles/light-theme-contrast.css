@@ -1,3 +1,6 @@
+/* Guia de manutenção — Preserva contraste e legibilidade dos componentes na aparência clara.
+ * A ordem das regras participa da cascata; confira os estilos compartilhados e os breakpoints antes de mover seletores.
+ */
 /* ══════════════════════════════════════════════════════════════════════
  * FARMAControl — TEMA CLARO PADRONIZADO
  * ══════════════════════════════════════════════════════════════════════
@@ -19,6 +22,7 @@
  * Garante máximo contraste e legibilidade no tema claro
  */
 
+/* Tokens visuais compartilhados: alterar estas variáveis pode afetar várias telas e componentes. */
 :root {
   color-scheme: only light;
 }
@@ -73,11 +77,13 @@ body:not(.fc-auth) .sb-group-label {
   color: var(--sidebar-muted, var(--ink-35, #5a5a5a)) !important;
 }
 
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 body:not(.fc-auth) .sidebar {
   background: var(--sidebar-bg, var(--surface, #ffffff)) !important;
   border-right: 1px solid var(--sidebar-border, var(--ink-12, #d0d0d0)) !important;
 }
 
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 body:not(.fc-auth) .topbar {
   background: var(--surface-2, #fafafa) !important;
   border-bottom: 1px solid var(--ink-12, #d0d0d0) !important;
@@ -164,6 +170,7 @@ body:not(.fc-auth) ::-webkit-scrollbar-thumb:hover {
 }
 
 /* Modal de confirmação global, usado em ações irreversíveis. */
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .fc-confirm-overlay,
 #fc-confirm-overlay {
   position: fixed;
@@ -177,6 +184,7 @@ body:not(.fc-auth) ::-webkit-scrollbar-thumb:hover {
   opacity: 0;
   transition: opacity 0.18s ease;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 #fc-confirm-overlay.open {
   opacity: 1;
 }
@@ -193,6 +201,7 @@ body:not(.fc-auth) ::-webkit-scrollbar-thumb:hover {
   transform: translateY(8px) scale(0.98);
   transition: transform 0.18s ease;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 #fc-confirm-overlay.open .fc-confirm-card {
   transform: translateY(0) scale(1);
 }
@@ -254,6 +263,8 @@ body:not(.fc-auth) ::-webkit-scrollbar-thumb:hover {
 .fc-confirm-actions button:hover {
   filter: brightness(0.94);
 }
+/* Adaptação de layout sob a condição (max-width: 480px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 480px) {
   .fc-confirm-card {
     padding: 18px;

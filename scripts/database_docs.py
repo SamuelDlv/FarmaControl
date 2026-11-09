@@ -1,3 +1,5 @@
+# Guia de manutenção — Lê o schema SQL e produz documentação textual e diagrama das relações.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """Emite a documentação EER em UTF-8 a partir do schema, sem acessar o banco.
 
 Uso: python scripts/database_docs.py (Markdown na saída padrão).
@@ -19,6 +21,7 @@ GROUPS = [
 ]
 
 
+# Separa definições sem dividir DECIMAL, ENUM ou chaves compostas.
 def split_sql(body):
     """Separa definições sem dividir DECIMAL, ENUM ou chaves compostas."""
     start, depth, quoted = 0, 0, False

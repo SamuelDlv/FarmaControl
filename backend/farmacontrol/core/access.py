@@ -1,3 +1,5 @@
+# Guia de manutenção — Autoriza o acesso aos módulos e revalida a conta da sessão no banco.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """core.access: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import database
@@ -47,6 +49,8 @@ EDITABLE_PROFILE_SLUGS = (
 READ_ONLY_PROFILE_SLUGS = {"visualizador"}
 
 
+# Distingue leitura de escrita e respeita fronteiras dos caminhos.
+# Ao criar uma área nova, revise também modulo_da_rota e a matriz persistida de permissões.
 def roles_permitidos(path: str, method: str) -> set[str]:
     """Retorna os perfis permitidos para a rota de API solicitada."""
     read_only = method in {"GET", "HEAD", "OPTIONS"}
@@ -74,6 +78,7 @@ def roles_permitidos(path: str, method: str) -> set[str]:
     return set()
 
 
+# Associa uma rota protegida ao mesmo módulo exibido no menu.
 def modulo_da_rota(path: str) -> str | None:
     """Associa uma rota protegida ao mesmo módulo exibido no menu."""
     if path.startswith("/dashboard/"):
@@ -97,6 +102,7 @@ def modulo_da_rota(path: str) -> str | None:
     return None
 
 
+# Lê a matriz persistida de módulos do cargo informado.
 def permissoes_efetivas(cursor, perfil: str) -> set[str]:
     """Lê a matriz persistida de módulos do cargo informado."""
     if perfil not in EDITABLE_PROFILE_SLUGS:
@@ -118,6 +124,8 @@ PROTECTED_API_PREFIXES = (
 )
 
 
+# Reconsulta status, perfil e credencial para revogar sessões após mudanças na conta.
+# Só publica a identidade validada em g; dados do navegador não autorizam operações.
 def validar_sessao():
     """Valida a sessão e a conta no banco tanto para HTML quanto para APIs."""
     usuario_id = session.get("usuario_id")
@@ -162,6 +170,7 @@ PERMISSION_MODULES = (
 )
 
 
+# Valida a migração permanente de permissões, sem alterar o schema em produção.
 def require_profile_permissions_table(db):
     """Valida a migração permanente de permissões, sem alterar o schema em produção."""
     with db.cursor() as cur:

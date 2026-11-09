@@ -1,3 +1,7 @@
+# Guia de manutenção — Verificador de schema mysql.
+# Este é um utilitário de validação; confira main e os argumentos antes de executá-lo.
+# Os cenários usam servidor MySQL e bases de teste; valide o destino e os privilégios antes da execução.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """Importa o schema completo duas vezes com conta restrita em base descartável."""
 
 from pathlib import Path
@@ -7,6 +11,7 @@ import uuid
 from migrate_catalogo import connection, execute_sql
 
 
+# Executa as consultas e validações de main.
 def main():
     name = 'fc_schema_test_' + uuid.uuid4().hex
     user = 'fc_test_' + uuid.uuid4().hex[:20]

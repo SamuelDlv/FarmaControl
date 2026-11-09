@@ -1,27 +1,40 @@
+# Guia de manutenção — Testes de catalogo.
+# Os cenários e asserts abaixo definem os contratos esperados e os casos de regressão.
+# Leia os mocks e fixtures de cada caso antes de interpretar o resultado como integração real.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """Contratos do catálogo misto, sem acesso ao banco instalado."""
 import unittest
 import test_backend as harness
 from farmacontrol.services.product_rules import normalize_product, validate_expiry, PRODUCT_FIELDS
 
 
+# Agrupa os cenários de teste e suas fixtures.
 class ProductRulesTests(unittest.TestCase):
+    # Cenário de regressão: legacy product defaults to medicine.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_legacy_product_defaults_to_medicine(self):
         p = normalize_product({"nome": "Dipirona", "preco_custo": 1, "preco_venda": 2})
         self.assertEqual(p["tipo_produto"], "medicamento")
         self.assertTrue(p["exige_validade"])
 
+    # Cenário de regressão: non medicine can have expiry.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_non_medicine_can_have_expiry(self):
         p = normalize_product({"nome": "Água", "tipo_produto": "outro", "preco_custo": 1, "preco_venda": 2})
         self.assertEqual(validate_expiry("2027-03-01", p), "2027-03-01")
         with self.assertRaises(ValueError):
             validate_expiry(None, p)
 
+    # Cenário de regressão: optional expiry is null but recorded dates remain.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_optional_expiry_is_null_but_recorded_dates_remain(self):
         self.assertIsNone(validate_expiry(None, {"exige_validade": False}))
         self.assertEqual(validate_expiry("2027-03-01", {"exige_validade": False}), "2027-03-01")
         with self.assertRaises(ValueError):
             validate_expiry("2027-02-30", {"exige_validade": False})
 
+    # Cenário de regressão: medical rules cannot be bypassed.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_medical_rules_cannot_be_bypassed(self):
         base = {"nome": "Teste", "preco_custo": 1, "preco_venda": 2}
         for fields in ({"tipo_produto": "outro", "requer_receita": True},
@@ -30,6 +43,8 @@ class ProductRulesTests(unittest.TestCase):
             with self.subTest(fields=fields), self.assertRaises(ValueError):
                 normalize_product(dict(base, **fields))
 
+    # Cenário de regressão: other products clear active ingredient and keep zero minimum.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_other_products_clear_active_ingredient_and_keep_zero_minimum(self):
         p = normalize_product({"nome": "Escova", "tipo_produto": "outro", "nome_generico": "antigo",
                                "estoque_minimo": 0, "preco_custo": 1, "preco_venda": 2})
@@ -37,6 +52,7 @@ class ProductRulesTests(unittest.TestCase):
         self.assertEqual(p["estoque_minimo"], 0)
 
 
+# Agrupa os cenários de teste e suas fixtures.
 class CatalogApiTests(unittest.TestCase):
     setUp = harness.BackendTests.setUp
     login_session = harness.BackendTests.login_session
@@ -48,6 +64,8 @@ class CatalogApiTests(unittest.TestCase):
     def post(self, path, data):
         return self.client.post(path, json=data, headers={"X-CSRF-Token": "teste-csrf"})
 
+    # Cenário de regressão: create other stock without expiry.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_create_other_stock_without_expiry(self):
         self.prepare(None, {"id": 4})
         response = self.post('/estoque', {"produto_nome": "Escova", "produto_tipo": "outro",
@@ -63,24 +81,32 @@ class CatalogApiTests(unittest.TestCase):
         self.assertIsNone(inserts['estoque'][3])
         self.assertEqual(inserts['estoque'][1], 'SEM-LOTE')
 
+    # Cenário de regressão: existing product uses stored expiry rule.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_existing_product_uses_stored_expiry_rule(self):
         self.prepare({"id": 2, "tipo_produto": "medicamento", "exige_validade": True})
         response = self.post('/estoque', {"produto_id": 2, "quantidade": 1, "produto_exige_validade": False})
         self.assertEqual(response.status_code, 400)
         self.db.commit.assert_not_called()
 
+    # Cenário de regressão: new lot keeps existing product identity.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_new_lot_keeps_existing_product_identity(self):
         self.prepare({"id": 2, "tipo_produto": "outro", "exige_validade": False})
         response = self.post('/estoque', {"produto_id": 2, "quantidade": 1})
         self.assertEqual(response.status_code, 201)
         self.assertFalse(any('INSERT INTO produtos' in args[0] for args, _ in self.cur.execute.call_args_list))
 
+    # Cenário de regressão: same name requires explicit existing product.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_same_name_requires_explicit_existing_product(self):
         self.prepare({"id": 2})
         response = self.post('/estoque', {"produto_nome": "Água", "produto_tipo": "outro", "quantidade": 1})
         self.assertEqual(response.status_code, 409)
         self.db.commit.assert_not_called()
 
+    # Cenário de regressão: edit preserves omitted fields and clears optional expiry.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_edit_preserves_omitted_fields_and_clears_optional_expiry(self):
         self.prepare({"id": 9, "produto_id": 2, "quantidade": 1, "data_validade": "2027-01-01"},
                      {"id": 2, "nome": "Escova", "tipo_produto": "outro", "exige_validade": False,
@@ -97,6 +123,8 @@ class CatalogApiTests(unittest.TestCase):
         stock = next(args[1] for args, _ in self.cur.execute.call_args_list if args[0].startswith('UPDATE estoque'))
         self.assertIsNone(stock[0])
 
+    # Cenário de regressão: purchase receives non perishable without lot.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_purchase_receives_non_perishable_without_lot(self):
         self.prepare({"id": 4}, {"id": 2, "exige_validade": False}, None)
         response = self.post('/compras', {"fornecedor_id": 4, "valor_total": 4, "status": "recebido",
@@ -106,6 +134,8 @@ class CatalogApiTests(unittest.TestCase):
         self.assertEqual(values[1], 'SEM-LOTE')
         self.assertIsNone(values[3])
 
+    # Cenário de regressão: purchase rejects missing required expiry atomically.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_purchase_rejects_missing_required_expiry_atomically(self):
         self.prepare({"id": 4}, {"id": 2, "exige_validade": True})
         response = self.post('/compras', {"fornecedor_id": 4, "valor_total": 4, "status": "recebido",
@@ -114,6 +144,8 @@ class CatalogApiTests(unittest.TestCase):
         self.db.rollback.assert_called_once()
         self.db.commit.assert_not_called()
 
+    # Cenário de regressão: sale of product without lot decrements stock.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_sale_of_product_without_lot_decrements_stock(self):
         self.prepare({"id": 2}, {"id": 9, "quantidade": 3}, {"id": 3})
         response = self.post('/vendas', {"valor_total": 4, "tipo_pagamento": "pix", "status": "concluida",

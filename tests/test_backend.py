@@ -1,3 +1,7 @@
+# Guia de manutenção — Testes de backend.
+# Os cenários e asserts abaixo definem os contratos esperados e os casos de regressão.
+# Leia os mocks e fixtures de cada caso antes de interpretar o resultado como integração real.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """Regressões de contratos HTTP com banco simulado; qualquer conexão real falha."""
 import json
 import os
@@ -29,7 +33,10 @@ import pymysql
 import smtplib
 
 
+# Agrupa os cenários de teste e suas fixtures.
 class BackendTests(unittest.TestCase):
+    # Prepara as dependências e os dados usados pelos cenários desta classe.
+    # Mantenha o isolamento para que a ordem dos testes não determine o resultado.
     def setUp(self):
         self.block_db = patch("pymysql.connect", side_effect=AssertionError("Banco real proibido"))
         self.block_db.start()
@@ -75,10 +82,14 @@ class BackendTests(unittest.TestCase):
         }
         self.profile_permissions = default_modules
 
+    # Cenário de regressão: health does not query database.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_health_does_not_query_database(self):
         self.assertEqual(self.client.get("/health").json["status"], "online")
         self.db.cursor.assert_not_called()
 
+    # Cenário de regressão: removed forecast is unavailable.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_removed_forecast_is_unavailable(self):
         self.login_session()
         self.assertNotIn("previsao", access.PERMISSION_MODULES)
@@ -90,6 +101,8 @@ class BackendTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(self.client.get(path).status_code, 404)
 
+    # Cenário de regressão: removed forecast permission is rejected.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_removed_forecast_permission_is_rejected(self):
         self.login_session()
         response = self.client.put(
@@ -99,6 +112,8 @@ class BackendTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 400)
 
+    # Cenário de regressão: all protected routes require session.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_all_protected_routes_require_session(self):
         for rule in api.app.url_map.iter_rules():
             if not rule.rule.startswith(access.PROTECTED_API_PREFIXES) or rule.rule == "/configuracoes/visual":
@@ -111,6 +126,8 @@ class BackendTests(unittest.TestCase):
                 with self.subTest(path=path, method=method):
                     self.assertEqual(self.client.open(path, method=method).status_code, 401)
 
+    # Cenário de regressão: inventory read and write permissions remain distinct.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_inventory_read_and_write_permissions_remain_distinct(self):
         self.login_session("visualizador")
         self.assertEqual(self.client.get("/estoque").status_code, 200)
@@ -118,6 +135,8 @@ class BackendTests(unittest.TestCase):
         # payload continua responsável pelo HTTP 400.
         self.assertEqual(self.client.post("/estoque", json={}, headers={"X-CSRF-Token": "teste-csrf"}).status_code, 403)
 
+    # Cenário de regressão: root purchase and supplier permissions.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_root_purchase_and_supplier_permissions(self):
         for route in ("/compras", "/fornecedores", "/compras/1", "/fornecedores/1"):
             for method in ("GET", "POST", "PUT", "DELETE"):
@@ -126,6 +145,8 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(access.roles_permitidos("/compras-falso", "GET"), set())
         self.assertEqual(access.roles_permitidos("/fornecedores-falso", "GET"), set())
 
+    # Cenário de regressão: root lists are accessible to expected roles.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_root_lists_are_accessible_to_expected_roles(self):
         for role in access.INVENTORY_ROLES:
             for route in ("/compras", "/fornecedores"):
@@ -140,17 +161,23 @@ class BackendTests(unittest.TestCase):
                     }[role]
                     self.assertIn("compras", modules)
 
+    # Cenário de regressão: persisted permission controls api access.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_persisted_permission_controls_api_access(self):
         self.login_session("atendente")
         self.profile_permissions["atendente"] = {"dashboard"}
         self.assertEqual(self.client.get("/estoque").status_code, 403)
 
+    # Cenário de regressão: csrf rejected before mutation.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_csrf_rejected_before_mutation(self):
         self.login_session()
         response = self.client.post("/estoque", json={})
         self.assertEqual(response.status_code, 403)
         self.db.commit.assert_not_called()
 
+    # Cenário de regressão: revoked account clears session.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_revoked_account_clears_session(self):
         self.login_session()
         self.cur.fetchone.return_value = {"status": "rejeitado", "perfil": "proprietario"}
@@ -158,27 +185,37 @@ class BackendTests(unittest.TestCase):
         with self.client.session_transaction() as sess:
             self.assertNotIn("usuario_id", sess)
 
+    # Cenário de regressão: role change is read from database.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_role_change_is_read_from_database(self):
         self.login_session()
         self.cur.fetchone.return_value = {"senha_hash": "hash-simulado", "status": "aprovado", "perfil": "atendente"}
         self.assertEqual(self.client.get("/financeiro/stats").status_code, 403)
 
+    # Cenário de regressão: database failure in session validation.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_database_failure_in_session_validation(self):
         self.login_session()
         self.cur.execute.side_effect = pymysql.OperationalError("simulado")
         self.assertEqual(self.client.get("/estoque").status_code, 503)
 
+    # Cenário de regressão: logout requires csrf and clears cookie session.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_logout_requires_csrf_and_clears_cookie_session(self):
         self.login_session()
         self.assertEqual(self.client.post("/auth/logout").status_code, 403)
         self.assertEqual(self.client.post("/auth/logout", headers={"X-CSRF-Token": "teste-csrf"}).status_code, 200)
         self.assertEqual(self.client.get("/estoque").status_code, 401)
 
+    # Cenário de regressão: invalid login clears previous session.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_invalid_login_clears_previous_session(self):
         self.login_session()
         self.assertEqual(self.client.post("/auth/login", json={"email": "invalido"}).status_code, 400)
         self.assertEqual(self.client.get("/estoque").status_code, 401)
 
+    # Cenário de regressão: static alias content and cache.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_static_alias_content_and_cache(self):
         self.login_session()
         for extension, mime in (("html", "text/html"), ("css", "text/css"), ("js", "javascript")):
@@ -190,11 +227,15 @@ class BackendTests(unittest.TestCase):
             self.assertEqual(canonical.headers["Cache-Control"], "no-store" if extension == "html" else "no-cache")
             self.assertIn(mime, canonical.content_type)
 
+    # Cenário de regressão: static missing and traversal.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_static_missing_and_traversal(self):
         for path in ("/pages/sistema/../app.py", "/pages/sistema/missing.html", "/../backend/app.py", "/.env"):
             with self.subTest(path=path):
                 self.assertEqual(self.client.get(path).status_code, 404)
 
+    # Cenário de regressão: all html css js assets are served.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_all_html_css_js_assets_are_served(self):
         self.login_session()
         for path in (ROOT / "frontend/src").rglob("*"):
@@ -205,6 +246,8 @@ class BackendTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.data, path.read_bytes())
 
+    # Cenário de regressão: financial date is validated and parameterized.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_financial_date_is_validated_and_parameterized(self):
         self.login_session()
         value = "2026-10-06"
@@ -219,6 +262,8 @@ class BackendTests(unittest.TestCase):
         self.assertNotIn(value, sql)
         self.assertIn("2026-10-06 00:00:00", params)
 
+    # Cenário de regressão: financial invalid date returns json error.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_financial_invalid_date_returns_json_error(self):
         self.login_session()
         response = self.client.post("/financeiro/transacoes", json={
@@ -229,6 +274,8 @@ class BackendTests(unittest.TestCase):
         self.assertFalse(response.json["ok"])
         self.assertFalse(any("INSERT INTO financeiro_transacoes" in args[0] for args, _ in self.cur.execute.call_args_list))
 
+    # Cenário de regressão: financial invalid values return json error.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_financial_invalid_values_return_json_error(self):
         self.login_session()
         for value in ("abc", "NaN", "Infinity", -1, 0, None, {}, []):
@@ -241,6 +288,8 @@ class BackendTests(unittest.TestCase):
                 self.assertFalse(response.json["ok"])
         self.db.commit.assert_not_called()
 
+    # Cenário de regressão: stock accepts numeric supplier.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_stock_accepts_numeric_supplier(self):
         self.login_session()
         # Session lookup then product lookup: product must be created.
@@ -254,6 +303,8 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(inserts[0][11], 7)
         self.db.commit.assert_called_once()
 
+    # Cenário de regressão: stock failure rolls back.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_stock_failure_rolls_back(self):
         self.login_session()
         self.cur.execute.side_effect = [None, pymysql.OperationalError("simulado")]
@@ -264,6 +315,8 @@ class BackendTests(unittest.TestCase):
         self.db.rollback.assert_called_once()
         self.db.commit.assert_not_called()
 
+    # Cenário de regressão: financial categories filter the category type.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_financial_categories_filter_the_category_type(self):
         self.login_session()
         with patch.object(financeiro, "_fin_tables_exist", return_value=True):
@@ -273,6 +326,8 @@ class BackendTests(unittest.TestCase):
         self.assertIn("WHERE fc.tipo = %s", query)
         self.assertEqual(params, (30, "despesa"))
 
+    # Cenário de regressão: financial read failure is not reported as empty data.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_financial_read_failure_is_not_reported_as_empty_data(self):
         self.login_session()
         # A primeira consulta é a validação da sessão executada pelo middleware.
@@ -282,6 +337,8 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(response.status_code, 500)
         self.assertFalse(response.json["ok"])
 
+    # Cenário de regressão: cashflow includes each calendar day and current day total.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_cashflow_includes_each_calendar_day_and_current_day_total(self):
         self.login_session()
         self.cur.fetchall.return_value = [{
@@ -294,6 +351,8 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(response.json['receitas'], [0.0, 0.0, 27.56])
         self.assertEqual(response.json['despesas'], [0.0, 0.0, 0.0])
 
+    # Cenário de regressão: stock history is not deleted with lot.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_stock_history_is_not_deleted_with_lot(self):
         self.login_session()
         self.cur.fetchone.side_effect = [
@@ -305,6 +364,8 @@ class BackendTests(unittest.TestCase):
         self.assertFalse(any("DELETE FROM movimentacoes_estoque" in args[0] for args, _ in self.cur.execute.call_args_list))
         self.db.commit.assert_not_called()
 
+    # Cenário de regressão: stock movement filters are validated.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_stock_movement_filters_are_validated(self):
         self.login_session()
         response = self.client.get("/movimentacoes-estoque?tipo=invalido")
@@ -313,6 +374,8 @@ class BackendTests(unittest.TestCase):
         queries = [args[0] for args, _ in self.cur.execute.call_args_list]
         self.assertFalse(any("FROM   movimentacoes_estoque" in query for query in queries))
 
+    # Cenário de regressão: negative stock adjustment cannot cross zero.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_negative_stock_adjustment_cannot_cross_zero(self):
         self.login_session()
         self.cur.fetchall.return_value = [{"id": 8, "produto_id": 2, "quantidade": 3}]
@@ -323,6 +386,8 @@ class BackendTests(unittest.TestCase):
         self.db.commit.assert_not_called()
 
 
+    # Cenário de regressão: stock report counts outgoing units and current stock.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_stock_report_counts_outgoing_units_and_current_stock(self):
         self.login_session()
         self.cur.fetchone.side_effect = [
@@ -343,10 +408,14 @@ class BackendTests(unittest.TestCase):
         self.assertFalse(any('LIMIT 1000' in query for query in queries))
         self.assertTrue(any("me.tipo_movimentacao='saida'" in query and 'SUM(me.quantidade)' in query for query in queries))
 
+    # Cenário de regressão: report rejects invalid period.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_report_rejects_invalid_period(self):
         self.login_session()
         self.assertEqual(self.client.get('/relatorios/estoque?periodo=invalid').status_code, 400)
 
+    # Cenário de regressão: movements pagination preserves filters and reports total.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_movements_pagination_preserves_filters_and_reports_total(self):
         self.login_session()
         self.cur.fetchone.side_effect = [
@@ -360,6 +429,8 @@ class BackendTests(unittest.TestCase):
         self.assertIn('me.id DESC', query)
         self.assertEqual(params, ('saida', '%creme%', 10, 1000))
 
+    # Cenário de regressão: purchase list serializes order date as iso.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_purchase_list_serializes_order_date_as_iso(self):
         from datetime import datetime
         self.login_session()
@@ -368,6 +439,8 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['compras'][0]['data_pedido'], '2026-10-07T00:00:00')
 
+    # Cenário de regressão: financial categories separate paid and pending.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_financial_categories_separate_paid_and_pending(self):
         self.login_session()
         self.cur.fetchall.return_value = [{'id': 2, 'nome': 'Despesas', 'tipo': 'despesa',
@@ -379,6 +452,8 @@ class BackendTests(unittest.TestCase):
         queries = [args[0] for args, _ in self.cur.execute.call_args_list]
         self.assertTrue(any('DATE_SUB(CURDATE()' in query for query in queries))
 
+    # Cenário de regressão: successful login sets session without exposing hash.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_successful_login_sets_session_without_exposing_hash(self):
         self.cur.fetchone.return_value = {
             "id": 42, "nome": "Teste", "sobrenome": "Local", "email": "teste@example.com",
@@ -396,6 +471,8 @@ class BackendTests(unittest.TestCase):
             self.assertFalse(sess.permanent)
         self.db.commit.assert_called_once()
 
+    # Cenário de regressão: login logout login accepts same password and renews csrf.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_login_logout_login_accepts_same_password_and_renews_csrf(self):
         self.cur.fetchone.return_value = {
             "id": 42, "nome": "Teste", "sobrenome": "Local", "email": "teste@example.com",
@@ -418,6 +495,8 @@ class BackendTests(unittest.TestCase):
             with self.client.session_transaction() as sess:
                 self.assertEqual(sess["usuario_id"], 42)
 
+    # Cenário de regressão: remember access creates a persistent session.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_remember_access_creates_a_persistent_session(self):
         self.cur.fetchone.return_value = {
             "id": 42, "nome": "Teste", "sobrenome": "Local", "email": "teste@example.com",
@@ -433,6 +512,8 @@ class BackendTests(unittest.TestCase):
         with self.client.session_transaction() as sess:
             self.assertTrue(sess.permanent)
 
+    # Cenário de regressão: login rejects non boolean remember access.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_login_rejects_non_boolean_remember_access(self):
         response = self.client.post("/auth/login", json={
             "email": "teste@example.com", "password": "simulada", "remember": "true",
@@ -441,6 +522,8 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(response.json["campo"], "remember")
         self.db.cursor.assert_not_called()
 
+    # Cenário de regressão: registration still requires both legal consents.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_registration_still_requires_both_legal_consents(self):
         response = self.client.post("/auth/register", json={
             "nome": "Teste", "sobrenome": "Local", "email": "teste@example.com",
@@ -450,6 +533,8 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(response.json["campo"], "legal")
         self.db.cursor.assert_not_called()
 
+    # Cenário de regressão: retired visual preferences cannot be saved.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_retired_visual_preferences_cannot_be_saved(self):
         self.login_session()
         for key in ('tema', 'tema_efetivo'):
@@ -465,6 +550,8 @@ class BackendTests(unittest.TestCase):
             self.assertEqual(self.client.get('/configuracoes/' + key).status_code, 410)
         self.db.commit.assert_not_called()
 
+    # Cenário de regressão: old database preferences do not reappear in settings.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_old_database_preferences_do_not_reappear_in_settings(self):
         self.login_session()
         self.cur.fetchall.return_value = [
@@ -477,6 +564,8 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(response.json['configuracoes'],
                          [{'chave': 'cor_destaque', 'valor': '#2e6da4'}])
 
+    # Cenário de regressão: registration uses migrated legal table without runtime ddl.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_registration_uses_migrated_legal_table_without_runtime_ddl(self):
         self.cur.fetchone.side_effect = [None, {"id": 2}]
         with patch.dict(os.environ, {
@@ -492,6 +581,8 @@ class BackendTests(unittest.TestCase):
         self.assertFalse(any("CREATE TABLE" in query for query in queries))
         self.assertTrue(any("INSERT INTO aceites_legais" in query for query in queries))
 
+    # Cenário de regressão: brevo smtp uses tls and credentials from environment.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_brevo_smtp_uses_tls_and_credentials_from_environment(self):
         smtp = Mock()
         smtp_context = Mock()
@@ -512,6 +603,8 @@ class BackendTests(unittest.TestCase):
         self.assertIn("FarmaControl", corpo_html)
         self.assertIn("background:#14532d", corpo_html)
 
+    # Cenário de regressão: alert resolution uses authenticated user.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_alert_resolution_uses_authenticated_user(self):
         self.login_session()
         self.cur.fetchone.side_effect = [
@@ -525,6 +618,8 @@ class BackendTests(unittest.TestCase):
         self.assertIn(42, update[1])
         self.assertNotIn(999, update[1])
 
+    # Cenário de regressão: admin invite does not create account or assume legal consent.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_admin_invite_does_not_create_account_or_assume_legal_consent(self):
         self.login_session()
         self.cur.fetchone.side_effect = [
@@ -540,6 +635,8 @@ class BackendTests(unittest.TestCase):
         self.assertFalse(any("INSERT INTO usuarios" in query for query in queries))
         send_mail.assert_called_once()
 
+    # Cenário de regressão: account without operational history removes legal acceptance before delete.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_account_without_operational_history_removes_legal_acceptance_before_delete(self):
         self.login_session()
         self.cur.fetchone.side_effect = [
@@ -551,6 +648,8 @@ class BackendTests(unittest.TestCase):
         self.assertIn("DELETE FROM aceites_legais WHERE usuario_id = %s", queries)
         self.assertIn("DELETE FROM usuarios WHERE id = %s", queries)
 
+    # Cenário de regressão: password reset request sends link without storing plain token.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_password_reset_request_sends_link_without_storing_plain_token(self):
         self.cur.fetchone.return_value = {"id": 9, "nome": "Pessoa"}
         with patch.object(email, "enviar_email_brevo", return_value=True) as send_mail:
@@ -562,6 +661,8 @@ class BackendTests(unittest.TestCase):
         send_mail.assert_called_once()
         self.assertIn("redefinir-senha.html?token=", send_mail.call_args.args[2])
 
+    # Cenário de regressão: password reset invalidates token after updating password.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_password_reset_invalidates_token_after_updating_password(self):
         self.cur.fetchone.return_value = {"id": 9}
         response = self.client.post("/auth/redefinir-senha", json={"token": "segredo", "password": "nova-senha"})
@@ -570,6 +671,8 @@ class BackendTests(unittest.TestCase):
         self.assertIn("token_reset = NULL", update[0])
         self.assertNotEqual(update[1][0], "nova-senha")
 
+    # Cenário de regressão: log access is fixed for only three roles.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_log_access_is_fixed_for_only_three_roles(self):
         for role in access.PERFIS_VALIDOS:
             self.login_session(role)
@@ -578,6 +681,8 @@ class BackendTests(unittest.TestCase):
             response = self.client.get("/admin/logs")
             self.assertEqual(response.status_code, 200 if role in access.ADMIN_ROLES else 403)
 
+    # Cenário de regressão: log filters combine with cursor and brasilia day boundaries.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_log_filters_combine_with_cursor_and_brasilia_day_boundaries(self):
         from datetime import datetime
         self.login_session()
@@ -587,6 +692,8 @@ class BackendTests(unittest.TestCase):
         self.assertIn('id < %s AND usuario_id = %s AND criado_em >= %s AND criado_em < %s', query)
         self.assertEqual(params, (90, 42, datetime(2026, 10, 9, 3), datetime(2026, 10, 10, 3), 51))
 
+    # Cenário de regressão: log rejects invalid filters.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_log_rejects_invalid_filters(self):
         self.login_session()
         for query in ('usuario_id=-1', 'usuario_id=1 OR 1=1', 'data_inicio=2026-02-30',
@@ -594,6 +701,8 @@ class BackendTests(unittest.TestCase):
             with self.subTest(query=query):
                 self.assertEqual(self.client.get('/admin/logs?' + query).status_code, 400)
 
+    # Cenário de regressão: log filter users come from preserved history.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_log_filter_users_come_from_preserved_history(self):
         self.login_session()
         self.cur.fetchall.side_effect = [[{'id': 9, 'nome': 'Autor removido'}], []]
@@ -603,6 +712,8 @@ class BackendTests(unittest.TestCase):
         self.assertTrue(any('GROUP BY l.usuario_id' in query and 'FROM log_atividades' in query
                             and 'FROM usuarios u' in query and 'UNION ALL' in query for query in queries))
 
+    # Cenário de regressão: log rejects future date with clear message.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_log_rejects_future_date_with_clear_message(self):
         from datetime import datetime, timedelta, timezone
         self.login_session()
@@ -612,6 +723,8 @@ class BackendTests(unittest.TestCase):
             self.assertEqual(response.status_code, 400)
             self.assertIn('datas futuras', response.json['mensagem'])
 
+    # Cenário de regressão: log empty filtered result is explicit.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_log_empty_filtered_result_is_explicit(self):
         self.login_session()
         response = self.client.get('/admin/logs?usuario_id=9&data_inicio=2000-01-01&data_fim=2000-01-01')
@@ -620,12 +733,16 @@ class BackendTests(unittest.TestCase):
         self.assertIsNone(response.json['proximo'])
         self.assertEqual(response.json['filtros']['usuario_id'], '9')
 
+    # Cenário de regressão: log has no write endpoint.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_log_has_no_write_endpoint(self):
         self.login_session()
         for method in ("POST", "PUT", "PATCH", "DELETE"):
             response = self.client.open("/admin/logs", method=method, headers={"X-CSRF-Token": "teste-csrf"})
             self.assertEqual(response.status_code, 405)
 
+    # Cenário de regressão: log cursor and read do not generate more logs.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_log_cursor_and_read_do_not_generate_more_logs(self):
         self.login_session()
         self.cur.fetchall.return_value = [
@@ -639,6 +756,8 @@ class BackendTests(unittest.TestCase):
         self.db.commit.assert_not_called()
         self.assertEqual(self.client.get("/admin/logs?antes=invalid").status_code, 400)
 
+    # Cenário de regressão: audit failure rolls back business change.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_audit_failure_rolls_back_business_change(self):
         self.login_session()
         def execute(query, *args):
@@ -650,6 +769,8 @@ class BackendTests(unittest.TestCase):
         self.db.rollback.assert_called()
         self.db.commit.assert_not_called()
 
+    # Cenário de regressão: audit uses session actor and excludes secrets.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_audit_uses_session_actor_and_excludes_secrets(self):
         self.login_session()
         response = self.client.post("/categorias-produto", json={
@@ -662,6 +783,8 @@ class BackendTests(unittest.TestCase):
         self.assertNotIn("token-secreto", str(event))
         self.db.commit.assert_called_once()
 
+    # Cenário de regressão: logout is audited before session is cleared.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_logout_is_audited_before_session_is_cleared(self):
         self.login_session()
         self.client.post("/auth/logout", headers={"X-CSRF-Token": "teste-csrf"})
@@ -669,6 +792,8 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(event[0], 42)
         self.assertEqual(event[3], "Saiu do sistema")
 
+    # Cenário de regressão: route contract matches original snapshot.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_route_contract_matches_original_snapshot(self):
         original = json.loads((ROOT / "tests/fixtures/api_routes.json").read_text(encoding="utf-8"))
         expected = {(r["method"], r["path"], r["function"]) for r in original}

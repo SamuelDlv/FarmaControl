@@ -1,3 +1,5 @@
+# Guia de manutenção — Expõe preferências visuais e configurações operacionais da instalação.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """routes.configuracoes: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import database
@@ -13,8 +15,11 @@ import pymysql.cursors
 log = logging.getLogger("farmacontrol")
 
 
+# Preferencias seguras usadas pelo login antes de existir uma sessao.
 def get_configuracoes_visuais():
     """Preferencias seguras usadas pelo login antes de existir uma sessao."""
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # configuracoes_sistema.
     chaves = ("cor_destaque", "densidade_interface", "animacoes_interface")
     db = database.get_db()
     try:
@@ -31,7 +36,10 @@ def get_configuracoes_visuais():
         return responses.err("Erro interno ao buscar configuracoes visuais.", status=500)
 
 
+# Consulta configuracoes.
 def get_configuracoes():
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # configuracoes_sistema.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -45,8 +53,15 @@ def get_configuracoes():
         return responses.err("Erro interno ao buscar configurações.", status=500)
 
 
+# Salva o formulário inteiro em uma única transação, incluindo auditoria.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def save_configuracoes():
     """Salva o formulário inteiro em uma única transação, incluindo auditoria."""
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # configuracoes.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # configuracoes_sistema.
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
         return responses.err("Informe as configurações para salvar.", status=400)
@@ -61,15 +76,20 @@ def save_configuracoes():
             commit_audit(db)
         return responses.ok({"mensagem": "Configurações salvas com sucesso.", "valores": values})
     except ValueError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         return responses.err(str(exc), status=400)
     except pymysql.MySQLError:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.exception("Erro ao salvar configurações")
         return responses.err("Não foi possível salvar as configurações. Tente novamente.", status=500)
 
 
+# Consulta configuracao.
 def get_configuracao(chave):
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # configuracoes_sistema.
     if chave in {"tema", "tema_efetivo"}:
         return responses.err("Esta preferência visual foi removida.", status=410)
     db = database.get_db()
@@ -85,7 +105,14 @@ def get_configuracao(chave):
         return responses.err("Erro interno ao buscar configuração.", status=500)
 
 
+# Cadastra configuracao.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def create_configuracao():
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # chave, descricao, valor.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # configuracoes_sistema.
     data = request.get_json(silent=True) or {}
     chave = data.get("chave")
     valor = data.get("valor")
@@ -110,19 +137,28 @@ def create_configuracao():
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Configuração criada com sucesso."}, status=201)
     except pymysql.IntegrityError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         if "Duplicate entry" in str(exc) and "chave" in str(exc):
             return responses.err("Chave de configuração já existe.", campo="chave", status=409)
         log.error("Erro DB ao criar configuração: %s", exc)
         return responses.err("Erro interno ao criar configuração.", status=500)
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao criar configuração: %s", exc)
         return responses.err("Erro interno ao criar configuração.", status=500)
 
 
+# Atualiza ou cria (upsert) uma configuração do sistema.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def update_configuracao(chave):
     """Atualiza ou cria (upsert) uma configuração do sistema."""
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # descricao, valor.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # configuracoes_sistema.
     if chave in {"tema", "tema_efetivo"}:
         return responses.err("Esta preferência visual foi removida.", campo="chave", status=410)
     data = request.get_json(silent=True) or {}
@@ -145,12 +181,17 @@ def update_configuracao(chave):
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Configuração salva com sucesso."})
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao salvar configuração: %s", exc)
         return responses.err("Erro interno ao salvar configuração.", status=500)
 
 
+# Exclui configuracao.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def delete_configuracao(chave):
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # configuracoes_sistema.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -162,11 +203,14 @@ def delete_configuracao(chave):
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Configuração excluída com sucesso."})
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao excluir configuração: %s", exc)
         return responses.err("Erro interno ao excluir configuração.", status=500)
 
 
+# Liga URLs, métodos HTTP e nomes de endpoint à instância recebida.
+# Alterar estes contratos exige revisar as telas e tests/fixtures/api_routes.json.
 def register_routes(app):
     """Registra as URLs e nomes de endpoints existentes."""
     app.add_url_rule('/configuracoes/visual', view_func=get_configuracoes_visuais, methods=['GET'])

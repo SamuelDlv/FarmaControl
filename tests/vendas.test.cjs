@@ -1,9 +1,13 @@
+/* Guia de manutenção — Testes de vendas: cenários executados com as dependências controladas abaixo.
+ * Os resultados cobrem os cenários descritos neste arquivo; mocks não comprovam integração real.
+ */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
 
+// Prepara a página usada pelo cenário de teste e expõe os controles necessários às asserções.
 async function page() {
   const elements = new Map(),
     requests = [];

@@ -1,3 +1,7 @@
+# Guia de manutenção — Testes de audit.
+# Os cenários e asserts abaixo definem os contratos esperados e os casos de regressão.
+# Leia os mocks e fixtures de cada caso antes de interpretar o resultado como integração real.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """Regressões da rastreabilidade, sem acesso a banco real."""
 import ast
 import inspect
@@ -10,6 +14,7 @@ from farmacontrol.services.audit import commit_audit
 api = base.api
 
 
+# Agrupa os cenários de teste e suas fixtures.
 class AuditTests(unittest.TestCase):
     setUp = base.BackendTests.setUp
     login_session = base.BackendTests.login_session
@@ -18,6 +23,8 @@ class AuditTests(unittest.TestCase):
         return next(call.args[1] for call in self.cur.execute.call_args_list
                     if 'INSERT INTO log_atividades' in call.args[0])
 
+    # Cenário de regressão: supplier has actor identity and created record.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_supplier_has_actor_identity_and_created_record(self):
         self.login_session()
         response = self.client.post('/fornecedores', json={
@@ -33,6 +40,8 @@ class AuditTests(unittest.TestCase):
         self.assertNotIn('privado@example.com', event[4])
         self.assertNotIn('segredo', event[4])
 
+    # Cenário de regressão: created purchase references purchase not last inserted item.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_created_purchase_references_purchase_not_last_inserted_item(self):
         self.login_session()
         def execute(sql, *args):
@@ -49,6 +58,8 @@ class AuditTests(unittest.TestCase):
         self.assertIn('registro=17', self.event()[4])
         self.assertNotIn('registro=93', self.event()[4])
 
+    # Cenário de regressão: details preserve all items and commit once.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_details_preserve_all_items_and_commit_once(self):
         items = [{'produto_id': i, 'quantidade': 2, 'preco_unitario': 10, 'senha': 'segredo'} for i in range(100)]
         with api.app.test_request_context('/vendas', method='POST', json={'status': 'concluida', 'itens': items}):
@@ -62,6 +73,8 @@ class AuditTests(unittest.TestCase):
         self.assertNotIn('segredo', event[4])
         self.db.commit.assert_called_once()
 
+    # Cenário de regressão: sale status transition is explicit.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_sale_status_transition_is_explicit(self):
         with api.app.test_request_context('/vendas/7', method='PUT', json={'status': 'concluida'}):
             g.usuario_id = 42
@@ -71,17 +84,23 @@ class AuditTests(unittest.TestCase):
         self.assertIn('Status anterior: pendente', self.event()[4])
         self.assertIn('venda_id=7', self.event()[4])
 
+    # Cenário de regressão: same status does not claim sale concluded again.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_same_status_does_not_claim_sale_concluded_again(self):
         with api.app.test_request_context('/vendas/7', method='PUT', json={'status': 'concluida'}):
             g.audit_previous_status = 'concluida'
             commit_audit(self.db)
         self.assertEqual(self.event()[3], 'Atualizou venda')
 
+    # Cenário de regressão: secret invitation url is never logged.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_secret_invitation_url_is_never_logged(self):
         with api.app.test_request_context('/auth/convites/token-secreto/recusar', method='POST'):
             commit_audit(self.db)
         self.assertNotIn('token-secreto', str(self.event()))
 
+    # Cenário de regressão: search and activity filter use bound parameters.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_search_and_activity_filter_use_bound_parameters(self):
         self.login_session()
         response = self.client.get('/admin/logs', query_string={
@@ -93,11 +112,15 @@ class AuditTests(unittest.TestCase):
         self.assertEqual(params, (42, "Central %_'", "Central %_'", "Central %_'", 'GET %', 51))
         self.assertEqual(response.json['filtros']['atividade'], 'alteracoes')
 
+    # Cenário de regressão: invalid search filters are rejected.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_invalid_search_filters_are_rejected(self):
         self.login_session()
         for query in ({'atividade': 'invalida'}, {'busca': 'a' * 121}):
             self.assertEqual(self.client.get('/admin/logs', query_string=query).status_code, 400)
 
+    # Cenário de regressão: every mutation endpoint uses transactional audit.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_every_mutation_endpoint_uses_transactional_audit(self):
         endpoints = {rule.endpoint for rule in api.app.url_map.iter_rules()
                      if rule.methods & {'POST', 'PUT', 'PATCH', 'DELETE'}}

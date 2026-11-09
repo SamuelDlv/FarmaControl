@@ -1,3 +1,6 @@
+/* Guia de manutenção — Autenticação, cadastro e recuperação: apresenta erros e preserva o estado das tentativas.
+ * Os seletores dependem do HTML da tela; dados e permissões devem continuar validados na API.
+ */
 /* ══════════════════════════════════════════════════════════════════════
  * FARMAControl — PÁGINA DE AUTENTICAÇÃO (LOGIN/CADASTRO)
  * ══════════════════════════════════════════════════════════════════════
@@ -44,6 +47,7 @@ const ROLE_INFO = {
 /* ═══════════════════════════════════════════
    UTILS
 ═══════════════════════════════════════════ */
+// Obtém os elementos do documento usados por $.
 const $ = id => document.getElementById(id);
 const isValidEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const LOGIN_BOOT_DURATION = 2000;
@@ -77,6 +81,7 @@ const CAMPO_MAP = {
 };
 
 /* highlightApiError(): Destaca um campo com erro retornado pela API. */
+// Obtém os elementos do documento usados por highlight Api Error.
 function highlightApiError(campo, mensagem) {
   const map = CAMPO_MAP[campo];
   if (!map) return;
@@ -95,6 +100,7 @@ function highlightApiError(campo, mensagem) {
 }
 
 /* showToast(): Exibe notificação temporária no topo da tela. */
+// Exibe uma mensagem temporária para comunicar o resultado da ação ao usuário.
 function showToast(message, type = 'success') {
   const toast = $('toast');
   const msg = toast.querySelector('.toast-msg');
@@ -130,6 +136,7 @@ function setButtonLoading(btnId, loading) {
    CHAMADAS À API
 ═══════════════════════════════════════════ */
 /* apiFetch(): Envia login/cadastro à API e converte falhas de rede em feedback do formulário. */
+// Centraliza o envio e a leitura da resposta HTTP usados neste fluxo.
 async function apiFetch(path, body) {
   try {
     const res = await fetch(`${API_BASE}${path}`, {
@@ -151,6 +158,7 @@ async function apiFetch(path, body) {
 
 /* Obtém a paleta persistida antes de trocar de página. Isto evita que o
    dashboard precise renderizar a cor padrão enquanto consulta a API. */
+// Consulta ou atualiza o estado desta aba usado por cache Visual Settings.
 async function cacheVisualSettings() {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 4000);
@@ -180,6 +188,8 @@ async function cacheVisualSettings() {
    TABS
 ═══════════════════════════════════════════ */
 /* initTabs(): Configura a alternância entre abas Entrar/Cadastrar. */
+// Inicializa Tabs.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initTabs() {
   const btns = document.querySelectorAll('.tab-btn');
   const panels = document.querySelectorAll('.form-panel');
@@ -206,6 +216,8 @@ function initTabs() {
    EYE TOGGLES
 ═══════════════════════════════════════════ */
 /* initEyeToggles(): Configura o botão de "olho" para mostrar/esconder senha. */
+// Inicializa Eye Toggles.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initEyeToggles() {
   document.querySelectorAll('.eye-toggle').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -243,6 +255,8 @@ function calcStrength(val) {
 }
 
 /* initStrengthMeter(): Inicializa o medidor visual de força de senha (barras coloridas). */
+// Inicializa Strength Meter.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initStrengthMeter() {
   const input = $('reg-password');
   const fill = $('strength-fill');
@@ -268,6 +282,8 @@ function initStrengthMeter() {
    AUTO-CLEAR ERRORS
 ═══════════════════════════════════════════ */
 /* initAutoClear(): Limpa os campos ao alternar entre abas Entrar/Cadastrar. */
+// Inicializa Auto Clear.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initAutoClear() {
   document.querySelectorAll('input, select').forEach(el => {
     el.addEventListener('input', () => {
@@ -283,6 +299,8 @@ function initAutoClear() {
 ═══════════════════════════════════════════ */
 /* initLoginForm(): Configura o formulário de login (validação + envio). */
 let loginAttemptsTimer;
+// Exibe as tentativas restantes e o tempo de espera informados pelo servidor.
+// O contador visual não remove nem redefine o bloqueio da API.
 function showLoginAttempts(data) {
   const message = $('login-attempts');
   if (!message) return;
@@ -297,6 +315,7 @@ function showLoginAttempts(data) {
     return;
   }
   const deadline = Date.now() + seconds * 1000;
+  // Atualiza o valor apresentado pelo componente com os dados atuais do documento.
   const update = () => {
     const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
     if (!remaining) {
@@ -312,10 +331,13 @@ function showLoginAttempts(data) {
   loginAttemptsTimer = setInterval(update, 1000);
 }
 
+// Inicializa Login Form.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initLoginForm() {
   const form = $('form-login');
   if (!form) return;
 
+  // Intercepta a submissão para tratar validação e envio neste documento.
   form.addEventListener('submit', async e => {
     e.preventDefault();
 
@@ -384,10 +406,13 @@ function initLoginForm() {
    REGISTER FORM
 ═══════════════════════════════════════════ */
 /* initRegisterForm(): Configura o formulário de cadastro (validação + envio + seleção de perfil). */
+// Inicializa Register Form.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initRegisterForm() {
   const form = $('form-register');
   if (!form) return;
 
+  // Intercepta a submissão para tratar validação e envio neste documento.
   form.addEventListener('submit', async e => {
     e.preventDefault();
     let valid = true;
@@ -501,6 +526,8 @@ function initRegisterForm() {
   });
 }
 
+// Inicializa Invite From Url.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 async function initInviteFromUrl() {
   const params = new URLSearchParams(window.location.search);
   const token = params.get('convite');
@@ -557,6 +584,8 @@ async function initInviteFromUrl() {
    FORGOT PASSWORD
 ═══════════════════════════════════════════ */
 /* initForgotPassword(): Configura o modal de recuperação de senha. */
+// Inicializa Forgot Password.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initForgotPassword() {
   const btn = $('btn-forgot');
   if (!btn) return;
@@ -612,6 +641,8 @@ const ROLE_ICONS = {
 };
 
 /* initCustomSelect(): Inicializa os selects customizados (dropdowns estilizados). */
+// Inicializa Custom Select.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initCustomSelect() {
   const cs = document.getElementById('custom-select');
   const hidden = document.getElementById('reg-role');
@@ -637,6 +668,7 @@ function initCustomSelect() {
     }
   });
 
+  // Atende atalhos de teclado; preserve a navegação e os controles acessíveis.
   cs.addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();

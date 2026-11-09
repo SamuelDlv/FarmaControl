@@ -1,3 +1,5 @@
+# Guia de manutenção — Expõe consulta e manutenção dos alertas associados ao estoque.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """routes.alertas: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import database
@@ -11,7 +13,10 @@ import pymysql.cursors
 log = logging.getLogger("farmacontrol")
 
 
+# Consulta alertas.
 def get_alertas():
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # alertas.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -23,7 +28,10 @@ def get_alertas():
         return responses.err("Erro interno ao buscar alertas.", status=500)
 
 
+# Consulta alerta.
 def get_alerta(alerta_id):
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # alertas.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -37,7 +45,14 @@ def get_alerta(alerta_id):
         return responses.err("Erro interno ao buscar alerta.", status=500)
 
 
+# Cadastra alerta.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def create_alerta():
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # mensagem, referencia_id, status, tipo_alerta.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # alertas.
     data = request.get_json(silent=True) or {}
     tipo_alerta = data.get("tipo_alerta")
     referencia_id = data.get("referencia_id")
@@ -62,12 +77,20 @@ def create_alerta():
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Alerta criado com sucesso.", "id": cur.lastrowid}, status=201)
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao criar alerta: %s", exc)
         return responses.err("Erro interno ao criar alerta.", status=500)
 
 
+# Atualiza alerta.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def update_alerta(alerta_id):
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # mensagem, referencia_id, status, tipo_alerta.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # alertas.
     data = request.get_json(silent=True) or {}
     tipo_alerta = data.get("tipo_alerta")
     referencia_id = data.get("referencia_id")
@@ -109,12 +132,17 @@ def update_alerta(alerta_id):
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Alerta atualizado com sucesso."})
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao atualizar alerta: %s", exc)
         return responses.err("Erro interno ao atualizar alerta.", status=500)
 
 
+# Exclui alerta.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def delete_alerta(alerta_id):
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # alertas.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -126,11 +154,14 @@ def delete_alerta(alerta_id):
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Alerta excluído com sucesso."})
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao excluir alerta: %s", exc)
         return responses.err("Erro interno ao excluir alerta.", status=500)
 
 
+# Liga URLs, métodos HTTP e nomes de endpoint à instância recebida.
+# Alterar estes contratos exige revisar as telas e tests/fixtures/api_routes.json.
 def register_routes(app):
     """Registra as URLs e nomes de endpoints existentes."""
     app.add_url_rule('/alertas', view_func=get_alertas, methods=['GET'])

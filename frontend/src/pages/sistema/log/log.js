@@ -1,3 +1,6 @@
+/* Guia de manutenção — Histórico de atividades com filtros e paginação; preserva a consulta aplicada.
+ * Os seletores dependem do HTML da tela; dados e permissões devem continuar validados na API.
+ */
 (() => {
   'use strict';
   const user = JSON.parse(sessionStorage.getItem('farmacontrol_usuario') || 'null');
@@ -38,6 +41,7 @@
   const endFilter = document.getElementById('filtro-fim');
   const searchFilter = document.getElementById('filtro-busca');
   const activityFilter = document.getElementById('filtro-atividade');
+  // Obtém o dia no fuso de Brasília para manter os filtros do histórico coerentes.
   function todayInBrasilia() {
     const parts = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'America/Sao_Paulo',
@@ -55,6 +59,7 @@
     index = 0,
     nextCursor = null,
     loading = false;
+  // Obtém os elementos do documento usados por show Empty.
   function showEmpty(message, error = false) {
     rows.replaceChildren();
     const tr = document.createElement('tr');
@@ -72,6 +77,7 @@
     previous.disabled = next.disabled = true;
     document.getElementById('pagina').textContent = 'Página 1';
   }
+  // Consulta os dados usados pela tela e sincroniza os controles conforme sucesso ou falha.
   async function load(target = index, reset = false, proposedFilters = appliedFilters) {
     if (loading) return;
     loading = true;
@@ -159,6 +165,7 @@
     }
   }
   refresh.addEventListener('click', () => load(0, true));
+  // Intercepta a submissão para tratar validação e envio neste documento.
   filters.addEventListener('submit', event => {
     event.preventDefault();
     const today = todayInBrasilia();

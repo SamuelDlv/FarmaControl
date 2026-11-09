@@ -1,3 +1,6 @@
+/* Guia de manutenção — Verificador de volume browser: confira pré-requisitos, argumentos e cenários antes de executar.
+ * Os resultados cobrem os cenários descritos neste arquivo; mocks não comprovam integração real.
+ */
 /* Renderiza os snapshots de check_volume_data.py em Chrome isolado.
  * Nenhuma gravação chega ao banco. Inclui nomes longos e todos os 11 mil movimentos. */
 const fs = require('node:fs');
@@ -93,6 +96,7 @@ const server = http.createServer((req, res) => {
   });
   res.end(fs.readFileSync(filename));
 });
+// Prepara o ambiente controlado do navegador para os cenários deste verificador.
 function bootstrap() {
   sessionStorage.setItem(
     'farmacontrol_usuario',
@@ -195,6 +199,7 @@ function bootstrap() {
         throw new Error(r.exceptionDetails.exception?.description || r.exceptionDetails.text);
       return r.result.value;
     };
+    // Obtém os elementos do documento usados por navigate.
     const navigate = async page => {
       await send('Page.navigate', {
         url: origin + '/pages/sistema/' + page + '/' + page + '.html'

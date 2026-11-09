@@ -1,3 +1,5 @@
+# Guia de manutenção — Serve a instalação local e coordena o encerramento das requisições no Windows.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """Servidor local com encerramento cooperativo, sem controlar o serviço de banco."""
 
 import ctypes
@@ -11,6 +13,7 @@ from werkzeug.serving import ThreadedWSGIServer
 from farmacontrol.core.paths import BACKEND_DIR
 
 
+# Agrupa o estado e as operações de LocalServer.
 class LocalServer(ThreadedWSGIServer):
     # Aguarda os handlers terminarem, incluindo commit/rollback e teardown do Flask.
     daemon_threads = False
@@ -18,12 +21,15 @@ class LocalServer(ThreadedWSGIServer):
     timeout = 0.25
 
 
+# O hash do caminho absoluto identifica esta cópia do projeto na sessão Windows.
+# Mantenha a mesma normalização em stop_local_server.ps1 para evitar encerrar outra pasta.
 def control_name():
     path = str((BACKEND_DIR / "app.py").resolve()).lower()
     digest = hashlib.sha256(path.encode("utf-8")).hexdigest()
     return "Local\\FarmaControl-" + digest
 
 
+# Eventos restritos à sessão Windows e identificados pela pasta do projeto.
 class WindowsControl:
     """Eventos restritos à sessão Windows e identificados pela pasta do projeto."""
 
@@ -70,6 +76,8 @@ class WindowsControl:
         self.handles.clear()
 
 
+# Aguarda o sinal de parada sem matar processos nem interromper transações em andamento.
+# O evento Done só é sinalizado depois de o servidor aguardar as threads das requisições.
 def run_local(app):
     control = WindowsControl() if os.name == "nt" else None
     try:

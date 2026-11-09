@@ -1,3 +1,6 @@
+# Guia de manutenção — Verificador de volume data.
+# Este é um utilitário de validação; confira main e os argumentos antes de executá-lo.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """Validação somente leitura da base local e snapshots para o teste de navegador.
 
 Não executa a carga 017, migrações, login ou auditoria. A transação é READ ONLY.
@@ -23,6 +26,7 @@ from farmacontrol.routes import fornecedores
 from farmacontrol.routes import relatorios
 
 
+# Executa as consultas e validações de main.
 def main():
     db = connection()
     snapshots = {}

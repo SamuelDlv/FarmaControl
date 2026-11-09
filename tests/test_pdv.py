@@ -1,3 +1,7 @@
+# Guia de manutenção — Testes de pdv.
+# Os cenários e asserts abaixo definem os contratos esperados e os casos de regressão.
+# Leia os mocks e fixtures de cada caso antes de interpretar o resultado como integração real.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 from unittest.mock import patch
 import test_backend as base
 import unittest
@@ -8,6 +12,7 @@ from farmacontrol.core import access
 import pymysql
 
 
+# Agrupa os cenários de teste e suas fixtures.
 class PdvTests(unittest.TestCase):
     setUp = base.BackendTests.setUp
     login_session = base.BackendTests.login_session
@@ -24,12 +29,16 @@ class PdvTests(unittest.TestCase):
         row.update(changes)
         self.cur.fetchone.side_effect=[{'senha_hash':'hash-simulado','status':'aprovado','perfil':'atendente'},row,{'id':3}]
 
+    # Cenário de regressão: access roles.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_access_roles(self):
         for role in access.PERFIS_VALIDOS:
             self.login_session(role)
             response=self.client.get('/vendas/catalogo')
             self.assertEqual(response.status_code,200 if role in access.SALES_ROLES else 403)
 
+    # Cenário de regressão: invalid quantities do not write.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_invalid_quantities_do_not_write(self):
         self.login_session()
         for qty in [-1,0,True,1.5,'2']:
@@ -37,6 +46,8 @@ class PdvTests(unittest.TestCase):
             self.assertEqual(self.post(data).status_code,400)
         self.db.commit.assert_not_called()
 
+    # Cenário de regressão: sale is atomic and total is server calculated.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_sale_is_atomic_and_total_is_server_calculated(self):
         self.prepare()
         response=self.post(self.payload())
@@ -47,6 +58,8 @@ class PdvTests(unittest.TestCase):
             self.assertIn(fragment,sql)
         self.db.commit.assert_called_once()
 
+    # Cenário de regressão: changed price insufficient stock expiry and prescription.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_changed_price_insufficient_stock_expiry_and_prescription(self):
         for changes in [{'preco_venda':'13.00'},{'quantidade':1},{'valido':0},{'requer_receita':True}]:
             self.prepare(**changes)
@@ -54,6 +67,8 @@ class PdvTests(unittest.TestCase):
         self.db.commit.assert_not_called()
         self.assertEqual(self.db.rollback.call_count,4)
 
+    # Cenário de regressão: financial failure rolls back stock and sale.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_financial_failure_rolls_back_stock_and_sale(self):
         self.prepare()
         def execute(sql,*args):
@@ -64,10 +79,14 @@ class PdvTests(unittest.TestCase):
         self.db.rollback.assert_called_once()
         self.db.commit.assert_not_called()
 
+    # Cenário de regressão: csrf required.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_csrf_required(self):
         self.login_session('atendente')
         self.assertEqual(self.client.post('/vendas/balcao',json=self.payload()).status_code,403)
 
+    # Cenário de regressão: legacy sale registers financial entry atomically.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_legacy_sale_registers_financial_entry_atomically(self):
         self.login_session()
         response = self.client.post('/vendas', json={
@@ -79,6 +98,8 @@ class PdvTests(unittest.TestCase):
         self.assertIn('NOT EXISTS', sql)
         self.db.commit.assert_called_once()
 
+    # Cenário de regressão: audit contains validated sale total and items.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_audit_contains_validated_sale_total_and_items(self):
         self.prepare()
         payload = self.payload()
@@ -93,6 +114,8 @@ class PdvTests(unittest.TestCase):
         self.assertIn('lote_vendido=L1', event[4])
         self.assertNotIn('9999.00', event[4])
 
+    # Cenário de regressão: legacy sale rolls back on financial failure.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_legacy_sale_rolls_back_on_financial_failure(self):
         self.login_session()
         def execute(sql, *args):

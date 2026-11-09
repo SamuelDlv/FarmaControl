@@ -1,3 +1,6 @@
+/* Guia de manutenção — Pedidos, fornecedores e recebimentos; a API confirma os efeitos reais sobre o estoque.
+ * Os seletores dependem do HTML da tela; dados e permissões devem continuar validados na API.
+ */
 /* ══════════════════════════════════════════════════════════════════════
  * FARMAControl — GESTÃO DE COMPRAS (PROPRIETÁRIO)
  * ══════════════════════════════════════════════════════════════════════
@@ -22,6 +25,8 @@ var API_BASE = window.FarmaControlSettings
 var EASE = t => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
 
 /* ══ CARREGAR KPIs E GRÁFICOS DE COMPRAS DO BANCO ══ */
+// Carrega Compras Stats para uso na tela.
+// Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
 async function loadComprasStats() {
   /* Token de página — se mudou durante o await, silenciosamente aborta */
   const token = window.__fcPageToken;
@@ -152,6 +157,8 @@ async function loadComprasStats() {
 }
 
 /* ══ CARREGAR TABELA DE COMPRAS DO BANCO ══ */
+// Carrega Compras Table para uso na tela.
+// Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
 async function loadComprasTable() {
   const tbody = document.getElementById('mov-table-body');
   const countEl = document.getElementById('mov-filter-count');
@@ -177,6 +184,8 @@ async function loadComprasTable() {
 /* ══ DATE ══ */
 
 /* ══ COUNTERS ══ */
+// Inicializa Counters.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initCounters() {
   document.querySelectorAll('.kpi-value[data-target]').forEach(el => {
     const target = +el.dataset.target;
@@ -213,6 +222,8 @@ function initCounters() {
 }
 
 /* ══ PERIOD SELECTOR ══ */
+// Inicializa Period Selector.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initPeriodSelector() {
   const months = [
     'janeiro',
@@ -256,6 +267,8 @@ var purchasePeriod = 'month';
 var purchasePage = 1;
 var supplierRows = [];
 var chartMonths = [];
+// Atualiza a apresentação de Chart Mode.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function renderChartMode(mode) {
   const container = document.getElementById('mc-bars');
   if (!container) return;
@@ -286,6 +299,8 @@ function renderChartMode(mode) {
       : '';
 }
 
+// Inicializa Chart Tabs.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initChartTabs() {
   document.querySelectorAll('.ftab[data-chart]').forEach(tab => {
     tab.addEventListener('click', () => {
@@ -297,6 +312,8 @@ function initChartTabs() {
 }
 
 /* ══ TABLE FILTER ══ */
+// Inicializa Table Filter.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initTableFilter() {
   document.querySelectorAll('.ftab[data-type]').forEach(tab =>
     tab.addEventListener('click', () => {
@@ -323,6 +340,8 @@ function initTableFilter() {
 }
 
 /* ══ ACTION BUTTONS ══ */
+// Atualiza a apresentação de Pendentes Badge.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function updatePendentesBadge() {
   const pendentes = (window.__allCompras || []).filter(
     c => (c.status || 'pendente') === 'pendente'
@@ -333,6 +352,8 @@ function updatePendentesBadge() {
   }
 }
 
+// Inicializa Report Buttons.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initReportButtons() {
   // 1. Novo Pedido → abre o modal Nova Compra
   document.getElementById('rpt-estoque')?.addEventListener('click', () => {
@@ -373,6 +394,7 @@ function initReportButtons() {
 }
 
 /* ══ MODAL: AGENDAR ENTREGA ══ */
+// Escapa valores dos pedidos antes da interpolação em HTML.
 function compraEscape(value) {
   return String(value ?? '').replace(
     /[&<>"']/g,
@@ -380,6 +402,7 @@ function compraEscape(value) {
   );
 }
 
+// Abre e prepara Modal Agendar Entrega.
 function openModalAgendarEntrega() {
   const pendentes = (window.__allCompras || []).filter(c => c.status === 'pendente');
 
@@ -481,6 +504,8 @@ window.salvarAgendamento = async function salvarAgendamento(id) {
 };
 
 /* ══ EXPORTAR COMPRAS (CSV) ══ */
+// Prepara a exportação de Compras CSV.
+// Mantenha filtros, cabeçalhos e transformação dos valores coerentes com os dados exportados.
 async function exportComprasCSV() {
   try {
     const res = await fetch(`${API_BASE}/compras`);
@@ -521,11 +546,14 @@ async function exportComprasCSV() {
 }
 
 /* ══ MODAL: NOVA COMPRA ══ */
+// Obtém os elementos do documento usados por cmp Overlay.
 var cmpOverlay = () => document.getElementById('modal-nova-compra');
 var cmpItens = [];
 var cmpProdutos = [];
 var cmpFornecedores = [];
 
+// Carrega Fornecedores para uso na tela.
+// Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
 async function fetchFornecedores() {
   try {
     const res = await fetch(`${API_BASE}/fornecedores`);
@@ -569,6 +597,8 @@ async function fetchFornecedores() {
   }
 }
 
+// Carrega Produtos Compra para uso na tela.
+// Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
 async function fetchProdutosCompra() {
   try {
     const res = await fetch(`${API_BASE}/produtos`);
@@ -589,6 +619,8 @@ async function fetchProdutosCompra() {
 }
 
 /* renderCmpItem(): Renderiza uma linha da tabela de compras com status colorido. */
+// Atualiza a apresentação de Cmp Item.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function renderCmpItem(row) {
   const produtoOptions =
     '<option value="">Selecione…</option>' +
@@ -647,6 +679,8 @@ function renderCmpItem(row) {
 }
 
 /* renderCmpEmptyState(): Mostra mensagem quando não há compras para exibir. */
+// Atualiza a apresentação de Cmp Empty State.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function renderCmpEmptyState() {
   const lista = document.getElementById('cmp-itens-list');
   if (cmpItens.length === 0 && !lista.querySelector('.cmp-empty-state')) {
@@ -658,6 +692,7 @@ function renderCmpEmptyState() {
 }
 
 /* openModalNovaCompra(): Abre o modal para criar uma nova ordem de compra. */
+// Abre e prepara Modal Nova Compra.
 function openModalNovaCompra() {
   const overlay = cmpOverlay();
   if (!overlay) return;
@@ -700,6 +735,7 @@ function openModalNovaCompra() {
 }
 
 /* closeModalNovaCompra(): Fecha o modal de nova compra e limpa o formulário. */
+// Fecha Modal Nova Compra.
 function closeModalNovaCompra() {
   const overlay = cmpOverlay();
   if (overlay) overlay.classList.remove('open');
@@ -850,6 +886,8 @@ var toast = window.FarmaControlSettings
 /* (Atalhos de teclado e gerenciamento da sidebar delegados ao sidebar-init.js) */
 
 /* ══ INIT ══ */
+// Inicializa Compras Page.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initComprasPage() {
   initCounters();
   initPeriodSelector();
@@ -868,6 +906,8 @@ else initComprasPage();
 /* (Logout delegado ao sidebar-init.js: já limpa a sessão e redireciona corretamente) */
 
 /* ══ BOTÕES DE VISUALIZAÇÃO (abrem modal read-only) ══ */
+// Inicializa Compras View Links.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initComprasViewLinks() {
   document.querySelectorAll('.card-link, .panel-link').forEach(btn => {
     btn.addEventListener('click', e => {
@@ -914,6 +954,8 @@ function supplierMarkup(rows) {
     )
     .join('');
 }
+// Atualiza a apresentação de Purchases.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function renderPurchases() {
   const tbody = document.getElementById('mov-table-body');
   const countEl = document.getElementById('mov-filter-count');

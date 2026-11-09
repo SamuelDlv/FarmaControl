@@ -1,3 +1,6 @@
+/* Guia de manutenção — Testes de auth-guard: cenários executados com as dependências controladas abaixo.
+ * Os resultados cobrem os cenários descritos neste arquivo; mocks não comprovam integração real.
+ */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -5,6 +8,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const source = fs.readFileSync(path.join(__dirname, '../frontend/src/utils/auth-guard.js'), 'utf8');
 
+// Monta o ambiente simulado usado pelos testes; ajuste os dublês ao mudar APIs do navegador.
 function setup(protocol = 'http:') {
   const attrs = new Set();
   const removed = [];

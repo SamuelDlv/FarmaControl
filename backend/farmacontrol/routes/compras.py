@@ -1,3 +1,5 @@
+# Guia de manutenção — Coordena pedidos, itens e os efeitos do recebimento ou cancelamento no estoque.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """routes.compras: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import database
@@ -14,7 +16,10 @@ import pymysql.cursors
 log = logging.getLogger("farmacontrol")
 
 
+# Consulta compras.
 def get_compras():
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # compras, fornecedores, itens_compra, usuarios.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -63,7 +68,10 @@ def get_compras():
         return responses.err("Erro interno ao buscar compras.", status=500)
 
 
+# Consulta compra.
 def get_compra(compra_id):
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # compras, fornecedores, itens_compra, produtos, usuarios.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -97,7 +105,14 @@ def get_compra(compra_id):
         return responses.err("Erro interno ao buscar compra.", status=500)
 
 
+# Cadastra compra.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def create_compra():
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # fornecedor_id, itens, status, valor_total.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # compras, estoque, fornecedores, itens_compra, movimentacoes_estoque, produtos.
     data = request.get_json(silent=True) or {}
     fornecedor_id = data.get("fornecedor_id")
     usuario_id = g.usuario_id
@@ -136,12 +151,14 @@ def create_compra():
                 data_validade_recebida = item.get("data_validade_recebida")
 
                 if not produto_id or not quantidade or not preco_unitario:
+                    # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
                     db.rollback()
                     return responses.err("Dados incompletos para item de compra.", status=400)
 
                 cur.execute("SELECT id, exige_validade FROM produtos WHERE id = %s", (produto_id,))
                 product = cur.fetchone()
                 if not product:
+                    # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
                     db.rollback()
                     return responses.err(f"Produto com ID {produto_id} não encontrado.", status=400)
 
@@ -184,15 +201,24 @@ def create_compra():
             commit_audit(db, compra_id)
             return responses.ok({"mensagem": "Compra criada com sucesso.", "id": compra_id}, status=201)
     except ValueError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         return responses.err(str(exc), status=400)
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao criar compra: %s", exc)
         return responses.err("Erro interno ao criar compra.", status=500)
 
 
+# Atualiza compra.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def update_compra(compra_id):
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # data_recebimento, fornecedor_id, itens_recebimento, status, valor_total.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # compras, estoque, fornecedores, itens_compra, movimentacoes_estoque, produtos.
     data = request.get_json(silent=True) or {}
     fornecedor_id = data.get("fornecedor_id")
     usuario_id = g.usuario_id
@@ -219,6 +245,9 @@ def update_compra(compra_id):
                 return responses.err("Uma compra recebida não pode voltar de status; registre uma devolução de estoque para preservar a auditoria.", campo="status", status=409)
 
             # Lógica para atualizar estoque se o status mudar para 'recebido'
+            # A entrada física acontece apenas na transição para recebido.
+            # Reenviar o mesmo estado não deve somar novamente as quantidades.
+            # O cabeçalho já está bloqueado nesta transação para serializar a decisão.
             if status == "recebido" and compra_existente["status"] != "recebido":
                 cur.execute("SELECT id, produto_id, quantidade, lote_recebido, data_validade_recebida FROM itens_compra WHERE compra_id = %s", (compra_id,))
                 itens_compra = cur.fetchall()
@@ -301,15 +330,21 @@ def update_compra(compra_id):
             commit_audit(db)
             return responses.ok({"mensagem": "Compra atualizada com sucesso."})
     except ValueError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         return responses.err(str(exc), status=400)
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao atualizar compra: %s", exc)
         return responses.err("Erro interno ao atualizar compra.", status=500)
 
 
+# Exclui compra.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def delete_compra(compra_id):
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # compras.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -321,11 +356,14 @@ def delete_compra(compra_id):
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Compra excluída com sucesso."})
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao excluir compra: %s", exc)
         return responses.err("Erro interno ao excluir compra.", status=500)
 
 
+# Liga URLs, métodos HTTP e nomes de endpoint à instância recebida.
+# Alterar estes contratos exige revisar as telas e tests/fixtures/api_routes.json.
 def register_routes(app):
     """Registra as URLs e nomes de endpoints existentes."""
     app.add_url_rule('/compras', view_func=get_compras, methods=['GET'])

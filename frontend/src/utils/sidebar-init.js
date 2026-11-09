@@ -1,3 +1,6 @@
+/* Guia de manutenção — Aplica permissões ao menu e restaura sua apresentação em cada documento.
+ * Os seletores dependem do HTML da tela; dados e permissões devem continuar validados na API.
+ */
 /**
  * Menu compartilhado. Cada tela carrega em seu próprio documento/contexto JS.
  * O navegador controla o histórico, CSS, scripts e o cancelamento da navegação.
@@ -48,6 +51,7 @@
     visualizador: ['dashboard', 'estoque', 'vencimentos', 'relatorios']
   });
 
+  // Lê a identidade em cache para apresentação; permissões reais são verificadas no servidor.
   function getCurrentUser() {
     try {
       return JSON.parse(sessionStorage.getItem('farmacontrol_usuario') || 'null');
@@ -56,6 +60,7 @@
     }
   }
 
+  // Extrai o módulo do caminho para aplicar as regras de navegação do menu.
   function getModuleFromUrl(url) {
     try {
       const path = new URL(url, window.location.href).pathname.toLowerCase();
@@ -68,6 +73,8 @@
     }
   }
 
+  // Decide quais módulos o menu apresenta para o perfil e as permissões da sessão.
+  // Esta decisão visual precisa acompanhar a autorização aplicada no backend.
   function hasModuleAccess(module) {
     const user = getCurrentUser();
     /* Mantém a abertura local para desenvolvimento quando não há sessão. */
@@ -128,6 +135,7 @@
     return window.innerWidth <= 860;
   }
 
+  // Obtém os elementos do documento usados por set Mobile Sidebar.
   function setMobileSidebar(open) {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sb-overlay');
@@ -156,6 +164,8 @@
   /* ══ initSidebar(): Inicializa a sidebar interativa.
    * Configura: clique nos itens (navegação entre telas), toggle mobile,
    * botão de recolher, badges de alerta e estado ativo do item. */
+  // Inicializa Sidebar.
+  // Registra os controles e eventos deste recurso quando o documento está pronto.
   function initSidebar() {
     const sb = document.getElementById('sidebar');
     if (!sb || initializedSidebars.has(sb)) return;
@@ -174,6 +184,7 @@
     if (!sb || !applyModuleAccess()) return;
 
     const isMobile = isMobileViewport;
+    // Fecha Mobile.
     const closeMobile = () => setMobileSidebar(false);
 
     // Restaura o estado antes da primeira pintura, sem animar a navegação.
@@ -242,6 +253,7 @@
 
     if (!globalKeyAttached) {
       globalKeyAttached = true;
+      // Atende atalhos de teclado; preserve a navegação e os controles acessíveis.
       document.addEventListener('keydown', event => {
         if (event.key === 'Escape') setMobileSidebar(false);
       });
@@ -291,6 +303,7 @@
     const nav = sb.querySelector('.sb-nav');
     if (nav) {
       try { nav.scrollTop = Number(sessionStorage.getItem('fc_sb_scroll')) || 0; } catch (_) {}
+      // Descarta os recursos associados ao documento que está saindo de cena.
       window.addEventListener('pagehide', () => {
         try { sessionStorage.setItem('fc_sb_scroll', String(nav.scrollTop)); } catch (_) {}
       });
@@ -301,6 +314,8 @@
   /* ══ initLogout(): Configura o botão de logout em TODAS as páginas.
    * Quando clicado: limpa dados da aba (sessionStorage), invalida o cookie via API
    * e redireciona para a página de login (auth.html). */
+  // Inicializa Logout.
+  // Registra os controles e eventos deste recurso quando o documento está pronto.
   function initLogout() {
     if (globalLogoutAttached) return;
     globalLogoutAttached = true;
@@ -338,6 +353,7 @@
     });
   }
 
+  // Coordena a inicialização desta camada e os recursos compartilhados usados por ela.
   function init() {
     initSidebar();
     initLogout();

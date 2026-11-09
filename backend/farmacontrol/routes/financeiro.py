@@ -1,3 +1,5 @@
+# Guia de manutenção — Consulta indicadores e lançamentos e registra transações financeiras.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """routes.financeiro: responsabilidades extraídas da aplicação Flask."""
 
 from datetime import datetime
@@ -16,6 +18,7 @@ import pymysql.cursors
 log = logging.getLogger("farmacontrol")
 
 
+# Verifica se as duas tabelas requeridas pelo módulo financeiro existem.
 def _fin_tables_exist():
     """Verifica se as duas tabelas requeridas pelo módulo financeiro existem."""
     try:
@@ -30,8 +33,11 @@ def _fin_tables_exist():
         return False
 
 
+# Retorna KPIs financeiros para o período selecionado.
 def financeiro_stats():
     """Retorna KPIs financeiros para o período selecionado."""
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # financeiro_categorias, financeiro_transacoes, vendas.
     if not _fin_tables_exist():
         return responses.err('Tabelas financeiras não configuradas. Execute a migração 005_tabela_financeiro.sql', status=503)
     days = request.args.get('days', '30', type=int)
@@ -117,6 +123,7 @@ def financeiro_stats():
         return responses.err('Erro interno ao consultar indicadores financeiros.', status=500)
 
 
+# Retorna dados para o gráfico de fluxo de caixa (receitas vs despesas por dia).
 def financeiro_fluxo():
     """Retorna dados para o gráfico de fluxo de caixa (receitas vs despesas por dia)."""
     if not _fin_tables_exist():
@@ -182,8 +189,11 @@ def financeiro_fluxo():
         return responses.err('Erro interno ao consultar fluxo de caixa.', status=500)
 
 
+# Retorna categorias financeiras com totais agrupados.
 def financeiro_categorias():
     """Retorna categorias financeiras com totais agrupados."""
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # financeiro_categorias, financeiro_transacoes.
     if not _fin_tables_exist():
         return responses.err('Tabelas financeiras não configuradas. Execute a migração 005_tabela_financeiro.sql', status=503)
     days = request.args.get('days', '30', type=int)
@@ -222,8 +232,11 @@ def financeiro_categorias():
         return responses.err('Erro interno ao consultar categorias financeiras.', status=500)
 
 
+# Retorna lista de transações do período.
 def financeiro_transacoes():
     """Retorna lista de transações do período."""
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # financeiro_categorias, financeiro_transacoes.
     try:
         limit = query_int(request.args, "limit", default=50, minimum=1, maximum=500, clamp=True)
     except QueryError as exc:
@@ -266,8 +279,15 @@ def financeiro_transacoes():
         return responses.err('Erro interno ao consultar transações financeiras.', status=500)
 
 
+# Cria uma nova transação financeira.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def create_financeiro_transacao():
     """Cria uma nova transação financeira."""
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # categoria_id, data_transacao, descricao, metodo_pagamento, tipo, valor.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # financeiro_categorias, financeiro_transacoes.
     if not _fin_tables_exist():
         return jsonify({'ok': False, 'mensagem': 'Tabelas financeiras não configuradas. Execute a migração 005_tabela_financeiro.sql'}), 503
     data = request.get_json(silent=True) or {}
@@ -324,11 +344,14 @@ def create_financeiro_transacao():
         log.info("Nova transação financeira: %s %s", tipo, descricao)
         return jsonify({'ok': True, 'mensagem': 'Transação registrada com sucesso.'}), 201
     except Exception as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB em create_transacao: %s", exc)
         return jsonify({'ok': False, 'mensagem': 'Erro ao salvar transação.'}), 400
 
 
+# Liga URLs, métodos HTTP e nomes de endpoint à instância recebida.
+# Alterar estes contratos exige revisar as telas e tests/fixtures/api_routes.json.
 def register_routes(app):
     """Registra as URLs e nomes de endpoints existentes."""
     app.add_url_rule('/financeiro/stats', view_func=financeiro_stats, methods=['GET'])

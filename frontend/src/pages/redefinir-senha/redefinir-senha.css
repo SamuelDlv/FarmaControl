@@ -1,3 +1,6 @@
+/* Guia de manutenção — Formulário de redefinição de senha a partir do token recebido por link.
+ * A ordem das regras participa da cascata; confira os estilos compartilhados e os breakpoints antes de mover seletores.
+ */
 body {
   margin: 0;
   background: #f3f7f4;
@@ -71,6 +74,7 @@ body {
   font-size: 15px;
   cursor: pointer;
 }
+/* Estado indisponível: comunica visualmente o bloqueio aplicado pelos controles. */
 .reset-card > form > button:disabled {
   opacity: 0.65;
   cursor: wait;

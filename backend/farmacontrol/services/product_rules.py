@@ -1,8 +1,12 @@
+# Guia de manutenção — Compartilha as regras de produto, preço, validade e persistência do catálogo.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """Regras comuns ao catálogo, cadastro de estoque e recebimento de compras."""
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
 
+# Mescla alterações com o cadastro atual e valida tipos, referências e limites.
+# Preços passam por Decimal e arredondamento para centavos antes da persistência.
 def normalize_product(data, current=None):
     product = dict(current or {})
     product.update(data)
@@ -57,6 +61,7 @@ def normalize_product(data, current=None):
     return product
 
 
+# Valida expiry.
 def validate_expiry(value, product):
     if not value:
         if product.get("exige_validade", True):
@@ -87,6 +92,8 @@ PRODUCT_FIELDS = ("nome", "nome_generico", "descricao", "fabricante", "preco_cus
                   "ativo", "estoque_minimo", "fornecedor_id", "tipo_produto", "exige_validade")
 
 
+# Persiste usando o cursor recebido; a transação continua sob controle do chamador.
+# Colunas e tabelas dinâmicas vêm de listas fixas; valores seguem parametrizados.
 def save_product(cursor, product, product_id=None):
     # Todos os identificadores SQL vêm da lista fixa acima.
     for field, table in (("categoria_id", "categorias_produto"), ("fornecedor_id", "fornecedores")):

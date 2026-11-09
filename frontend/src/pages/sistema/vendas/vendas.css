@@ -1,3 +1,6 @@
+/* Guia de manutenção — Catálogo do PDV, comparação, carrinho e conclusão da venda por lotes.
+ * A ordem das regras participa da cascata; confira os estilos compartilhados e os breakpoints antes de mover seletores.
+ */
 .pdv-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 350px;
@@ -31,6 +34,7 @@
   font-size: 16px;
   background: white;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .filters,
 .results-head,
 .cart-head,
@@ -63,6 +67,7 @@
   background: white;
   width: 100%;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .pdv-layout button,
 dialog button {
   padding: 10px 14px;
@@ -73,14 +78,17 @@ dialog button {
   cursor: pointer;
   min-height: 40px;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .pdv-layout button:hover,
 dialog button:hover {
   border-color: var(--sage);
 }
+/* Estado indisponível: comunica visualmente o bloqueio aplicado pelos controles. */
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed !important;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .pdv-layout button.primary,
 dialog button.primary {
   background: var(--sage);
@@ -138,6 +146,7 @@ dialog button.primary {
 .warning {
   color: #8b4e08;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .cart h2,
 dialog h2 {
   font-size: 20px;
@@ -187,6 +196,7 @@ dialog h2 {
   margin: 0 0 16px;
   color: #42574a;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 dialog {
   margin: auto;
   width: min(1000px, 94vw);
@@ -198,9 +208,11 @@ dialog {
   color: var(--ink);
   box-shadow: 0 20px 80px #0003;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 dialog::backdrop {
   background: #10251db3;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 dialog p {
   margin: 14px 0;
   line-height: 1.6;
@@ -210,6 +222,7 @@ dialog p {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .dialog-actions {
   justify-content: flex-end;
   margin-top: 22px;
@@ -225,12 +238,15 @@ dialog p {
 #mais[hidden] {
   display: none;
 }
+/* Estado de foco: mantenha indicação visível para navegação pelo teclado. */
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
   outline: 2px solid #66736b;
   outline-offset: 2px;
 }
+/* Adaptação de layout sob a condição (max-width: 1200px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 1200px) {
   .pdv-layout {
     grid-template-columns: minmax(0, 1fr) 310px;
@@ -239,6 +255,8 @@ select:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+/* Adaptação de layout sob a condição (max-width: 900px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 900px) {
   .pdv-layout {
     grid-template-columns: 1fr;
@@ -250,6 +268,8 @@ select:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+/* Adaptação de layout sob a condição (max-width: 550px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 550px) {
   .product-grid,
   .comparison-grid {
@@ -287,6 +307,7 @@ select:focus-visible {
   white-space: nowrap;
   padding-inline: 20px;
 }
+/* Estado de foco: mantenha indicação visível para navegação pelo teclado. */
 .search-row #busca:focus {
   border-color: #66736b !important;
   box-shadow: none !important;
@@ -296,6 +317,8 @@ select:focus-visible {
 #busca::-webkit-search-cancel-button {
   filter: grayscale(1);
 }
+/* Adaptação de layout sob a condição (max-width: 550px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 550px) {
   .search-row {
     flex-wrap: wrap;

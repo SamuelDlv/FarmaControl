@@ -20,6 +20,7 @@ if not defined FARMACONTROL_PYTHON (
     exit /b 1
 )
 
+rem A configuracao privada e requisito de inicializacao; nunca deve ser incorporada ao repositorio.
 if not exist "backend\.env" (
     echo Configure backend\.env conforme backend\.env.example antes de iniciar.
     pause
@@ -30,6 +31,7 @@ rem Abre o navegador padrao apos 2 segundos, enquanto o servidor inicia.
 start "" /b powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -Command "Start-Sleep -Seconds 2; Start-Process 'http://localhost:5000/pages/acesso/acesso.html'"
 
 echo Mantenha esta janela aberta enquanto usar o FarmaControl. Ctrl+C encerra o servidor.
+rem Executa em primeiro plano para manter logs visiveis e propagar o resultado do servidor.
 %FARMACONTROL_PYTHON% "%~dp0backend\app.py"
 if errorlevel 1 (
     echo O servidor nao iniciou ou terminou com erro. Confira a mensagem acima.

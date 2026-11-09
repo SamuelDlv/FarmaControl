@@ -1,3 +1,7 @@
+# Guia de manutenção — Verificador de devolucao mysql.
+# Este é um utilitário de validação; confira main e os argumentos antes de executá-lo.
+# Os cenários usam servidor MySQL e bases de teste; valide o destino e os privilégios antes da execução.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """Integração real de descarte/devolução; usa e remove somente uma base aleatória.
 
 Execute: python scripts/check_devolucao_mysql.py --browser
@@ -18,6 +22,7 @@ from dotenv import dotenv_values
 from migrate_catalogo import ROOT, connection, execute_sql
 
 
+# Executa as consultas e validações de main.
 def main(browser=False):
     name = 'farmacontrol_devolucao_test_' + uuid.uuid4().hex
     report = {'checks': [], 'browser': [], 'database_removed': False}
@@ -69,6 +74,7 @@ def main(browser=False):
                 stocks.append(cur.lastrowid)
         db.commit()
 
+        # Executa as consultas e validações de query.
         def query(sql, args=()):
             db.commit()  # encerra snapshot REPEATABLE READ antes de ler commits HTTP
             with db.cursor() as cur:

@@ -1,3 +1,6 @@
+# Guia de manutenção — Entrada WSGI e inicialização local. As regras de negócio ficam no pacote farmacontrol.
+# Importar este arquivo cria a aplicação; executar como programa inicia o servidor local.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """Entrada local e WSGI do backend FarmaControl."""
 
 from farmacontrol import create_app

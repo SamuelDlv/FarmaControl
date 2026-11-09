@@ -1,3 +1,5 @@
+# Guia de manutenção — Gerencia uma conexão MySQL por contexto Flask, com confirmação explícita.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """core.database: responsabilidades extraídas da aplicação Flask."""
 
 from flask import g
@@ -5,6 +7,8 @@ import os
 import pymysql.cursors
 
 
+# O cache em g pertence ao contexto atual: não compartilhe esta conexão entre threads.
+# Autocommit fica desligado; a rota ou serviço decide quando confirmar ou desfazer.
 def get_db() -> pymysql.connections.Connection:
     """Retorna (e armazena em g) a conexão do banco para a requisição atual."""
     if "db" not in g:
@@ -22,6 +26,8 @@ def get_db() -> pymysql.connections.Connection:
     return g.db
 
 
+# Remove a conexão do contexto e libera o recurso no teardown, inclusive após falhas.
+# Fechar a conexão não substitui o commit explícito do fluxo de negócio.
 def close_db(exc=None):
     db = g.pop("db", None)
     if db is not None:

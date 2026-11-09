@@ -1,3 +1,6 @@
+/* Guia de manutenção — Histórico de atividades com filtros e paginação; preserva a consulta aplicada.
+ * A ordem das regras participa da cascata; confira os estilos compartilhados e os breakpoints antes de mover seletores.
+ */
 .log-panel {
   background: var(--surface-2);
   border: 1px solid var(--ink-12);
@@ -85,6 +88,7 @@
   margin-top: 20px;
   font-size: 13px;
 }
+/* Estado indisponível: comunica visualmente o bloqueio aplicado pelos controles. */
 .log-panel button:disabled {
   opacity: 0.45;
   cursor: default;
@@ -98,6 +102,7 @@
   color: var(--sage);
   cursor: pointer;
 }
+/* Estado de foco: mantenha indicação visível para navegação pelo teclado. */
 .log-panel summary:focus-visible {
   outline: 2px solid var(--sage);
   outline-offset: 4px;
@@ -109,6 +114,8 @@
   max-height: 340px;
   overflow-y: auto;
 }
+/* Adaptação de layout sob a condição (max-width: 600px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 600px) {
   .log-panel {
     padding: 12px;

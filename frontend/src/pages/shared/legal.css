@@ -1,3 +1,7 @@
+/* Guia de manutenção — Estilos compartilhados pelas páginas legais de termos e privacidade.
+ * A ordem das regras participa da cascata; confira os estilos compartilhados e os breakpoints antes de mover seletores.
+ */
+/* Tokens visuais compartilhados: alterar estas variáveis pode afetar várias telas e componentes. */
 :root {
   --accent: #111111;
   --ink: #111111;
@@ -149,6 +153,8 @@ ul {
   color: var(--muted);
   font-size: 12px;
 }
+/* Adaptação de layout sob a condição (max-width: 720px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 720px) {
   .legal-shell {
     width: min(100% - 28px, 980px);

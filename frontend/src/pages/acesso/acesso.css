@@ -1,3 +1,6 @@
+/* Guia de manutenção — Autenticação, cadastro e recuperação: apresenta erros e preserva o estado das tentativas.
+ * A ordem das regras participa da cascata; confira os estilos compartilhados e os breakpoints antes de mover seletores.
+ */
 /* ═══════════════════════════════════════════
    FarmaControl — Auth Styles (OTIMIZADO)
    Fonte: Cormorant Garamond (display) + Outfit (body) + DM Mono (números)
@@ -13,6 +16,7 @@
   padding: 0;
 }
 
+/* Tokens visuais compartilhados: alterar estas variáveis pode afetar várias telas e componentes. */
 :root {
   /* Variáveis de cores serão definidas globalmente por global-settings.js */
 
@@ -206,6 +210,8 @@ body.fc-auth {
   transform: translateY(-1px);
   box-shadow: none;
 }
+/* Adaptação de layout sob a condição (max-width: 768px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 768px) {
   .layout {
     display: block;
@@ -294,6 +300,8 @@ body.fc-auth {
   font-size: 10px;
   letter-spacing: 0.3px;
 }
+/* Adaptação de layout sob a condição (max-width: 768px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 768px) {
   .panel-left {
     border-bottom: 1px solid #e5e7e5;
@@ -393,6 +401,7 @@ body {
   border-radius: 50%;
   animation: fc-boot-spin 0.75s linear infinite;
 }
+/* Animação fc-boot-spin: mantenha o estado final compatível com o componente e o movimento reduzido. */
 @keyframes fc-boot-spin {
   to {
     transform: rotate(360deg);
@@ -452,6 +461,7 @@ body.fc-auth {
   opacity: 0.03;
 }
 
+/* Animação drift1: mantenha o estado final compatível com o componente e o movimento reduzido. */
 @keyframes drift1 {
   from {
     transform: translate(0, 0) scale(1);
@@ -460,6 +470,7 @@ body.fc-auth {
     transform: translate(60px, 40px) scale(1.12);
   }
 }
+/* Animação drift2: mantenha o estado final compatível com o componente e o movimento reduzido. */
 @keyframes drift2 {
   from {
     transform: translate(0, 0) scale(1);
@@ -468,6 +479,7 @@ body.fc-auth {
     transform: translate(-40px, -60px) scale(1.08);
   }
 }
+/* Animação drift3: mantenha o estado final compatível com o componente e o movimento reduzido. */
 @keyframes drift3 {
   from {
     transform: translate(0, 0);
@@ -513,6 +525,7 @@ body.fc-auth {
   animation: orbPulse 12s ease-in-out infinite alternate;
 }
 
+/* Animação orbPulse: mantenha o estado final compatível com o componente e o movimento reduzido. */
 @keyframes orbPulse {
   0% {
     opacity: 0.8;
@@ -645,6 +658,7 @@ body.fc-auth {
   opacity: 0.5;
 }
 
+/* Animação glassFloat: mantenha o estado final compatível com o componente e o movimento reduzido. */
 @keyframes glassFloat {
   0%,
   100% {
@@ -714,6 +728,7 @@ body.fc-auth {
   animation: capsuleDrift1 20s ease-in-out infinite alternate-reverse;
 }
 
+/* Animação capsuleDrift1: mantenha o estado final compatível com o componente e o movimento reduzido. */
 @keyframes capsuleDrift1 {
   from {
     transform: translateY(0) rotate(-20deg);
@@ -723,6 +738,7 @@ body.fc-auth {
   }
 }
 
+/* Animação capsuleDrift2: mantenha o estado final compatível com o componente e o movimento reduzido. */
 @keyframes capsuleDrift2 {
   from {
     transform: translateY(0) rotate(15deg);
@@ -732,6 +748,7 @@ body.fc-auth {
   }
 }
 
+/* Animação capsuleDrift3: mantenha o estado final compatível com o componente e o movimento reduzido. */
 @keyframes capsuleDrift3 {
   from {
     transform: translateY(0) rotate(-10deg);
@@ -914,6 +931,7 @@ body.fc-auth {
   flex-shrink: 0;
 }
 
+/* Animação cardIn: mantenha o estado final compatível com o componente e o movimento reduzido. */
 @keyframes cardIn {
   from {
     opacity: 0;
@@ -979,6 +997,7 @@ body.fc-auth {
   display: block;
 }
 
+/* Animação slideUp: mantenha o estado final compatível com o componente e o movimento reduzido. */
 @keyframes slideUp {
   from {
     opacity: 0;
@@ -1081,6 +1100,7 @@ select:hover {
   border-color: var(--ink-60);
 }
 
+/* Estado de foco: mantenha indicação visível para navegação pelo teclado. */
 input:focus,
 select:focus {
   border-color: var(--sage);
@@ -1088,6 +1108,7 @@ select:focus {
   background: var(--surface);
 }
 
+/* Estado de foco: mantenha indicação visível para navegação pelo teclado. */
 input:focus ~ .field-icon,
 input:hover ~ .field-icon,
 .field-wrap:focus-within .field-icon {
@@ -1247,6 +1268,7 @@ input.is-ok {
   transform: translateY(0);
 }
 
+/* Estado indisponível: comunica visualmente o bloqueio aplicado pelos controles. */
 .btn-primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -1294,6 +1316,7 @@ input.is-ok {
   animation: spin 0.8s linear infinite;
 }
 
+/* Animação spin: mantenha o estado final compatível com o componente e o movimento reduzido. */
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -1344,6 +1367,7 @@ input.is-ok {
   display: block;
 }
 
+/* Animação slideDown: mantenha o estado final compatível com o componente e o movimento reduzido. */
 @keyframes slideDown {
   from {
     opacity: 0;
@@ -1421,6 +1445,8 @@ input.is-ok {
 ═══════════════════════════════════════════ */
 
 /* Tablets e telas médias (1024px) */
+/* Adaptação de layout sob a condição (max-width: 1024px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 1024px) {
   .layout {
     grid-template-columns: 1fr;
@@ -1478,6 +1504,8 @@ input.is-ok {
 }
 
 /* Tablets pequenos e celulares (768px) */
+/* Adaptação de layout sob a condição (max-width: 768px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 768px) {
   html,
   body {
@@ -1584,6 +1612,8 @@ input.is-ok {
 }
 
 /* Celulares (480px) */
+/* Adaptação de layout sob a condição (max-width: 480px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 480px) {
   html,
   body {
@@ -1787,6 +1817,8 @@ input.is-ok {
 }
 
 /* Celulares muito pequenos (360px) */
+/* Adaptação de layout sob a condição (max-width: 360px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 360px) {
   html,
   body {
@@ -1937,11 +1969,13 @@ input.is-ok {
     box-shadow 0.2s var(--ease);
 }
 
+/* Estado de foco: mantenha indicação visível para navegação pelo teclado. */
 .custom-select:hover .custom-select__trigger,
 .custom-select:focus .custom-select__trigger {
   border-color: var(--ink-60);
 }
 
+/* Estado de foco: mantenha indicação visível para navegação pelo teclado. */
 .custom-select.open .custom-select__trigger,
 .custom-select:focus .custom-select__trigger {
   border-color: var(--sage);
@@ -2106,6 +2140,8 @@ input.is-ok {
   color: var(--ink-60);
 }
 
+/* Adaptação de layout sob a condição (max-width: 480px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 480px) {
   .custom-select__trigger {
     height: 40px;
@@ -2364,6 +2400,7 @@ body.fc-auth {
 .auth-legal-footer a:hover {
   color: var(--sage);
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .forgot-dialog {
   width: min(420px, calc(100% - 32px));
   border: 0;
@@ -2372,22 +2409,27 @@ body.fc-auth {
   box-shadow: 0 24px 70px #0005;
   color: var(--ink);
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .forgot-dialog::backdrop {
   background: #17251bbb;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .forgot-dialog form {
   display: grid;
   gap: 14px;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .forgot-dialog h2 {
   margin: 0;
   font-size: 24px;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .forgot-dialog p {
   margin: 0 0 6px;
   color: var(--ink-60);
   line-height: 1.5;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .forgot-dialog input {
   width: 100%;
   box-sizing: border-box;
@@ -2396,9 +2438,11 @@ body.fc-auth {
   padding: 12px;
   font: inherit;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .forgot-dialog .btn-primary {
   margin-top: 6px;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .dialog-close {
   position: absolute;
   top: 12px;
@@ -2431,6 +2475,8 @@ body.fc-auth {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+/* Adaptação de layout sob a condição (max-width: 768px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 768px) {
   .layout {
     display: block;
@@ -2524,6 +2570,8 @@ body.fc-auth {
   font-size: 10px;
   letter-spacing: 0.3px;
 }
+/* Adaptação de layout sob a condição (max-width: 768px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 768px) {
   .panel-left {
     border-bottom: 1px solid #e5e7e5;

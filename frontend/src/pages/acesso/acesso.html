@@ -1,4 +1,6 @@
 <!doctype html>
+<!-- Guia de manutenção — Autenticação, cadastro e recuperação: apresenta erros e preserva o estado das tentativas.
+     Preserve a ordem dos assets compartilhados e os IDs usados pelos scripts. -->
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
@@ -118,6 +120,8 @@
 
     <div class="layout">
       <!-- ═══ LEFT PANEL ═══ -->
+      <!-- Menu lateral: os utilitários compartilhados aplicam navegação e permissões visuais. -->
+
       <aside class="panel-left" aria-label="Apresentação do sistema">
         <!-- Elementos visuais legados ocultos pela nova identidade limpa. -->
         <div class="glass-cards" aria-hidden="true">
@@ -199,6 +203,8 @@
         <div class="capsule-deco capsule-deco--3" aria-hidden="true"></div>
         <div class="capsule-deco capsule-deco--4" aria-hidden="true"></div>
 
+        <!-- Cabeçalho: identificação, contexto da tela e ações de acesso rápido. -->
+
         <header class="brand">
           <div class="brand-mark">
             <svg
@@ -235,9 +241,13 @@
       </aside>
 
       <!-- ═══ RIGHT PANEL ═══ -->
+      <!-- Região principal: conteúdo específico desta tela e seus estados de carregamento. -->
+
       <main class="panel-right">
         <div class="card" role="main">
           <!-- Tab navigation -->
+          <!-- Navegação: mantenha destinos e indicação da página atual coerentes. -->
+
           <nav class="tab-nav" role="tablist" aria-label="Modo de acesso">
             <button
               class="tab-btn active"
@@ -271,6 +281,8 @@
               <h2 class="form-title">Bem-vindo de volta</h2>
               <p class="form-subtitle">Acesse o painel da sua farmácia</p>
             </div>
+
+            <!-- Formulário: IDs e nomes dos campos são usados pelo JavaScript; a API valida os dados recebidos. -->
 
             <form id="form-login" novalidate autocomplete="on">
               <div class="field-group">
@@ -391,6 +403,8 @@
               <h2 class="form-title">Criar conta</h2>
               <p class="form-subtitle">Preencha os dados abaixo para se cadastrar</p>
             </div>
+
+            <!-- Formulário: IDs e nomes dos campos são usados pelo JavaScript; a API valida os dados recebidos. -->
 
             <form id="form-register" novalidate autocomplete="on">
               <div class="field-row">
@@ -898,7 +912,10 @@
       >
     </footer>
 
+    <!-- Diálogo: revise abertura, fechamento, foco e bloqueio durante operações em andamento. -->
+
     <dialog class="forgot-dialog" id="forgot-dialog" aria-labelledby="forgot-title">
+      <!-- Formulário: IDs e nomes dos campos são usados pelo JavaScript; a API valida os dados recebidos. -->
       <form id="form-forgot" method="dialog">
         <button class="dialog-close" type="button" id="btn-close-forgot" aria-label="Fechar">
           ×

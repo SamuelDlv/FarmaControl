@@ -1,3 +1,6 @@
+/* Guia de manutenção — Filtros, indicadores e exportações; os dados vêm das consultas da API.
+ * Os seletores dependem do HTML da tela; dados e permissões devem continuar validados na API.
+ */
 /* ══════════════════════════════════════════════════════════════════════
  * FARMAControl — RELATÓRIOS DE MOVIMENTAÇÃO (PROPRIETÁRIO)
  * ══════════════════════════════════════════════════════════════════════
@@ -30,6 +33,8 @@ function reportEscape(value) {
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
   );
 }
+// Carrega Relatorios KPIs para uso na tela.
+// Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
 async function loadRelatoriosKPIs() {
   const requestId = ++reportRequest;
   try {
@@ -115,6 +120,8 @@ function reportNumber(value) {
   return Number(value || 0).toLocaleString('pt-BR');
 }
 
+// Atualiza a apresentação de Category Insight.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function renderCategoryInsight(categories) {
   const chart = document.getElementById('category-chart');
   if (!chart) return;
@@ -136,6 +143,8 @@ function renderCategoryInsight(categories) {
     )}</div>${categories.length > preview.length ? `<span class="insight-footer">+ ${categories.length - preview.length} categorias no detalhamento</span>` : ''}`;
 }
 
+// Atualiza a apresentação de Products Insight.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function renderProductsInsight(products) {
   const list = document.getElementById('rank-list');
   if (!list) return;
@@ -166,6 +175,8 @@ var MOV_PAGE_SIZE = 10;
 /* loadMovimentacoesTable(): Carrega a tabela de movimentações com paginação e filtros. */
 var movTotal = 0;
 var movRequest = 0;
+// Carrega Movimentacoes Table para uso na tela.
+// Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
 async function loadMovimentacoesTable() {
   const requestId = ++movRequest;
   try {
@@ -201,12 +212,15 @@ function movFilterActive() {
 }
 
 /* movSearchActive(): Verifica se há busca textual ativa. */
+// Obtém os elementos do documento usados por mov Search Active.
 function movSearchActive() {
   const input = document.getElementById('table-search');
   return input ? input.value.toLowerCase().trim() : '';
 }
 
 /* renderMovimentacoesPage(): Renderiza a página atual da tabela de movimentações. */
+// Atualiza a apresentação de Movimentacoes Page.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function renderMovimentacoesPage() {
   const tbody = document.getElementById('mov-table-body');
   const countEl = document.getElementById('mov-filter-count');
@@ -256,6 +270,8 @@ function renderMovimentacoesPage() {
 }
 
 /* updateMovPagination(): Atualiza os controles de paginação conforme total de registros. */
+// Atualiza a apresentação de Mov Pagination.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function updateMovPagination(total) {
   const pagination = document.querySelector('.pagination');
   if (!pagination) return;
@@ -287,6 +303,8 @@ function goMovPage1() {
 /* ══ DATE ══ */
 
 /* ══ COUNTERS ══ */
+// Inicializa Counters.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initCounters() {
   document.querySelectorAll('.kpi-value[data-target]').forEach(el => {
     const target = +el.dataset.target;
@@ -326,6 +344,8 @@ function initCounters() {
 }
 
 /* ══ PERIOD SELECTOR ══ */
+// Inicializa Period Selector.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initPeriodSelector() {
   document.querySelectorAll('.period-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -354,6 +374,8 @@ var monthlyData = { saidas: [], entradas: [] };
 var currentChartMode = 'saidas';
 
 /* initChartTabs(): Configura as abas do gráfico mensal (entradas/saídas/ambos). */
+// Inicializa Chart Tabs.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initChartTabs() {
   document.querySelectorAll('.ftab[data-chart]').forEach(tab => {
     tab.addEventListener('click', () => {
@@ -367,6 +389,8 @@ function initChartTabs() {
 
 /* ══ GRÁFICO DE EVOLUÇÃO MENSAL (DADOS REAIS) ══ */
 /* renderMonthlyChart(): Renderiza o gráfico de barras mensal (entradas vs saídas). */
+// Atualiza a apresentação de Monthly Chart.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function renderMonthlyChart() {
   const barsContainer = document.getElementById('mc-bars');
   if (!barsContainer) return;
@@ -446,6 +470,8 @@ function renderMonthlyChart() {
 }
 
 /* ══ TABLE FILTER ══ */
+// Inicializa Table Filter.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initTableFilter() {
   document.querySelectorAll('.ftab[data-type]').forEach(tab => {
     tab.addEventListener('click', () => {
@@ -464,6 +490,7 @@ function initTableFilter() {
 }
 
 /* ══ TOAST — centralizado no global-settings.js ══ */
+// Apresenta uma mensagem de retorno sem interromper a interação com o documento.
 function toast(msg, type = 'info') {
   if (window.FarmaControlSettings && typeof window.FarmaControlSettings.showToast === 'function') {
     window.FarmaControlSettings.showToast(
@@ -477,6 +504,8 @@ function toast(msg, type = 'info') {
 var produtosFull = [];
 
 /* fetchProdutos(): Busca a lista de produtos para os modais. */
+// Carrega Produtos para uso na tela.
+// Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
 async function fetchProdutos() {
   /* Token de página — se mudou durante o await, silenciosamente aborta */
   const token = window.__fcPageToken;
@@ -510,17 +539,21 @@ async function fetchProdutos() {
 }
 
 /* openLoteModal(): Abre o modal de registro de movimentação por lote. */
+// Abre e prepara Lote Modal.
 function openLoteModal() {
   document.getElementById('modal-lote').classList.add('open');
   fetchProdutos();
 }
 
 /* closeLoteModal(): Fecha o modal de lote. */
+// Fecha Lote Modal.
 function closeLoteModal() {
   document.getElementById('modal-lote').classList.remove('open');
 }
 
 /* handleLoteSubmit(): Processa o envio do formulário de movimentação por lote. */
+// Trata a ação handle Lote Submit.
+// Os efeitos e mensagens abaixo devem acompanhar o resultado confirmado pelo fluxo.
 async function handleLoteSubmit() {
   const produto_id = document.getElementById('lote-produto-id').value;
   const lote = document.getElementById('lote-numero').value;
@@ -565,6 +598,7 @@ async function handleLoteSubmit() {
 var CSV_SEP = ';';
 
 /* downloadFile(): Gera e baixa um arquivo CSV com os dados da tabela. */
+// Monta o arquivo de exportação e dispara o download no navegador.
 function downloadFile(filename, rows, headers) {
   const lineSep = '\r\n';
   const lines = [
@@ -589,6 +623,8 @@ function downloadFile(filename, rows, headers) {
   renderExportHistory();
 }
 
+// Prepara a exportação de Estoque.
+// Mantenha filtros, cabeçalhos e transformação dos valores coerentes com os dados exportados.
 async function gerarRelatorioEstoque() {
   try {
     const res = await fetch(`${API_BASE}/estoque`).catch(() => ({ ok: false }));
@@ -623,6 +659,8 @@ async function gerarRelatorioEstoque() {
   }
 }
 
+// Prepara a exportação de Saidas.
+// Mantenha filtros, cabeçalhos e transformação dos valores coerentes com os dados exportados.
 async function gerarRelatorioSaidas() {
   try {
     const res = await fetchAllReportMovements();
@@ -669,6 +707,8 @@ async function gerarRelatorioSaidas() {
   }
 }
 
+// Prepara a exportação de Vencimentos.
+// Mantenha filtros, cabeçalhos e transformação dos valores coerentes com os dados exportados.
 async function gerarRelatorioVencimentos() {
   try {
     const res = await fetch(`${API_BASE}/estoque`).catch(() => ({ ok: false }));
@@ -722,6 +762,8 @@ async function gerarRelatorioVencimentos() {
   }
 }
 
+// Prepara a exportação de Financeiro.
+// Mantenha filtros, cabeçalhos e transformação dos valores coerentes com os dados exportados.
 async function gerarRelatorioFinanceiro() {
   try {
     const res = await fetchAllReportMovements();
@@ -764,7 +806,10 @@ async function gerarRelatorioFinanceiro() {
   }
 }
 
+// Inicializa Gerar Relatorios.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initGerarRelatorios() {
+  // Obtém os elementos do documento usados por bind Dl.
   const bindDl = (itemId, fn) => {
     const item = document.getElementById(itemId);
     if (!item) return;
@@ -784,6 +829,8 @@ function initGerarRelatorios() {
 }
 
 /* ══ IMPRESSÃO ══ */
+// Inicializa Print Button.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initPrintButton() {
   const btn = document.getElementById('btn-print');
   if (!btn || btn.dataset.printBound === 'true') return;
@@ -797,6 +844,8 @@ function initPrintButton() {
 }
 
 /* ══ INIT ══ */
+// Inicializa Relatorios Page.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initRelatoriosPage() {
   initPeriodSelector();
   initChartTabs();
@@ -825,6 +874,8 @@ if (document.readyState === 'loading')
 else initRelatoriosPage();
 
 /* ══ BOTÕES DE VISUALIZAÇÃO (abrem modal read-only) ══ */
+// Inicializa Relatorios View Links.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initRelatoriosViewLinks() {
   document.querySelectorAll('[data-report-view]').forEach(btn => {
     btn.addEventListener('click', e => {
@@ -863,6 +914,7 @@ if (document.readyState === 'loading') {
   initRelatoriosViewLinks();
 }
 
+// Percorre as páginas da API para a exportação não ficar restrita à primeira página.
 async function fetchAllReportMovements() {
   const period = currentPeriod;
   const rows = [];
@@ -880,6 +932,8 @@ async function fetchAllReportMovements() {
   }
   return { ok: true, json: async () => ({ ok: true, movimentacoes: rows }) };
 }
+// Atualiza a apresentação de Export History.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function renderExportHistory() {
   const container = document.getElementById('export-history');
   if (!container) return;

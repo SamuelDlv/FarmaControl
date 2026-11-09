@@ -1,3 +1,5 @@
+# Guia de manutenção — Entrega consultas de estoque, vencimentos e compras para os relatórios.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """routes.relatorios: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import database
@@ -11,6 +13,7 @@ import pymysql.cursors
 log = logging.getLogger("farmacontrol")
 
 
+# Relatório completo de posição de estoque com KPIs e listagem.
 def relatorio_estoque():
     """Relatório completo de posição de estoque com KPIs e listagem."""
     period = request.args.get('periodo', 'month')
@@ -26,8 +29,11 @@ def relatorio_estoque():
         return responses.err("Erro interno ao gerar relatório de estoque.", status=500)
 
 
+# Relatório de vencimentos com distribuição por faixa de prazo.
 def relatorio_vencimentos():
     """Relatório de vencimentos com distribuição por faixa de prazo."""
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # estoque.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -73,8 +79,11 @@ def relatorio_vencimentos():
         return responses.err("Erro interno ao gerar relatório de vencimentos.", status=500)
 
 
+# Relatório de compras com KPIs e movimentações.
 def relatorio_compras():
     """Relatório de compras com KPIs e movimentações."""
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # categorias_produto, compras, fornecedores, itens_compra, produtos.
     period = request.args.get('periodo', 'month')
     if period not in PERIOD_START:
         return responses.err('Período inválido.', campo='periodo', status=400)
@@ -162,6 +171,8 @@ def relatorio_compras():
         return responses.err("Erro interno ao gerar relatório de compras.", status=500)
 
 
+# Liga URLs, métodos HTTP e nomes de endpoint à instância recebida.
+# Alterar estes contratos exige revisar as telas e tests/fixtures/api_routes.json.
 def register_routes(app):
     """Registra as URLs e nomes de endpoints existentes."""
     app.add_url_rule('/relatorios/estoque', view_func=relatorio_estoque, methods=['GET'])

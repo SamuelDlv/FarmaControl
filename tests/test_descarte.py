@@ -1,3 +1,7 @@
+# Guia de manutenção — Testes de descarte.
+# Os cenários e asserts abaixo definem os contratos esperados e os casos de regressão.
+# Leia os mocks e fixtures de cada caso antes de interpretar o resultado como integração real.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """Regressões HTTP do descarte administrativo, com banco isolado."""
 import unittest
 from unittest.mock import patch
@@ -7,6 +11,7 @@ from farmacontrol.routes import estoque
 from farmacontrol.services.system_settings import DEFAULTS
 
 
+# Agrupa os cenários de teste e suas fixtures.
 class DescarteTests(unittest.TestCase):
     setUp = base.BackendTests.setUp
     login_session = base.BackendTests.login_session
@@ -31,6 +36,8 @@ class DescarteTests(unittest.TestCase):
         return [c.args for c in self.cur.execute.call_args_list
                 if c.args[0].lstrip().startswith(('INSERT', 'UPDATE'))]
 
+    # Cenário de regressão: expired disposal records balance purpose reason and session author.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_expired_disposal_records_balance_purpose_reason_and_session_author(self):
         self.prepare()
         response = self.post(motivo='  Produto vencido  ')
@@ -47,6 +54,8 @@ class DescarteTests(unittest.TestCase):
         self.assertIn('FOR UPDATE', lock)
         self.db.commit.assert_called_once()
 
+    # Cenário de regressão: expired normal output and text prefix remain blocked.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_expired_normal_output_and_text_prefix_remain_blocked(self):
         self.prepare()
         for purpose in (None, 'venda'):
@@ -59,6 +68,8 @@ class DescarteTests(unittest.TestCase):
         self.assertEqual(self.writes(), [])
         self.db.commit.assert_not_called()
 
+    # Cenário de regressão: invalid disposal quantities never write.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_invalid_disposal_quantities_never_write(self):
         self.prepare()
         for qty in (0, -1, 1.5, 24, True, '5'):
@@ -66,6 +77,8 @@ class DescarteTests(unittest.TestCase):
                 self.assertEqual(self.post(quantidade=qty).status_code, 400)
         self.assertEqual(self.writes(), [])
 
+    # Cenário de regressão: reason is required and bounded.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_reason_is_required_and_bounded(self):
         self.prepare()
         for reason in (None, '', '  ', 123, [], 'x' * 256):
@@ -73,18 +86,24 @@ class DescarteTests(unittest.TestCase):
                 self.assertEqual(self.post(motivo=reason).status_code, 400)
         self.assertEqual(self.writes(), [])
 
+    # Cenário de regressão: unauthorized profiles cannot use disposal.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_unauthorized_profiles_cannot_use_disposal(self):
         for role in ('atendente', 'visualizador'):
             self.prepare(role)
             self.assertEqual(self.post().status_code, 403)
         self.assertEqual(self.writes(), [])
 
+    # Cenário de regressão: disposal requires persisted inventory permission.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_disposal_requires_persisted_inventory_permission(self):
         self.prepare()
         self.profile_permissions['farmaceutico'] = {'vencimentos'}
         self.assertEqual(self.post().status_code, 403)
         self.assertEqual(self.writes(), [])
 
+    # Cenário de regressão: disposal requires csrf.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_disposal_requires_csrf(self):
         self.prepare()
         response = self.client.post('/movimentacoes-estoque', json={
@@ -93,10 +112,14 @@ class DescarteTests(unittest.TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertEqual(self.writes(), [])
 
+    # Cenário de regressão: nonexpired damaged product can be disposed.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_nonexpired_damaged_product_can_be_disposed(self):
         self.prepare(expiry='2999-01-01')
         self.assertEqual(self.post(motivo='Embalagem danificada').status_code, 201)
 
+    # Cenário de regressão: unknown or incompatible purpose is rejected.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_unknown_or_incompatible_purpose_is_rejected(self):
         self.prepare()
         for purpose in ('qualquer', {}, True):
@@ -105,6 +128,8 @@ class DescarteTests(unittest.TestCase):
             self.assertEqual(self.post(tipo_movimentacao=kind).status_code, 400)
         self.assertEqual(self.writes(), [])
 
+    # Cenário de regressão: disposal keeps required lot validation.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_disposal_keeps_required_lot_validation(self):
         self.prepare()
         self.settings['controle_lote_obrigatorio'] = 'true'
@@ -112,6 +137,8 @@ class DescarteTests(unittest.TestCase):
         self.assertEqual(self.post().status_code, 400)
         self.assertEqual(self.writes(), [])
 
+    # Cenário de regressão: current locked balance prevents second overdraw.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_current_locked_balance_prevents_second_overdraw(self):
         self.prepare()
         def execute(sql, params=None):
@@ -124,6 +151,8 @@ class DescarteTests(unittest.TestCase):
         self.assertEqual(self.item['quantidade'], 18)
         self.db.commit.assert_called_once()
 
+    # Cenário de regressão: audit failure rolls back disposal.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_audit_failure_rolls_back_disposal(self):
         self.prepare()
         def execute(sql, params=None):
@@ -134,6 +163,8 @@ class DescarteTests(unittest.TestCase):
         self.db.rollback.assert_called_once()
         self.db.commit.assert_not_called()
 
+    # Cenário de regressão: existing movement contracts still work.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_existing_movement_contracts_still_work(self):
         self.prepare(expiry='2999-01-01')
         for kind, qty, balance in (('entrada', 5, 28), ('saida', 5, 18), ('ajuste', -5, 18)):
@@ -142,6 +173,8 @@ class DescarteTests(unittest.TestCase):
             self.assertEqual(response.status_code, 201, response.json)
             self.assertEqual(self.writes()[0][1], (balance, 8))
 
+    # Cenário de regressão: transfer still requires destination and updates both lots.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_transfer_still_requires_destination_and_updates_both_lots(self):
         self.prepare(expiry='2999-01-01')
         self.assertEqual(self.post(tipo_movimentacao='transferencia', finalidade=None, motivo=None).status_code, 400)
@@ -151,11 +184,15 @@ class DescarteTests(unittest.TestCase):
         self.assertEqual(self.writes()[0][1], (18, 8))
         self.assertEqual(self.writes()[1][1], (5, 9))
 
+    # Cenário de regressão: expiry setting still controls normal output.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_expiry_setting_still_controls_normal_output(self):
         self.prepare()
         self.settings['bloquear_produtos_vencidos'] = 'false'
         self.assertEqual(self.post(finalidade=None, motivo=None).status_code, 201)
 
+    # Cenário de regressão: history exposes structured disposal fields.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_history_exposes_structured_disposal_fields(self):
         self.prepare()
         row = {'id': 1, 'tipo_movimentacao': 'saida', 'finalidade': 'descarte',
@@ -167,6 +204,8 @@ class DescarteTests(unittest.TestCase):
         query = next(c.args[0] for c in self.cur.execute.call_args_list if 'SELECT me.id' in c.args[0])
         self.assertIn('me.finalidade, me.motivo', query)
 
+    # Cenário de regressão: legacy sale cannot disguise expired stock as disposal.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_legacy_sale_cannot_disguise_expired_stock_as_disposal(self):
         self.prepare()
         auth = self.cur.fetchone.return_value
@@ -183,6 +222,8 @@ class DescarteTests(unittest.TestCase):
         self.db.commit.assert_not_called()
 
 
+    # Cenário de regressão: reports separate disposal from commercial output.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_reports_separate_disposal_from_commercial_output(self):
         from farmacontrol.services.reporting import stock_report
         import sqlite3
@@ -207,7 +248,9 @@ class DescarteTests(unittest.TestCase):
         for idx, (purpose, qty) in enumerate((('descarte', 5), ('venda', 3), (None, 2), ('devolucao_fornecedor', 4))):
             db.execute("INSERT INTO movimentacoes_estoque VALUES (?,8,'saida',?,?,?)",
                        (idx, qty, purpose, date.today().isoformat()))
+        # Agrupa os cenários de teste e suas fixtures.
         class Cursor:
+            # Executa as consultas e validações de execute.
             def execute(self, sql):
                 sql = sql.replace('DATE_SUB(CURDATE(), INTERVAL (DAYOFMONTH(CURDATE()) - 1) DAY)', "date('now', 'start of month')")
                 sql = sql.replace('CURDATE() + INTERVAL 1 DAY', "date('now', '+1 day')")

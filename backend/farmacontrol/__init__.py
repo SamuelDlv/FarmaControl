@@ -1,3 +1,5 @@
+# Guia de manutenção — Fábrica Flask: compõe configuração, infraestrutura HTTP e registro dos módulos.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """Criação e composição da aplicação Flask do FarmaControl."""
 
 import logging
@@ -12,6 +14,8 @@ from farmacontrol.core.runtime_config import runtime_config
 from farmacontrol.core.security import AuthLimiter
 
 
+# Compõe uma instância independente; conectar ao banco fica para a primeira operação.
+# A ordem dos hooks importa: before_request pode interromper a rota e after_request roda ao inverso.
 def create_app():
     """Carrega o ambiente e registra rotas e middlewares sem conectar ao banco."""
     load_dotenv(BACKEND_DIR / ".env")

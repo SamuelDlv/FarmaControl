@@ -1,8 +1,11 @@
+# Guia de manutenção — Valida parâmetros de consulta antes de compor paginação e pesquisas SQL.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """Validação compartilhada de consultas; SQL e políticas ficam nas rotas."""
 
 import re
 
 
+# Erro de entrada convertido pela rota com core.responses.err.
 class QueryError(ValueError):
     """Erro de entrada convertido pela rota com core.responses.err."""
 
@@ -11,6 +14,7 @@ class QueryError(ValueError):
         self.campo = campo
 
 
+# Ausente usa default; vazio/inválido falha. Clamp é só para contratos legados.
 def query_int(args, name, *, default=None, minimum=0,
               maximum=9223372036854775807, clamp=False):
     """Ausente usa default; vazio/inválido falha. Clamp é só para contratos legados."""
@@ -30,6 +34,7 @@ def query_int(args, name, *, default=None, minimum=0,
     return value
 
 
+# Remove espaços nas bordas; preserva Unicode, espaços internos e operadores.
 def search_text(args, name="busca", *, maximum=120):
     """Remove espaços nas bordas; preserva Unicode, espaços internos e operadores."""
     value = args.get(name, "").strip()

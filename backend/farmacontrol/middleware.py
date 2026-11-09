@@ -1,3 +1,5 @@
+# Guia de manutenção — Aplica validação, autorização, cabeçalhos, auditoria e agendamento no ciclo HTTP.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """middleware: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import access
@@ -18,6 +20,8 @@ import secrets
 log = logging.getLogger("farmacontrol")
 
 
+# Filtra mutações antes da rota; autenticação também verifica origem e tentativas.
+# Os limites de senha são em bytes UTF-8, coerentes com o limite do bcrypt.
 def validar_entrada():
     if request.method not in {"POST", "PUT", "PATCH", "DELETE"}:
         return None
@@ -83,6 +87,8 @@ def security_headers(response):
     return response
 
 
+# Combina sessão válida, permissão do módulo e proteção CSRF nas mutações.
+# Ocultar botões no frontend não substitui estas verificações do servidor.
 def proteger_api():
     """Exige sessao assinada, perfil autorizado e token anti-CSRF nas mutacoes."""
     path = request.path

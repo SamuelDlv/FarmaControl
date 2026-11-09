@@ -1,3 +1,7 @@
+# Guia de manutenção — Verificador de catalogo mysql.
+# Este é um utilitário de validação; confira main e os argumentos antes de executá-lo.
+# Os cenários usam servidor MySQL e bases de teste; valide o destino e os privilégios antes da execução.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """Valida schema, migração reaplicável e fluxos reais num banco temporário isolado."""
 import sys
 import uuid
@@ -16,6 +20,7 @@ from farmacontrol.routes import vendas
 from flask import g
 
 
+# Executa as consultas e validações de main.
 def main():
     name = 'farmacontrol_catalogo_test_' + uuid.uuid4().hex
     assert re.fullmatch(r'farmacontrol_catalogo_test_[0-9a-f]{32}', name)

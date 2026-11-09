@@ -1,3 +1,5 @@
+# Guia de manutenção — Compartilha a consulta de estoque entre telas e relatórios.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """Agregações de relatórios feitas no banco, sem truncar o histórico de movimentos."""
 
 PERIOD_START = {
@@ -7,6 +9,9 @@ PERIOD_START = {
 }
 
 
+# Agrega indicadores, categorias, produtos e série mensal diretamente no banco.
+# O período usa expressões fixas da lista acima; nunca interpolar texto livre no SQL.
+# Saídas de descarte/devolução não entram no consumo comercial usado pelos indicadores.
 def stock_report(cur, period):
     start = PERIOD_START[period]
     scope = f'me.data_movimentacao >= {start} AND me.data_movimentacao < CURDATE() + INTERVAL 1 DAY'

@@ -1,8 +1,12 @@
+# Guia de manutenção — Centraliza padrões e validações das regras configuráveis de operação.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """Validação e leitura das preferências persistidas da farmácia."""
 import re
 from datetime import date
 from farmacontrol.services.contact_rules import validate_cnpj, validate_phone
 
+# Os valores persistidos são strings, inclusive booleanos e números. Mantenha
+# este contrato ao criar configurações, pois telas e validações usam estas chaves.
 DEFAULTS = {
     'fuso_horario': 'America/Sao_Paulo', 'idioma': 'pt-BR', 'moeda': 'BRL',
     'alerta_estoque_minimo': 'true', 'alerta_vencimento': 'true',
@@ -30,6 +34,8 @@ NUMBERS = {'prazo_vencimento': (1, 365), 'estoque_minimo_padrao': (0, 1000000),
 KEYS = set(DEFAULTS) | BOOLEANS | set(ENUMS) | set(TEXT_LIMITS) | set(NUMBERS)
 
 
+# Parte dos padrões e sobrepõe os valores persistidos válidos. Valores numéricos,
+# booleanos ou enumerados inválidos mantêm o padrão para não quebrar a operação.
 def read_settings(cursor):
     cursor.execute('SELECT chave, valor FROM configuracoes_sistema')
     settings = dict(DEFAULTS)
@@ -50,11 +56,14 @@ def read_settings(cursor):
     return settings
 
 
+# A exigência de lote é configurável; o identificador legado SEM-LOTE não a satisfaz.
 def require_lot(settings, lot):
     if settings['controle_lote_obrigatorio'] == 'true' and (not lot or lot == 'SEM-LOTE'):
         raise ValueError('Informe o número do lote: o controle por lote está habilitado.')
 
 
+# Reúne as regras de lote e vencimento usadas nas saídas sujeitas às preferências.
+# Compare o dia ISO, sem converter validade de lote em instante com fuso horário.
 def require_usable_stock(settings, stock):
     require_lot(settings, stock.get('lote'))
     expiry = stock.get('data_validade')
@@ -63,6 +72,8 @@ def require_usable_stock(settings, stock):
         raise ValueError('Saída bloqueada: o produto está vencido.')
 
 
+# Calcula os alertas conforme as opções habilitadas. Estoque mínimo considera o
+# total por produto; validade considera cada lote com saldo físico positivo.
 def active_alerts(cursor, settings):
     alerts = []
     if settings['alerta_estoque_minimo'] == 'true':
@@ -90,6 +101,9 @@ def active_alerts(cursor, settings):
     return alerts
 
 
+# Valida somente chaves conhecidas e devolve o conjunto limpo a persistir.
+# Para verificar dependências entre opções, mescla padrões, estado atual e edição;
+# salvar uma seção não pode ignorar limites definidos em outra seção do formulário.
 def validate_settings(values, current=None):
     if not isinstance(values, dict) or not values:
         raise ValueError('Informe as configurações para salvar.')

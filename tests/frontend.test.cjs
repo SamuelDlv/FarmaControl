@@ -1,3 +1,6 @@
+/* Guia de manutenção — Testes de frontend: cenários executados com as dependências controladas abaixo.
+ * Os resultados cobrem os cenários descritos neste arquivo; mocks não comprovam integração real.
+ */
 /* Testes da infraestrutura compartilhada em isolamento, sem DOM remoto ou API real. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -6,6 +9,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const utils = path.resolve(__dirname, '../frontend/src/utils');
 
+// Cria o contexto de navegador simulado e os recursos observados pelas asserções.
 function environment() {
   const calls = [];
   const document = new EventTarget();

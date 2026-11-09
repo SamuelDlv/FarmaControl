@@ -1,5 +1,9 @@
+/* Guia de manutenção — Catálogo do PDV, comparação, carrinho e conclusão da venda por lotes.
+ * Os seletores dependem do HTML da tela; dados e permissões devem continuar validados na API.
+ */
 (() => {
   'use strict';
+  // Obtém os elementos do documento usados por $.
   const $ = id => document.getElementById(id);
   const user = JSON.parse(sessionStorage.getItem('farmacontrol_usuario') || 'null');
   if (!user) {
@@ -19,12 +23,15 @@
     ti: 'TI / Suporte'
   }[user.perfil];
   $('user-avatar').textContent = (user.nome || 'U').slice(0, 2).toUpperCase();
+  // Formata a apresentação em reais; o servidor continua responsável pelo preço confirmado.
   const money = n => Number(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  // Escapa texto antes de interpolar em HTML; mantenha a proteção ao incluir campos da API.
   const esc = value =>
     String(value ?? '').replace(
       /[&<>"']/g,
       c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
     );
+  // Normaliza acentos, caixa e separadores para que a pesquisa compare termos equivalentes.
   const norm = value =>
     String(value || '')
       .normalize('NFD')
@@ -34,6 +41,9 @@
       .trim();
   const activeIngredient = p => String(p.principio_ativo || p.nome_generico || '').trim();
   let relatedIngredient = '';
+  // O catálogo agrupa lotes por produto; o carrinho guarda quantidades por produto.
+  // busy representa envio em andamento. uncertain exige conferência do histórico:
+  // perder a resposta HTTP não informa se a transação foi confirmada no servidor.
   let products = [],
     cart = [],
     selected = new Set(),
@@ -41,12 +51,16 @@
     busy = false,
     uncertain = false,
     loaded = false;
+  // Soma o carrinho em centavos inteiros para reduzir erros de ponto flutuante no navegador.
   const total = () =>
     cart.reduce(
       (sum, item) => sum + Math.round(Number(item.product.preco_venda) * 100) * item.qty,
       0
     ) / 100;
+  // Soma as quantidades dos lotes disponíveis agrupados para este produto.
   const stock = p => p.lots.reduce((sum, l) => sum + Number(l.quantidade), 0);
+  // Interpreta a resposta HTTP e separa recusa confirmada de falha de transporte.
+  // No PDV, uma falha de rede pode ocorrer depois de a venda ter sido confirmada no servidor.
   async function api(path, options) {
     const response = await fetch(window.FarmaControlSettings.API_BASE + path, options);
     const data = await response.json();
@@ -61,6 +75,7 @@
     }
     return data;
   }
+  // Consulta os dados usados pela tela e sincroniza os controles conforme sucesso ou falha.
   async function load() {
     if ($('atualizar').disabled) return;
     $('atualizar').disabled = true;
@@ -75,6 +90,8 @@
       });
       products = [...grouped.values()];
       loaded = true;
+      // Lotes com vencimento mais próximo são consumidos primeiro. Sem validade,
+      // o valor sentinela coloca o lote após os que têm data; a API revalida o saldo.
       products.forEach(p =>
         p.lots.sort((a, b) => (a.data_validade || '9999').localeCompare(b.data_validade || '9999'))
       );
@@ -99,9 +116,11 @@
       $('pesquisar').disabled = false;
     }
   }
+  // Monta o resumo visual do produto com os campos escapados antes da interpolação.
   function details(p) {
     return `<span class="tag">${p.tipo_produto === 'medicamento' ? 'Medicamento' : 'Outro produto'}</span><h3>${esc(p.nome)}</h3><p class="product-meta">${esc(p.fabricante || 'Fabricante não informado')}<br>${esc(activeIngredient(p) ? 'Princ\u00edpio ativo: ' + activeIngredient(p) : p.tipo_produto === 'medicamento' ? 'Princ\u00edpio ativo n\u00e3o cadastrado' : p.categoria || 'Sem categoria')}<br>Código: ${esc(p.codigo_barras || 'Não informado')}</p><strong class="price">${money(p.preco_venda)} <small>/ unidade</small></strong><p class="product-meta">${stock(p)} un. disponíveis${p.requer_receita ? ' · <span class="warning">Exige receita</span>' : ''}</p>`;
   }
+  // Aplica filtros e ordenação ao estado em memória e reconstrói a lista de resultados.
   function render() {
     if (!loaded) return;
     const terms = norm($('busca').value).split(/\s+/).filter(Boolean);
@@ -134,6 +153,8 @@
     $('comparar').disabled = selected.size < 2;
     $('mais').hidden = filtered.length <= limit;
   }
+  // Reconstrói itens, total e botões a partir do carrinho atual.
+  // Bloqueios de envio e resultado incerto impedem que a interface ofereça repetição indevida.
   function renderCart() {
     $('carrinho').innerHTML =
       cart
@@ -150,6 +171,7 @@
       busy || uncertain || !cart.length || cart.some(i => i.qty > stock(i.product));
     $('limpar').disabled = busy || uncertain || !cart.length;
   }
+  // Inclui uma unidade no carrinho respeitando o saldo disponível e o bloqueio de envio.
   function add(p) {
     if (busy || uncertain) return;
     const item = cart.find(i => i.product.produto_id === p.produto_id);
@@ -203,12 +225,14 @@
       render();
     })
   );
+  // Intercepta a submissão para tratar validação e envio neste documento.
   $('pesquisa').addEventListener('submit', async e => {
     e.preventDefault();
     limit = 24;
     if (!loaded) await load();
     else render();
   });
+  // Atende atalhos de teclado; preserve a navegação e os controles acessíveis.
   $('busca').addEventListener('keydown', e => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -267,6 +291,8 @@
     $('concluir').disabled = true;
     renderCart();
     const itens = [];
+    // Converte quantidades comerciais do carrinho em quantidades por estoque_id.
+    // Um produto pode gerar várias linhas no pedido quando usa mais de um lote.
     cart.forEach(item => {
       let remaining = item.qty;
       item.product.lots.forEach(l => {
@@ -298,6 +324,8 @@
         `Venda #${data.id} concluída · ${money(data.valor_total)}. Estoque e financeiro atualizados.`;
       $('busca').focus();
     } catch (error) {
+      // Uma recusa estruturada permite corrigir o pedido. Falha de rede mantém
+      // o bloqueio: repetir automaticamente poderia registrar uma segunda venda.
       uncertain = !error.confirmed;
       $('confirm-status').textContent = uncertain
         ? 'A conexão foi interrompida. Não repita a venda: peça ao responsável para conferir o histórico antes de iniciar outra.'
@@ -308,6 +336,7 @@
       renderCart();
     }
   };
+  // Atende atalhos de teclado; preserve a navegação e os controles acessíveis.
   document.addEventListener('keydown', e => {
     if (e.key === 'F2') {
       e.preventDefault();
@@ -319,6 +348,7 @@
       $('revisar').click();
     }
   });
+  // Avisa sobre trabalho em andamento antes de abandonar a página.
   window.addEventListener('beforeunload', e => {
     if (cart.length || busy) {
       e.preventDefault();

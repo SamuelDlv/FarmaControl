@@ -1,3 +1,6 @@
+/* Guia de manutenção — Consulta e tratamento visual de lotes próximos do vencimento e alertas.
+ * Os seletores dependem do HTML da tela; dados e permissões devem continuar validados na API.
+ */
 /* ══════════════════════════════════════════════════════════════════════
  * FARMAControl — CONTROLE DE VENCIMENTOS (PROPRIETÁRIO)
  * ══════════════════════════════════════════════════════════════════════
@@ -28,6 +31,7 @@ var API_BASE = window.FarmaControlSettings
 var lotes = [];
 
 /* getUsuarioId(): Retorna o ID do usuário logado (sessionStorage). */
+// Consulta ou atualiza o estado desta aba usado por get Usuario Id.
 function getUsuarioId() {
   try {
     const raw = sessionStorage.getItem('farmacontrol_usuario');
@@ -38,6 +42,8 @@ function getUsuarioId() {
 }
 
 /* fetchLotes(): Busca todos os lotes com suas datas de validade. */
+// Carrega Lotes para uso na tela.
+// Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
 async function fetchLotes() {
   const token = window.__fcPageToken;
   try {
@@ -76,6 +82,8 @@ async function fetchLotes() {
 }
 
 /* renderAll(): Renderiza toda a página (grid, timeline, tabela, listas). */
+// Atualiza a apresentação de All.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function renderAll() {
   updateKPIs();
   renderTimeline();
@@ -145,6 +153,7 @@ function getChipClass(dias) {
 }
 
 /* ── Filtrar + Ordenar ── */
+// Seleciona os registros que atendem aos filtros atuais antes da paginação.
 function getFiltered() {
   return lotes
     .filter(l => {
@@ -176,6 +185,8 @@ function getFiltered() {
 }
 
 /* ══ KPIs ══ */
+// Atualiza a apresentação de KPIs.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function updateKPIs() {
   if (!document.getElementById('kpi-vencidos')) return;
   const vencidos = lotes.filter(l => diasRestantes(l.validade) < 0).length;
@@ -227,6 +238,8 @@ function animateCounter(el, target) {
 }
 
 /* ══ TIMELINE ══ */
+// Atualiza a apresentação de Timeline.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function renderTimeline() {
   const wrap = document.getElementById('timeline-wrap');
   if (!wrap) return;
@@ -304,6 +317,8 @@ function renderTimeline() {
 }
 
 /* ══ TABLE ══ */
+// Atualiza a apresentação de Table.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function renderTable() {
   if (!document.getElementById('table-body')) return;
   const filtered = getFiltered();
@@ -383,6 +398,8 @@ function renderTable() {
 }
 
 /* ══ SIDE PANEL: Por Categoria ══ */
+// Atualiza a apresentação de Cat List.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function renderCatList() {
   if (!document.getElementById('cat-list')) return;
   const catMap = {};
@@ -425,6 +442,7 @@ function renderCatList() {
 }
 
 /* ══ MODAL: Detail ══ */
+// Abre e prepara Detail.
 function openDetail(l) {
   const dias = diasRestantes(l.validade);
   const cls = getStatusClass(dias);
@@ -482,6 +500,7 @@ function openDetail(l) {
 }
 
 /* ══ MODAL: Descarte ══ */
+// Abre e prepara Descarte.
 function openDescarte(l) {
   selectedLoteId = l.id;
   setBaixaTipo('descarte');
@@ -500,11 +519,13 @@ function openDescarte(l) {
 }
 
 /* ── Overlay helpers ── */
+// Abre e prepara Overlay.
 function openOverlay(id) {
   document.getElementById(id).classList.add('open');
   document.body.style.overflow = 'hidden';
 }
 /* closeOverlay(): Fecha um overlay/modal pelo ID. */
+// Fecha Overlay.
 function closeOverlay(id) {
   document.getElementById(id).classList.remove('open');
   document.body.style.overflow = '';
@@ -528,6 +549,7 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 });
 
 /* ── Baixa tipo buttons ── */
+// Obtém os elementos do documento usados por set Baixa Tipo.
 function setBaixaTipo(tipo) {
   baixaTipo = tipo;
   const devolucao = tipo === 'devolucao';
@@ -666,6 +688,7 @@ document.getElementById('btn-print')?.addEventListener('click', () => {
 });
 
 /* ══ IMPRESSÃO DE VENCIMENTOS ══ */
+// Obtém os elementos do documento usados por print Vencimentos.
 function printVencimentos() {
   const vencidos = document.getElementById('kpi-vencidos')?.textContent || '0';
   const d30 = document.getElementById('kpi-30dias')?.textContent || '0';
@@ -789,6 +812,8 @@ document.getElementById('btn-export')?.addEventListener('click', () => {
 /* ══ MODAL NOVO LOTE ══ */
 var produtosFull = [];
 
+// Carrega Produtos para uso na tela.
+// Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
 async function fetchProdutos() {
   try {
     const res = await fetch(`${API_BASE}/produtos`);
@@ -818,15 +843,19 @@ async function fetchProdutos() {
   }
 }
 
+// Abre e prepara Lote Modal.
 function openLoteModal() {
   document.getElementById('modal-lote').classList.add('open');
   fetchProdutos();
 }
 
+// Fecha Lote Modal.
 function closeLoteModal() {
   document.getElementById('modal-lote').classList.remove('open');
 }
 
+// Trata a ação handle Lote Submit.
+// Os efeitos e mensagens abaixo devem acompanhar o resultado confirmado pelo fluxo.
 async function handleLoteSubmit() {
   const produto_id = document.getElementById('lote-produto-id').value;
   const lote = document.getElementById('lote-numero').value;
@@ -879,6 +908,7 @@ window.fcPageListen(document, 'keydown', e => {
 
 /* ══ TOAST — sistema global do global-settings.js (mapeia os tipos locais) ══ */
 var toastTimer;
+// Exibe uma mensagem temporária para comunicar o resultado da ação ao usuário.
 function showToast(msg, type = 'ok') {
   const t = document.getElementById('toast');
   const m = document.getElementById('toast-msg');
@@ -902,8 +932,12 @@ function showToast(msg, type = 'ok') {
 }
 
 /* ══ DATE CHIP ══ */
+// Inicializa Clock.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initClock() {
   const subtitle = document.getElementById('page-subtitle');
+  // Atualiza a apresentação de Date.
+  // Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
   const updateDate = () => {
     const now = new Date();
     if (subtitle) {
@@ -915,6 +949,8 @@ function initClock() {
 }
 
 /* ══ INIT ══ */
+// Inicializa Vencimentos Page.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initVencimentosPage() {
   // initSidebar(); // Removido: já inicializado pelo sidebar-init.js
   initClock();

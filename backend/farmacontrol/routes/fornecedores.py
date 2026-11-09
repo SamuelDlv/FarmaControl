@@ -1,3 +1,5 @@
+# Guia de manutenção — Mantém fornecedores e valida seus dados de contato e identificação.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """routes.fornecedores: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import database
@@ -11,7 +13,10 @@ import pymysql.cursors
 log = logging.getLogger("farmacontrol")
 
 
+# Consulta fornecedores.
 def get_fornecedores():
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # fornecedores.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -23,7 +28,10 @@ def get_fornecedores():
         return responses.err("Erro interno ao buscar fornecedores.", status=500)
 
 
+# Consulta fornecedor.
 def get_fornecedor(fornecedor_id):
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # fornecedores.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -37,7 +45,15 @@ def get_fornecedor(fornecedor_id):
         return responses.err("Erro interno ao buscar fornecedor.", status=500)
 
 
+# Cadastra fornecedor.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def create_fornecedor():
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # cnpj, contato_email, contato_nome, contato_telefone, endereco, nome_fantasia.
+    # razao_social.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # fornecedores.
     data = request.get_json(silent=True) or {}
     if not isinstance(data, dict):
         return responses.err("Informe os dados do fornecedor.", status=400)
@@ -69,6 +85,7 @@ def create_fornecedor():
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Fornecedor criado com sucesso.", "id": cur.lastrowid}, status=201)
     except pymysql.IntegrityError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         if "Duplicate entry" in str(exc) and "razao_social" in str(exc):
             return responses.err("Razão social já cadastrada.", campo="razao_social", status=409)
@@ -77,12 +94,21 @@ def create_fornecedor():
         log.error("Erro DB ao criar fornecedor: %s", exc)
         return responses.err("Erro interno ao criar fornecedor.", status=500)
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao criar fornecedor: %s", exc)
         return responses.err("Erro interno ao criar fornecedor.", status=500)
 
 
+# Atualiza fornecedor.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def update_fornecedor(fornecedor_id):
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # cnpj, contato_email, contato_nome, contato_telefone, endereco, nome_fantasia.
+    # razao_social.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # fornecedores.
     data = request.get_json(silent=True) or {}
     if not isinstance(data, dict):
         return responses.err("Informe os dados do fornecedor.", status=400)
@@ -115,6 +141,7 @@ def update_fornecedor(fornecedor_id):
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Fornecedor atualizado com sucesso."})
     except pymysql.IntegrityError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         if "Duplicate entry" in str(exc) and "razao_social" in str(exc):
             return responses.err("Razão social já cadastrada para outro fornecedor.", campo="razao_social", status=409)
@@ -123,12 +150,17 @@ def update_fornecedor(fornecedor_id):
         log.error("Erro DB ao atualizar fornecedor: %s", exc)
         return responses.err("Erro interno ao atualizar fornecedor.", status=500)
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao atualizar fornecedor: %s", exc)
         return responses.err("Erro interno ao atualizar fornecedor.", status=500)
 
 
+# Exclui fornecedor.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def delete_fornecedor(fornecedor_id):
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # fornecedores.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -140,6 +172,7 @@ def delete_fornecedor(fornecedor_id):
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Fornecedor excluído com sucesso."})
     except pymysql.IntegrityError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         msg = str(exc)
         if "1451" in msg or "fk_compra_fornecedor" in msg:
@@ -151,11 +184,14 @@ def delete_fornecedor(fornecedor_id):
         log.error("Erro DB ao excluir fornecedor: %s", exc)
         return responses.err("Erro interno ao excluir fornecedor.", status=500)
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao excluir fornecedor: %s", exc)
         return responses.err("Erro interno ao excluir fornecedor.", status=500)
 
 
+# Liga URLs, métodos HTTP e nomes de endpoint à instância recebida.
+# Alterar estes contratos exige revisar as telas e tests/fixtures/api_routes.json.
 def register_routes(app):
     """Registra as URLs e nomes de endpoints existentes."""
     app.add_url_rule('/fornecedores', view_func=get_fornecedores, methods=['GET'])

@@ -1,4 +1,6 @@
 <!doctype html>
+<!-- Guia de manutenção — Consulta e recusa de convite; o token da URL pertence ao fluxo de cadastro.
+     Preserve a ordem dos assets compartilhados e os IDs usados pelos scripts. -->
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
@@ -9,9 +11,11 @@
     <script src="../../utils/input-rules.js" defer></script>
   </head>
   <body class="fc-auth">
+    <!-- Região principal: conteúdo específico desta tela e seus estados de carregamento. -->
     <main class="invite-page">
       <h1>Confirmar convite</h1>
       <p id="status">Carregando dados do convite…</p>
+      <!-- Formulário: IDs e nomes dos campos são usados pelo JavaScript; a API valida os dados recebidos. -->
       <form id="invite-form" hidden>
         <label>Nome</label><input id="nome" readonly /><label>Sobrenome</label
         ><input id="sobrenome" readonly /><label>E-mail</label><input id="email" readonly /><label

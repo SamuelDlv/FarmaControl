@@ -1,3 +1,6 @@
+/* Guia de manutenção — Filtros, indicadores e exportações; os dados vêm das consultas da API.
+ * A ordem das regras participa da cascata; confira os estilos compartilhados e os breakpoints antes de mover seletores.
+ */
 /* ══════════════════════════════════════════════════════════════════════
  * FARMAControl — ESTILOS DOS RELATÓRIOS (PROPRIETÁRIO)
  * ══════════════════════════════════════════════════════════════════════
@@ -9,6 +12,7 @@
  * - .export-buttons: Botões de exportação CSV/PDF
  * ══════════════════════════════════════════════════════════════════════ */
 
+/* Tokens visuais compartilhados: alterar estas variáveis pode afetar várias telas e componentes. */
 :root {
   --blue: #3d6baf;
   --blue-pale: rgba(61, 107, 175, 0.1);
@@ -82,6 +86,7 @@ body {
   position: relative;
 }
 
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .main {
   flex: 1;
   display: flex;
@@ -92,6 +97,7 @@ body {
   position: relative;
 }
 /* ══ TOPBAR ══ */
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .topbar {
   height: var(--top-h);
   min-height: var(--top-h);
@@ -104,6 +110,7 @@ body {
   flex-shrink: 0;
   z-index: 30;
 }
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .topbar-left {
   display: flex;
   align-items: center;
@@ -141,12 +148,14 @@ body {
   font-weight: 600;
   color: var(--ink-60);
 }
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .topbar-center {
   flex: 1;
   display: flex;
   justify-content: center;
   min-width: 0;
 }
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .topbar-right {
   display: flex;
   align-items: center;
@@ -614,6 +623,7 @@ body {
     background 0.13s,
     opacity 0.13s;
 }
+/* Estado indisponível: comunica visualmente o bloqueio aplicado pelos controles. */
 .pag-btn:hover:not(:disabled) {
   border-color: var(--sage);
   color: var(--sage);
@@ -624,6 +634,7 @@ body {
   color: #fff;
   cursor: default;
 }
+/* Estado indisponível: comunica visualmente o bloqueio aplicado pelos controles. */
 .pag-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
@@ -1011,6 +1022,7 @@ body {
   font-size: 11px;
   width: 44px;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .report-modal-summary {
   display: flex;
   flex-direction: column;
@@ -1021,22 +1033,26 @@ body {
   border: 1px solid var(--sage-border);
   border-radius: 8px;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .report-modal-summary span,
 .report-modal-summary small {
   color: var(--ink-35);
   font-size: 11px;
   font-weight: 400;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .report-modal-summary strong {
   color: var(--ink);
   font-family: 'DM Mono', monospace;
   font-size: 22px;
   font-weight: 400;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .report-modal-list {
   display: flex;
   flex-direction: column;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .report-modal-row {
   align-items: center;
   border-bottom: 1px solid var(--ink-06);
@@ -1044,22 +1060,26 @@ body {
   gap: 11px;
   padding: 10px 2px;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .report-modal-rank {
   color: var(--ink-35);
   font-family: 'DM Mono', monospace;
   font-size: 11px;
   width: 22px;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .report-modal-main {
   flex: 1;
   min-width: 0;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .report-modal-main > div:first-child {
   display: flex;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 6px;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .report-modal-main strong {
   color: var(--ink-60);
   font-size: 12px;
@@ -1067,12 +1087,14 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .report-modal-main span {
   color: var(--ink-35);
   flex-shrink: 0;
   font-family: 'DM Mono', monospace;
   font-size: 10px;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .report-modal-track {
   background: var(--ink-12);
   border: 1px solid var(--sage-border);
@@ -1081,6 +1103,7 @@ body {
   height: 8px;
   overflow: hidden;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .report-modal-track i {
   background: linear-gradient(90deg, var(--sage), var(--sage-light) 55%, var(--sage-2));
   border-radius: inherit;
@@ -1088,6 +1111,7 @@ body {
   display: block;
   height: 100%;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .report-modal-value {
   color: var(--ink);
   font-family: 'DM Mono', monospace;
@@ -1242,6 +1266,7 @@ body {
   font-weight: 600;
 }
 /* ══ TABLE ══ */
+/* Apresentação tabular: preserve legibilidade das colunas e comportamento em janelas estreitas. */
 .table-wrapper {
   width: 100%;
   overflow-x: auto;
@@ -1520,6 +1545,7 @@ tr:hover td {
 .report-dl.downloading svg {
   animation: dl-arrow-spin 0.7s linear infinite;
 }
+/* Animação dl-arrow-bounce: mantenha o estado final compatível com o componente e o movimento reduzido. */
 @keyframes dl-arrow-bounce {
   0%,
   100% {
@@ -1529,6 +1555,7 @@ tr:hover td {
     transform: translateY(2px);
   }
 }
+/* Animação dl-arrow-spin: mantenha o estado final compatível com o componente e o movimento reduzido. */
 @keyframes dl-arrow-spin {
   from {
     transform: rotate(0deg);
@@ -1541,6 +1568,7 @@ tr:hover td {
   visibility: hidden;
   opacity: 0;
 }
+/* Estado de foco: mantenha indicação visível para navegação pelo teclado. */
 .report-item:hover .report-dl,
 .report-item:focus-within .report-dl {
   visibility: visible;
@@ -1647,6 +1675,7 @@ tr:hover td {
   color: var(--sage);
 }
 /* ══ MODAIS ══ */
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1661,10 +1690,12 @@ tr:hover td {
   pointer-events: none;
   transition: opacity 0.22s;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .modal-overlay.open {
   opacity: 1;
   pointer-events: all;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .modal {
   background: var(--surface-2);
   border: 1px solid var(--ink-12);
@@ -1679,9 +1710,11 @@ tr:hover td {
   transform: translateY(16px) scale(0.98);
   transition: transform 0.22s var(--ease);
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .modal-overlay.open .modal {
   transform: none;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .modal-head {
   padding: 18px 22px;
   border-bottom: 1px solid var(--ink-06);
@@ -1690,6 +1723,7 @@ tr:hover td {
   gap: 12px;
   background: var(--surface);
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .modal-icon {
   width: 36px;
   height: 36px;
@@ -1701,16 +1735,19 @@ tr:hover td {
   color: white;
   flex-shrink: 0;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .modal-icon svg {
   width: 18px;
   height: 18px;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .modal-title {
   font-family: 'Outfit', sans-serif;
   font-size: 16px;
   font-weight: 600;
   color: var(--ink);
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .modal-close {
   margin-left: auto;
   cursor: pointer;
@@ -1724,10 +1761,12 @@ tr:hover td {
     color 0.15s,
     background 0.15s;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .modal-close:hover {
   color: var(--ink-60);
   background: var(--ink-06);
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .modal-body {
   padding: 20px 22px;
   display: flex;
@@ -1760,6 +1799,7 @@ tr:hover td {
     box-shadow 0.2s;
   width: 100%;
 }
+/* Estado de foco: mantenha indicação visível para navegação pelo teclado. */
 .form-input:focus,
 .form-select:focus {
   border-color: var(--sage);
@@ -1770,6 +1810,7 @@ tr:hover td {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .modal-foot {
   padding: 14px 22px;
   border-top: 1px solid var(--ink-06);
@@ -1778,6 +1819,7 @@ tr:hover td {
   justify-content: flex-end;
   background: var(--surface);
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .btn-modal-cancel {
   height: 36px;
   padding: 0 16px;
@@ -1790,6 +1832,7 @@ tr:hover td {
   font-weight: 500;
   cursor: pointer;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .btn-modal-submit {
   height: 36px;
   padding: 0 20px;
@@ -1803,17 +1846,22 @@ tr:hover td {
   cursor: pointer;
   transition: background 0.2s;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .btn-modal-submit:hover {
   background: var(--sage-2);
 }
 /* ══════════════════════════════════════════════
    RESPONSIVIDADE
    ══════════════════════════════════════════════ */
+/* Adaptação de layout sob a condição (max-width: 1400px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 1400px) {
   :root {
     --panel-w: 270px;
   }
 }
+/* Adaptação de layout sob a condição (max-width: 1200px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 1200px) {
   :root {
     --panel-w: 250px;
@@ -1822,6 +1870,8 @@ tr:hover td {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+/* Adaptação de layout sob a condição (max-width: 1024px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 1024px) {
   .page-panel {
     display: none;
@@ -1833,6 +1883,8 @@ tr:hover td {
     grid-template-columns: 1fr 1fr;
   }
 }
+/* Adaptação de layout sob a condição (max-width: 860px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 860px) {
   .sidebar {
     position: fixed;
@@ -1883,6 +1935,8 @@ tr:hover td {
     grid-template-columns: 1fr;
   }
 }
+/* Adaptação de layout sob a condição (max-width: 640px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 640px) {
   .kpi-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -1906,6 +1960,8 @@ tr:hover td {
     text-align: center;
   }
 }
+/* Adaptação de layout sob a condição (max-width: 480px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 480px) {
   .kpi-grid {
     grid-template-columns: 1fr;
@@ -1925,6 +1981,7 @@ tr:hover td {
 /* ══ SIDEBAR TEMÁTICA E RECOLHIMENTO COMPLETO ══
    A sidebar deriva sua tonalidade de --sage; a cor escolhida continua sendo
    a única fonte de verdade para todas as paletas disponíveis. */
+/* Tokens visuais compartilhados: alterar estas variáveis pode afetar várias telas e componentes. */
 :root {
   --sidebar-bg: color-mix(in srgb, var(--sage, #4a7c59) 38%, #07110d);
   --sidebar-bg-hover: color-mix(in srgb, var(--sage, #4a7c59) 54%, #0b1712);
@@ -1934,6 +1991,7 @@ tr:hover td {
   --sidebar-border: rgba(255, 255, 255, 0.12);
 }
 
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .sidebar {
   width: var(--sb-w);
   min-width: var(--sb-w);
@@ -2003,28 +2061,35 @@ tr:hover td {
 }
 
 /* Em modo recolhido, só o controle de expansão permanece visível. */
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .sidebar.collapsed {
   width: 52px;
   min-width: 52px;
 }
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .sidebar.collapsed .sb-head {
   justify-content: center;
   padding: 12px 6px;
 }
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .sidebar.collapsed .sb-brand,
 .sidebar.collapsed .sb-nav,
 .sidebar.collapsed .sb-footer {
   display: none;
 }
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .sidebar.collapsed .sb-collapse {
   display: flex;
   width: 32px;
   height: 32px;
 }
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .sidebar.collapsed .sb-collapse svg {
   transform: rotate(180deg);
 }
 
+/* Adaptação de layout sob a condição (max-width: 860px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 860px) {
   .sidebar:not(.collapsed) {
     width: 240px !important;
@@ -2065,6 +2130,7 @@ body {
   min-width: 0;
   width: 100%;
 }
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 main,
 .main,
 .content,
@@ -2108,6 +2174,7 @@ main,
 .mc-grid {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .card,
 .panel-section,
 .panel-hd,
@@ -2123,6 +2190,7 @@ main,
 }
 
 /* Barras de ações e filtros quebram em várias linhas em vez de sumirem. */
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .page-header,
 .topbar,
 .topbar-left,
@@ -2145,6 +2213,7 @@ main,
   min-width: 0;
   flex-wrap: wrap;
 }
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .page-header,
 .topbar {
   height: auto;
@@ -2153,6 +2222,7 @@ main,
 .page-header {
   gap: 14px;
 }
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .page-title,
 .page-subtitle,
 .card-title,
@@ -2164,6 +2234,7 @@ main,
   min-width: 0;
   overflow-wrap: anywhere;
 }
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .page-actions,
 .topbar-actions,
 .filters,
@@ -2186,6 +2257,7 @@ textarea {
 
 /* Tabelas não são removidas nem comprimidas até ficarem ilegíveis: o wrapper
    permite consultar todas as colunas com rolagem horizontal. */
+/* Apresentação tabular: preserve legibilidade das colunas e comportamento em janelas estreitas. */
 .table-wrap,
 .table-wrapper,
 .table-responsive,
@@ -2207,6 +2279,7 @@ td {
   white-space: normal;
   overflow-wrap: anywhere;
 }
+/* Apresentação tabular: preserve legibilidade das colunas e comportamento em janelas estreitas. */
 .table-wrap table,
 .table-wrapper table {
   min-width: 680px;
@@ -2259,21 +2332,26 @@ canvas {
 }
 
 /* Modais responsivos: todo o conteúdo permanece acessível com rolagem interna. */
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .modal-overlay {
   padding: clamp(10px, 3vw, 32px);
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .modal,
 .modal-lg {
   width: min(100%, 760px);
   max-width: 100%;
   max-height: min(90vh, 900px);
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .modal-body {
   overflow-y: auto;
   max-height: calc(90vh - 150px);
 }
 
 /* Tablet: reorganiza blocos, mas não usa display:none para descartar informação. */
+/* Adaptação de layout sob a condição (max-width: 1100px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 1100px) {
   .page-main,
   .page,
@@ -2303,6 +2381,8 @@ canvas {
 
 /* Tablet estreito: sidebar vira painel sobreposto; o conteúdo principal ocupa
    toda a largura disponível e continua sendo renderizado. */
+/* Adaptação de layout sob a condição (max-width: 860px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 860px) {
   .layout,
   .app-layout,
@@ -2375,6 +2455,8 @@ canvas {
 }
 
 /* Celular: cards passam a uma coluna e todos os controles mantêm acesso. */
+/* Adaptação de layout sob a condição (max-width: 600px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 600px) {
   .page-main,
   .page,
@@ -2472,6 +2554,8 @@ canvas {
 
 /* Celulares muito pequenos: a página continua navegável, apenas reduzindo
    espaçamentos e tipografia; nenhum painel de conteúdo é ocultado. */
+/* Adaptação de layout sob a condição (max-width: 380px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 380px) {
   .page-main,
   .page,

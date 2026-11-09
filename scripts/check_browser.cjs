@@ -1,3 +1,6 @@
+/* Guia de manutenção — Verificador de browser: confira pré-requisitos, argumentos e cenários antes de executar.
+ * Os resultados cobrem os cenários descritos neste arquivo; mocks não comprovam integração real.
+ */
 /* Chrome isolado + servidor de arquivos local. APIs e CDNs são simuladas;
  * nunca abre o Flask nem conecta ao banco. Requer Node 22+ e Chrome.
  * Grava evidências em .audit-backup/2026-10-06/browser-<fase>.json. */
@@ -63,6 +66,7 @@ const server = http.createServer((req, res) => {
     setTimeout(() => res.end(content), 40);
   else res.end(content);
 });
+// Prepara o ambiente controlado do navegador para os cenários deste verificador.
 function bootstrap(catalogMode = false, cashflowMode = false) {
   sessionStorage.setItem(
     'farmacontrol_usuario',
@@ -209,6 +213,7 @@ function bootstrap(catalogMode = false, cashflowMode = false) {
     return nativeFetch(input, init);
   };
 }
+// Coleta o estado usado na comparação do verificador; não representa dados da instalação real.
 function fingerprint() {
   const selectors = [
     'html',
@@ -502,6 +507,7 @@ function fingerprint() {
             const check = (condition, message) => {
               if (!condition) throw new Error(message);
             };
+            // Obtém os elementos do documento usados por el.
             const el = id => document.getElementById(id);
             const wait = () => new Promise(resolve => setTimeout(resolve, 150));
             check(produtos.length === 2, 'Catálogo não carregado');

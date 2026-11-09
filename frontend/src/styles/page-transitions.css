@@ -1,3 +1,6 @@
+/* Guia de manutenção — Define animações de entrada e respeita as preferências de movimento.
+ * A ordem das regras participa da cascata; confira os estilos compartilhados e os breakpoints antes de mover seletores.
+ */
 /* ══════════════════════════════════════════════════════════════════════
  * FARMAControl — TRANSIÇÕES DE PÁGINA (SPA)
  * ══════════════════════════════════════════════════════════════════════
@@ -55,6 +58,7 @@ button {
 }
 
 /* Sidebar: transição suave na expansão/recolha */
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .sidebar {
   transition:
     width 0.25s ease,
@@ -62,6 +66,7 @@ button {
 }
 
 /* Respeitar usuários que desativaram animações */
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .fc-no-animations button,
 .fc-no-animations a,
 .fc-no-animations input,

@@ -1,3 +1,6 @@
+/* Guia de manutenção — Indicadores, fluxo de caixa, categorias e lançamentos financeiros.
+ * Os seletores dependem do HTML da tela; dados e permissões devem continuar validados na API.
+ */
 /* ══════════════════════════════════════════════════════════════════════
  * FARMAControl — MÓDULO FINANCEIRO (PROPRIETÁRIO)
  * ══════════════════════════════════════════════════════════════════════
@@ -30,6 +33,7 @@
   if (!window.__fcPageToken) window.__fcPageToken = token;
 
   // Dados externos só podem ser interpolados em HTML depois de escapados.
+  // Converte caracteres com significado em HTML para exibir valores como texto.
   function escapeHTML(value) {
     return String(value ?? '').replace(
       /[&<>'"]/g,
@@ -45,6 +49,7 @@
   }
 
   /* toast(): Exibe notificação temporária (sucesso/erro/info) no canto da tela. */
+  // Apresenta uma mensagem de retorno sem interromper a interação com o documento.
   function toast(msg, type = 'info') {
     const t = document.createElement('div');
     t.className = 'fc-toast fc-toast-' + type;
@@ -68,6 +73,7 @@
   }
 
   /* fmtBRL(): Formata número para moeda brasileira (ex: 1250.50 → "R$ 1.250,50"). */
+  // Formata valores monetários para pt-BR somente na apresentação.
   function fmtBRL(n) {
     return (n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
@@ -111,6 +117,7 @@
     cancelado: 'Cancelado'
   };
 
+  // Monta a consulta HTTP com os filtros e devolve a resposta para o componente solicitante.
   async function apiGet(path, query = {}) {
     const sp = new URLSearchParams();
     Object.entries(query).forEach(([k, v]) => sp.set(k, v));
@@ -145,6 +152,8 @@
     };
   }
 
+  // Atualiza a apresentação de Chart Range Label.
+  // Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
   function updateChartRangeLabel() {
     const range = document.getElementById('chart-range');
     const next = document.getElementById('chart-next');
@@ -165,6 +174,8 @@
   }
 
   // ── Load KPIs ──
+  // Carrega KPIs para uso na tela.
+  // Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
   async function loadKPIs() {
     const requestedDays = currentDays;
     try {
@@ -223,6 +234,8 @@
   }
 
   /* renderSparkline(): Desenha o mini-gráfico de linha (sparkline) mostrando a evolução do saldo. */
+  // Atualiza a apresentação de Sparkline.
+  // Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
   function renderSparkline(container, data) {
     if (!container || data.length < 2) return;
     const w = container.clientWidth || 120;
@@ -267,6 +280,8 @@
   }
 
   // ── Load Chart ──
+  // Carrega Chart para uso na tela.
+  // Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
   async function loadChart() {
     const { start, end } = getChartBounds();
     const requestedStartDate = isoDate(start);
@@ -467,6 +482,8 @@
   }
 
   // ── Load Categories ──
+  // Carrega Categories para uso na tela.
+  // Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
   async function loadCategories() {
     const token = window.__fcPageToken;
     const days = currentDays;
@@ -545,6 +562,8 @@
   }
 
   // ── Load Transactions ──
+  // Trata a ação toggle Expense Details.
+  // Os efeitos e mensagens abaixo devem acompanhar o resultado confirmado pelo fluxo.
   async function toggleExpenseDetails() {
     const container = document.getElementById('cat-list');
     const button = document.getElementById('btn-cat-details');
@@ -618,6 +637,8 @@
     }
   }
 
+  // Carrega Transactions para uso na tela.
+  // Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
   async function loadTransactions() {
     const requestedDays = currentDays;
     try {
@@ -636,6 +657,8 @@
   }
 
   /* renderTransactionTable(): Renderiza a tabela de transações com paginação e filtros. */
+  // Atualiza a apresentação de Transaction Table.
+  // Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
   function renderTransactionTable(transacoes) {
     const tbody = document.getElementById('trans-body');
     if (!tbody) return;
@@ -681,6 +704,8 @@
   }
 
   // ── Load All ──
+  // Carrega All para uso na tela.
+  // Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
   async function loadAll() {
     await Promise.all([loadKPIs(), loadChart(), loadCategories(), loadTransactions()]);
   }
@@ -776,6 +801,8 @@
     if (e.key === 'Escape') closeTransModal();
   });
 
+  // Carrega Categories For Modal para uso na tela.
+  // Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
   async function loadCategoriesForModal() {
     try {
       const tipo = document.getElementById('tx-tipo')?.value || 'receita';

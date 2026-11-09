@@ -1,3 +1,5 @@
+# Guia de manutenção — Inspeciona referências, imports e estrutura dos arquivos sem iniciar a aplicação.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """Inventário estático de referências/duplicações, sem importar app ou acessar banco.
 
 Candidatos sem referência textual não são considerados mortos: handlers HTML,
@@ -15,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 FRONTEND = ROOT / "frontend/src"
 
 
+# Coleta IDs e recursos locais cuja existência pode ser validada.
 class References(HTMLParser):
     """Coleta IDs e recursos locais cuja existência pode ser validada."""
     def __init__(self):
@@ -30,6 +33,7 @@ class References(HTMLParser):
             self.assets.append(values.get("src") or values.get("href") or "")
 
 
+# Retorna achados estruturais, sem supor equivalência entre regras CSS.
 def audit():
     """Retorna achados estruturais, sem supor equivalência entre regras CSS."""
     missing, duplicate_ids = [], []

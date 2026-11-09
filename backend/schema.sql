@@ -1,3 +1,6 @@
+-- Guia de manutenção: estrutura para instalação nova, não um runner de atualização.
+-- Em instalações existentes, siga backend/migrations/README.md e preserve os SQLs registrados.
+-- As FKs abaixo representam dependências: revise exclusões e ordem de criação ao mudar o modelo.
 -- ═══════════════════════════════════════════════════════════════
 --  FarmaControl — Schema MySQL 8 / MariaDB 10.4+ (instalação nova)
 --  Ideal para novas instalações em localhost.
@@ -15,6 +18,7 @@ USE farmacontrol;
 -- ───────────────────────────────────────────
 --  1. Perfis de acesso (Roles)
 -- ───────────────────────────────────────────
+-- Cargos funcionais usados na autorização da aplicação. Os slugs são contratos com o backend e o menu.
 CREATE TABLE IF NOT EXISTS perfis (
   id          TINYINT UNSIGNED NOT NULL AUTO_INCREMENT,
   slug        VARCHAR(30)      NOT NULL UNIQUE,
@@ -38,6 +42,7 @@ ON DUPLICATE KEY UPDATE nome = VALUES(nome), descricao = VALUES(descricao);
 -- ───────────────────────────────────────────
 --  2. Permissões configuráveis por perfil
 -- ───────────────────────────────────────────
+-- Matriz de acesso por cargo e módulo. A chave composta impede permissões duplicadas para o mesmo par.
 CREATE TABLE IF NOT EXISTS perfil_permissoes (
   perfil_id TINYINT UNSIGNED NOT NULL,
   modulo VARCHAR(40) NOT NULL,
@@ -71,6 +76,7 @@ WHERE p.slug IN ('proprietario', 'admin', 'farmaceutico', 'atendente', 'visualiz
 -- ───────────────────────────────────────────
 --  3. Usuários
 -- ───────────────────────────────────────────
+-- Contas autenticadas: perfil, aprovação e credenciais. Senhas e tokens devem seguir os hashes previstos no backend.
 CREATE TABLE IF NOT EXISTS usuarios (
   id              INT UNSIGNED     NOT NULL AUTO_INCREMENT,
   nome            VARCHAR(80)      NOT NULL,
@@ -125,6 +131,7 @@ DEALLOCATE PREPARE stmt;
 -- ───────────────────────────────────────────
 --  4. Auditoria e Logs
 -- ───────────────────────────────────────────
+-- Rastreia a decisão de aprovação ou rejeição e o responsável pela análise do cadastro.
 CREATE TABLE IF NOT EXISTS analises_cadastro (
   id              INT UNSIGNED     NOT NULL AUTO_INCREMENT,
   usuario_id      INT UNSIGNED     NOT NULL,
@@ -137,6 +144,7 @@ CREATE TABLE IF NOT EXISTS analises_cadastro (
   CONSTRAINT fk_analise_admin FOREIGN KEY (analisado_por) REFERENCES usuarios (id) ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
+-- Histórico específico das tentativas de autenticação; não confundir com o log geral de operações.
 CREATE TABLE IF NOT EXISTS log_acessos (
   id          BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT,
   usuario_id  INT UNSIGNED     NOT NULL,
@@ -152,6 +160,7 @@ CREATE TABLE IF NOT EXISTS log_acessos (
 -- ───────────────────────────────────────────
 --  4. Gestão de Produtos e Estoque
 -- ───────────────────────────────────────────
+-- Cadastro referenciado pelos fluxos comerciais e de receitas. Revise as FKs antes de excluir registros.
 CREATE TABLE IF NOT EXISTS clientes (
   id              INT UNSIGNED     NOT NULL AUTO_INCREMENT,
   nome            VARCHAR(80)      NOT NULL,
@@ -166,6 +175,7 @@ CREATE TABLE IF NOT EXISTS clientes (
   PRIMARY KEY (id)
 ) ENGINE=InnoDB;
 
+-- Classificação dos produtos. As referências do catálogo dependem dos identificadores desta tabela.
 CREATE TABLE IF NOT EXISTS categorias_produto (
   id              TINYINT UNSIGNED NOT NULL AUTO_INCREMENT,
   nome            VARCHAR(100)     NOT NULL UNIQUE,
@@ -187,6 +197,7 @@ INSERT IGNORE INTO categorias_produto (nome, descricao) VALUES
   ('Primeiros socorros', 'Materiais de primeiros socorros'),
   ('Outros produtos', 'Demais produtos do catálogo');
 
+-- Origem comercial dos produtos e compras; devoluções também preservam a referência ao fornecedor.
 CREATE TABLE IF NOT EXISTS fornecedores (
   id              INT UNSIGNED     NOT NULL AUTO_INCREMENT,
   nome_fantasia   VARCHAR(150)     NOT NULL,
@@ -202,6 +213,7 @@ CREATE TABLE IF NOT EXISTS fornecedores (
   PRIMARY KEY (id)
 ) ENGINE=InnoDB;
 
+-- Cadastro comercial compartilhado pelos lotes. Preço e exigência de receita/validade são regras do produto.
 CREATE TABLE IF NOT EXISTS produtos (
   id              INT UNSIGNED     NOT NULL AUTO_INCREMENT,
   nome            VARCHAR(255)     NOT NULL,
@@ -225,6 +237,7 @@ CREATE TABLE IF NOT EXISTS produtos (
   CONSTRAINT fk_produto_fornecedor FOREIGN KEY (fornecedor_id) REFERENCES fornecedores (id) ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
+-- Saldo físico por produto e lote. Alterações concorrentes de quantidade exigem bloqueio e transação no backend.
 CREATE TABLE IF NOT EXISTS estoque (
   id              INT UNSIGNED     NOT NULL AUTO_INCREMENT,
   produto_id      INT UNSIGNED     NOT NULL,
@@ -239,6 +252,7 @@ CREATE TABLE IF NOT EXISTS estoque (
   CONSTRAINT fk_estoque_produto FOREIGN KEY (produto_id) REFERENCES produtos (id) ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
+-- Rastro das entradas, saídas e ajustes. Finalidade, motivo e fornecedor contextualizam saídas administrativas.
 CREATE TABLE IF NOT EXISTS movimentacoes_estoque (
   id                  BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT,
   estoque_id          INT UNSIGNED     NOT NULL,
@@ -258,6 +272,7 @@ CREATE TABLE IF NOT EXISTS movimentacoes_estoque (
 -- ───────────────────────────────────────────
 --  5. Compras e Vendas
 -- ───────────────────────────────────────────
+-- Cabeçalho do pedido: fornecedor, responsável, valores e estado. O recebimento é coordenado com os itens e o saldo.
 CREATE TABLE IF NOT EXISTS compras (
   id              INT UNSIGNED     NOT NULL AUTO_INCREMENT,
   fornecedor_id   INT UNSIGNED     NOT NULL,
@@ -273,6 +288,7 @@ CREATE TABLE IF NOT EXISTS compras (
   CONSTRAINT fk_compra_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios (id) ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
+-- Detalha produtos, quantidades e os dados dos lotes recebidos que alimentam o estoque.
 CREATE TABLE IF NOT EXISTS itens_compra (
   id                  INT UNSIGNED     NOT NULL AUTO_INCREMENT,
   compra_id           INT UNSIGNED     NOT NULL,
@@ -286,6 +302,7 @@ CREATE TABLE IF NOT EXISTS itens_compra (
   CONSTRAINT fk_item_compra_produto FOREIGN KEY (produto_id) REFERENCES produtos (id) ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
+-- Cabeçalho comercial da venda. Mudanças de estado precisam permanecer coerentes com estoque e financeiro.
 CREATE TABLE IF NOT EXISTS vendas (
   id              INT UNSIGNED     NOT NULL AUTO_INCREMENT,
   cliente_id      INT UNSIGNED     NULL,
@@ -301,6 +318,7 @@ CREATE TABLE IF NOT EXISTS vendas (
   CONSTRAINT fk_venda_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios (id) ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
+-- Preserva quantidade, preço e lote da operação. Não recalcular o histórico usando o preço atual do catálogo.
 CREATE TABLE IF NOT EXISTS itens_venda (
   id              INT UNSIGNED     NOT NULL AUTO_INCREMENT,
   venda_id        INT UNSIGNED     NOT NULL,
@@ -317,6 +335,7 @@ CREATE TABLE IF NOT EXISTS itens_venda (
 -- ───────────────────────────────────────────
 --  6. Receitas e Itens de Receita
 -- ───────────────────────────────────────────
+-- Cadastro de receitas referenciado pelos atendimentos; dados deste domínio não devem ir para logs genéricos.
 CREATE TABLE IF NOT EXISTS receitas (
   id                  INT UNSIGNED     NOT NULL AUTO_INCREMENT,
   cliente_id          INT UNSIGNED     NOT NULL,
@@ -332,6 +351,7 @@ CREATE TABLE IF NOT EXISTS receitas (
   CONSTRAINT fk_receita_cliente FOREIGN KEY (cliente_id) REFERENCES clientes (id) ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
+-- Relaciona a receita aos produtos prescritos e seus dados de uso.
 CREATE TABLE IF NOT EXISTS receitas_itens (
   id              INT UNSIGNED     NOT NULL AUTO_INCREMENT,
   receita_id      INT UNSIGNED     NOT NULL,
@@ -346,6 +366,7 @@ CREATE TABLE IF NOT EXISTS receitas_itens (
 
 
 -- Configurações do sistema
+-- Preferências e regras por chave. Os padrões e valores aceitos são definidos em services/system_settings.py.
 CREATE TABLE IF NOT EXISTS configuracoes_sistema (
   chave VARCHAR(120) PRIMARY KEY,
   valor TEXT NULL,
@@ -355,6 +376,7 @@ CREATE TABLE IF NOT EXISTS configuracoes_sistema (
 );
 
 -- Aceites de termos e privacidade registrados no momento do cadastro.
+-- Registra o aceite associado à conta. A criação de convite administrativo não representa consentimento.
 CREATE TABLE IF NOT EXISTS aceites_legais (
   id                  INT UNSIGNED NOT NULL AUTO_INCREMENT,
   usuario_id          INT UNSIGNED NOT NULL,
@@ -368,6 +390,7 @@ CREATE TABLE IF NOT EXISTS aceites_legais (
     REFERENCES usuarios (id) ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
+-- Convites com estado e expiração. O token enviado no link deve ser armazenado em forma de hash.
 CREATE TABLE IF NOT EXISTS convites_cadastro (
   id                         INT UNSIGNED NOT NULL AUTO_INCREMENT,
   nome                       VARCHAR(80) NOT NULL,
@@ -389,6 +412,7 @@ CREATE TABLE IF NOT EXISTS convites_cadastro (
 ) ENGINE=InnoDB;
 
 -- Alertas operacionais e sua resolução auditável.
+-- Ocorrências operacionais e seu estado de resolução; a identidade do responsável vem da sessão autenticada.
 CREATE TABLE IF NOT EXISTS alertas (
   id                         INT UNSIGNED NOT NULL AUTO_INCREMENT,
   tipo_alerta                VARCHAR(30) NOT NULL,
@@ -410,6 +434,7 @@ CREATE TABLE IF NOT EXISTS alertas (
 -- ───────────────────────────────────────────
 --  6. Financeiro
 -- ───────────────────────────────────────────
+-- Classificação de receitas e despesas. Os slugs usados pelas vendas devem continuar estáveis.
 CREATE TABLE IF NOT EXISTS financeiro_categorias (
   id          INT UNSIGNED     NOT NULL AUTO_INCREMENT,
   nome        VARCHAR(80)      NOT NULL,
@@ -431,6 +456,7 @@ INSERT IGNORE INTO financeiro_categorias (nome, tipo, slug) VALUES
   ('Outras Receitas', 'receita', 'outros_receita'),
   ('Outras Despesas', 'despesa', 'outros_despesa');
 
+-- Lançamentos financeiros e seus vínculos comerciais; a receita de venda acompanha a transação da venda.
 CREATE TABLE IF NOT EXISTS financeiro_transacoes (
   id              INT UNSIGNED     NOT NULL AUTO_INCREMENT,
   categoria_id    INT UNSIGNED     NOT NULL,
@@ -453,6 +479,7 @@ CREATE TABLE IF NOT EXISTS financeiro_transacoes (
 ) ENGINE=InnoDB;
 
 -- Historico preservado mesmo apos exclusao do usuario (identidade por snapshot).
+-- Auditoria geral: ator, operação e detalhes permitidos. O backend filtra segredos antes de gravar.
 CREATE TABLE IF NOT EXISTS log_atividades (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     usuario_id INT NULL,

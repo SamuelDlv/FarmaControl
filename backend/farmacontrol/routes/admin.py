@@ -1,3 +1,5 @@
+# Guia de manutenção — Atende gestão de usuários, convites, permissões e consulta do histórico de atividades.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """routes.admin: responsabilidades extraídas da aplicação Flask."""
 
 from datetime import datetime
@@ -22,10 +24,13 @@ import secrets
 log = logging.getLogger("farmacontrol")
 
 
+# Lista todos os usuários do sistema para o painel administrativo.
 def listar_usuarios():
     """
     Lista todos os usuários do sistema para o painel administrativo.
     """
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # perfis, usuarios.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -64,8 +69,11 @@ def listar_usuarios():
         return responses.err("Erro interno.", status=500)
 
 
+# Histórico somente para consulta, com paginação por cursor estável.
 def listar_logs():
     """Histórico somente para consulta, com paginação por cursor estável."""
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # log_atividades, usuarios.
     try:
         limit = query_int(request.args, "limit", default=50, minimum=1, maximum=100, clamp=True)
         before = query_int(request.args, "antes", default=0)
@@ -150,11 +158,14 @@ def listar_logs():
         return responses.err("Não foi possível carregar o log. Verifique a migração 016.", status=503)
 
 
+# Lista todos os cadastros aguardando análise.
 def listar_pendentes():
     """
     Lista todos os cadastros aguardando análise.
     A sessão, o perfil administrativo e o CSRF são verificados em proteger_api.
     """
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # perfis, usuarios.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -183,7 +194,10 @@ def listar_pendentes():
         return responses.err("Erro interno. Tente novamente em instantes.", status=500)
 
 
+# Lista permissoes perfis.
 def listar_permissoes_perfis():
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # perfil_permissoes, perfis.
     db = database.get_db()
     try:
         access.require_profile_permissions_table(db)
@@ -203,12 +217,21 @@ def listar_permissoes_perfis():
                 profile["permissoes"].append(row["modulo"])
         return responses.ok({"perfis": list(profiles.values()), "modulos": list(access.PERMISSION_MODULES)})
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro ao listar permissões de perfil: %s", exc)
         return responses.err("Não foi possível carregar as permissões.", status=500)
 
 
+# Substitui a matriz dos perfis enviados após validar todos os módulos solicitados.
+# As exclusões e inserções ficam na mesma transação para não expor uma matriz parcial.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def atualizar_permissoes_perfis():
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # perfis.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # perfil_permissoes, perfis.
     data = request.get_json(silent=True) or {}
     changes = data.get("perfis")
     if not isinstance(changes, dict):
@@ -239,11 +262,15 @@ def atualizar_permissoes_perfis():
         commit_audit(db)
         return responses.ok({"mensagem": "Permissões atualizadas com sucesso."})
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro ao atualizar permissões de perfil: %s", exc)
         return responses.err("Não foi possível salvar as permissões.", status=500)
 
 
+# Atualiza dados de um usuário existente (nome, e-mail, perfil e senha).
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def editar_usuario(usuario_id):
     """
     Atualiza dados de um usuário existente (nome, e-mail, perfil e senha).
@@ -251,6 +278,10 @@ def editar_usuario(usuario_id):
     Payload: { nome, email, perfil, senha, status }
     `status` aceita 'ativo' (aprovado) ou 'inativo' (rejeitado).
     """
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # email, nome, perfil, senha, status.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # perfis, usuarios.
     data = request.get_json(silent=True) or {}
 
     nome      = (data.get("nome") or "").strip() if "nome" in data else None
@@ -325,13 +356,21 @@ def editar_usuario(usuario_id):
         return responses.ok({"mensagem": "Usuário atualizado com sucesso."})
 
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao editar usuário: %s", exc)
         return responses.err("Erro interno. Tente novamente em instantes.", status=500)
 
 
+# Cria convite pendente e envia ao destinatário links de aceitar/recusar.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def criar_convite():
     """Cria convite pendente e envia ao destinatário links de aceitar/recusar."""
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # email, nome, role, sobrenome.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # convites_cadastro, perfis, usuarios.
     data = request.get_json(silent=True) or {}
     nome = (data.get("nome") or "").strip()
     sobrenome = (data.get("sobrenome") or "").strip()
@@ -365,6 +404,7 @@ def criar_convite():
             """, (nome, sobrenome, email, perfil["id"], g.usuario_id, credentials.hash_convite(token), credentials.INVITE_EXPIRY_HOURS))
         commit_audit(db, cur.lastrowid)
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro ao criar convite: %s", exc)
         return responses.err("Não foi possível criar o convite.", status=500)
@@ -386,8 +426,12 @@ def criar_convite():
     return responses.ok({"mensagem": "Convite enviado por e-mail. A conta será criada somente se a pessoa aceitar os documentos legais.", "email": email}, status=201)
 
 
+# Remove uma conta sem permitir a autoexclusao da sessao atual.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def excluir_usuario(usuario_id):
     """Remove uma conta sem permitir a autoexclusao da sessao atual."""
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # aceites_legais, usuarios.
     if usuario_id == g.usuario_id:
         return responses.err("Voce nao pode excluir a propria conta enquanto estiver conectado.", status=409)
 
@@ -407,6 +451,7 @@ def excluir_usuario(usuario_id):
         log.info("Usuario %s excluido por %s", usuario_id, g.usuario_id)
         return responses.ok({"mensagem": "Conta excluida com sucesso."})
     except pymysql.IntegrityError:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         return responses.err(
             "Esta conta possui movimentacoes ou documentos vinculados e nao pode ser excluida. "
@@ -414,16 +459,24 @@ def excluir_usuario(usuario_id):
             status=409,
         )
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao excluir usuario %s: %s", usuario_id, exc)
         return responses.err("Erro interno ao excluir a conta.", status=500)
 
 
+# Aprova ou rejeita um cadastro pendente.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def analisar_cadastro():
     """
     Aprova ou rejeita um cadastro pendente.
     A sessão, o perfil administrativo e o CSRF são verificados em proteger_api.
     """
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # decisao, motivo, usuario_id.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # analises_cadastro, usuarios.
     data = request.get_json(silent=True) or {}
     usuario_id = data.get("usuario_id")
     decisao    = data.get("decisao") # 'aprovado' ou 'rejeitado'
@@ -473,11 +526,14 @@ def analisar_cadastro():
         return responses.ok({"mensagem": f"Cadastro {decisao} com sucesso."})
 
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao analisar cadastro: %s", exc)
         return responses.err("Erro interno. Tente novamente em instantes.", status=500)
 
 
+# Liga URLs, métodos HTTP e nomes de endpoint à instância recebida.
+# Alterar estes contratos exige revisar as telas e tests/fixtures/api_routes.json.
 def register_routes(app):
     """Registra as URLs e nomes de endpoints existentes."""
     app.add_url_rule('/admin/usuarios', view_func=listar_usuarios, methods=['GET'])

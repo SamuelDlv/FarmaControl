@@ -1,8 +1,13 @@
+# Guia de manutenção — Testes de devolucao.
+# Os cenários e asserts abaixo definem os contratos esperados e os casos de regressão.
+# Leia os mocks e fixtures de cada caso antes de interpretar o resultado como integração real.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """Regressoes da devolucao administrativa ao fornecedor."""
 import unittest
 import test_descarte as helpers
 
 
+# Agrupa os cenários de teste e suas fixtures.
 class DevolucaoTests(unittest.TestCase):
     setUp = helpers.DescarteTests.setUp
     login_session = helpers.DescarteTests.login_session
@@ -21,6 +26,8 @@ class DevolucaoTests(unittest.TestCase):
     test_rollback = helpers.DescarteTests.test_audit_failure_rolls_back_disposal
     test_concurrent_balance = helpers.DescarteTests.test_current_locked_balance_prevents_second_overdraw
 
+    # Cenário de regressão: return 18 minus 4 with and without supplier and expired lot.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_return_18_minus_4_with_and_without_supplier_and_expired_lot(self):
         for expiry, supplier in [('2000-01-01', 7), ('2999-01-01', None)]:
             with self.subTest(expiry=expiry, supplier=supplier):
@@ -40,6 +47,8 @@ class DevolucaoTests(unittest.TestCase):
                     self.assertIn(detail, writes[2][1][4])
                 self.db.commit.assert_called_once()
 
+    # Cenário de regressão: mismatched supplier and internal destination rejected.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_mismatched_supplier_and_internal_destination_rejected(self):
         self.prepare()
         self.cur.fetchone.return_value['fornecedor_id'] = 7
@@ -49,6 +58,8 @@ class DevolucaoTests(unittest.TestCase):
         self.assertEqual(self.writes(), [])
         self.assertEqual(self.post(fornecedor_id=7).status_code, 201)
 
+    # Cenário de regressão: transfer rejects same nonexistent and different product destination.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_transfer_rejects_same_nonexistent_and_different_product_destination(self):
         self.prepare()
         for destination in (None, 8, 0, True, '9', 9):
@@ -57,12 +68,16 @@ class DevolucaoTests(unittest.TestCase):
         self.assertEqual(self.post(tipo_movimentacao='transferencia', finalidade=None, motivo=None, estoque_destino_id=9).status_code, 400)
         self.assertEqual(self.writes(), [])
 
+    # Cenário de regressão: csrf.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_csrf(self):
         self.prepare()
         response = self.client.post('/movimentacoes-estoque', json={'estoque_id': 8, 'tipo_movimentacao': 'saida', 'finalidade': 'devolucao_fornecedor', 'motivo': 'Recall', 'quantidade': 4})
         self.assertEqual(response.status_code, 403)
         self.assertEqual(self.writes(), [])
 
+    # Cenário de regressão: sale cannot use return purpose to bypass expiry.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_sale_cannot_use_return_purpose_to_bypass_expiry(self):
         self.prepare()
         auth = self.cur.fetchone.return_value
@@ -76,6 +91,8 @@ class DevolucaoTests(unittest.TestCase):
         self.assertIn('vencido', response.json['mensagem'])
         self.db.commit.assert_not_called()
 
+    # Cenário de regressão: history exposes supplier.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_history_exposes_supplier(self):
         self.prepare()
         self.cur.fetchall.return_value = [{'finalidade': 'devolucao_fornecedor', 'fornecedor_id': 7}]

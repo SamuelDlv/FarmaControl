@@ -1,3 +1,6 @@
+/* Guia de manutenção — Verificador de theme: confira pré-requisitos, argumentos e cenários antes de executar.
+ * Os resultados cobrem os cenários descritos neste arquivo; mocks não comprovam integração real.
+ */
 /* Comparação visual da refatoração CSS: baseline antes de editar, verify depois.
  * Chrome isolado; APIs/fontes simuladas. Sem acesso ao banco.
  * node scripts/check_theme.cjs baseline | verify
@@ -51,6 +54,7 @@ const server = http.createServer((req, res) => {
   else if (filename.endsWith('.css')) setTimeout(() => res.end(content), 40);
   else res.end(content);
 });
+// Prepara o ambiente controlado do navegador para os cenários deste verificador.
 function bootstrap() {
   sessionStorage.setItem(
     'farmacontrol_usuario',
@@ -85,6 +89,7 @@ function bootstrap() {
       if (window.__testApiDelay) {
         await new Promise((resolve, reject) => {
           const signal = init?.signal;
+          // Consulta ou atualiza o estado desta aba usado por abort.
           const abort = () => {
             clearTimeout(timer);
             sessionStorage.setItem('test-aborted', 'true');
@@ -137,6 +142,7 @@ function bootstrap() {
     return nativeFetch(input, init);
   };
 }
+// Coleta o estado usado na comparação do verificador; não representa dados da instalação real.
 function fingerprint() {
   const selectors = [
     'html',

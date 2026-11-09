@@ -1,3 +1,5 @@
+# Guia de manutenção — Atende cadastro, login, logout, convites e recuperação de senha.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """routes.auth: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import access
@@ -20,11 +22,19 @@ import secrets
 log = logging.getLogger("farmacontrol")
 
 
+# Cria um novo usuário com status 'pendente'.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def register():
     """
     Cria um novo usuário com status 'pendente'.
     O cadastro só se torna ativo após aprovação manual.
     """
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # accepts_privacy, accepts_terms, convite_token, email, nome, password.
+    # role, sobrenome.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # aceites_legais, convites_cadastro, perfis, usuarios.
     data = request.get_json(silent=True) or {}
 
     nome      = (data.get("nome") or "").strip()
@@ -118,6 +128,7 @@ def register():
                     WHERE token_hash = %s AND status = 'pendente' AND expira_em > NOW()
                 """, (usuario_criado_id, convite_hash))
                 if cur.rowcount != 1:
+                    # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
                     db.rollback()
                     return responses.err("Este convite é inválido, já foi usado ou expirou.", status=410)
             g.audit_actor = usuario_criado_id
@@ -155,13 +166,21 @@ def register():
 
     except pymysql.MySQLError as exc:
         if db is not None:
+            # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
             db.rollback()
         log.error("Erro DB no cadastro: %s", exc)
         return responses.err("Erro interno. Tente novamente em instantes.", status=500)
 
 
+# Envia um link de uso único sem revelar se o e-mail possui conta.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def solicitar_recuperacao_senha():
     """Envia um link de uso único sem revelar se o e-mail possui conta."""
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # email.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # usuarios.
     data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
     resposta = {"mensagem": "Se houver uma conta com este e-mail, enviaremos um link para redefinir a senha."}
@@ -188,6 +207,7 @@ def solicitar_recuperacao_senha():
         g.audit_actor = usuario["id"]
         commit_audit(db, cur.lastrowid)
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro ao solicitar recuperação de senha: %s", exc)
         return responses.err("Não foi possível processar a solicitação. Tente novamente.", status=500)
@@ -205,8 +225,16 @@ def solicitar_recuperacao_senha():
     return responses.ok(resposta)
 
 
+# A alteração de senha e o consumo do token precisam acontecer na mesma transação.
+# O bloqueio da consulta impede o uso simultâneo do mesmo link de recuperação.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def redefinir_senha():
     """Define a senha por meio de token único, válido por tempo limitado."""
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # password, token.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # usuarios.
     data = request.get_json(silent=True) or {}
     token = (data.get("token") or "").strip()
     senha = data.get("password") or ""
@@ -236,13 +264,17 @@ def redefinir_senha():
         commit_audit(db, cur.lastrowid)
         return responses.ok({"mensagem": "Senha redefinida com sucesso. Você já pode entrar."})
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro ao redefinir senha: %s", exc)
         return responses.err("Não foi possível redefinir a senha. Tente novamente.", status=500)
 
 
+# Permite à página de cadastro preencher apenas um convite ainda válido.
 def consultar_convite(token):
     """Permite à página de cadastro preencher apenas um convite ainda válido."""
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # convites_cadastro, perfis.
     try:
         with database.get_db().cursor() as cur:
             cur.execute("""
@@ -259,8 +291,12 @@ def consultar_convite(token):
         return responses.err("Não foi possível consultar o convite.", status=500)
 
 
+# Recusa um convite sem criar conta ou aceitar documentos legais.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def recusar_convite(token):
     """Recusa um convite sem criar conta ou aceitar documentos legais."""
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # convites_cadastro.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -273,16 +309,24 @@ def recusar_convite(token):
         commit_audit(db, cur.lastrowid)
         return responses.ok({"mensagem": "Convite recusado. Nenhuma conta foi criada."})
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro ao recusar convite: %s", exc)
         return responses.err("Não foi possível recusar o convite.", status=500)
 
 
+# Autentica o usuário.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def login():
     """
     Autentica o usuário.
     Apenas usuários com status='aprovado' podem acessar o sistema.
     """
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # email, password, remember.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # perfis, usuarios.
     data  = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
     senha = data.get("password") or ""
@@ -387,11 +431,14 @@ def login():
         )
 
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB no login: %s", exc)
         return responses.err("Erro interno. Tente novamente em instantes.", status=500)
 
 
+# Invalida a sessao atual no navegador.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def logout():
     """Invalida a sessao atual no navegador."""
     esperado = session.get("csrf_token")
@@ -402,12 +449,15 @@ def logout():
         try:
             commit_audit(database.get_db())
         except pymysql.MySQLError:
+            # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
             database.get_db().rollback()
             return responses.err("Não foi possível registrar a saída. Tente novamente.", status=503)
     session.clear()
     return responses.ok({"mensagem": "Sessao encerrada."})
 
 
+# Liga URLs, métodos HTTP e nomes de endpoint à instância recebida.
+# Alterar estes contratos exige revisar as telas e tests/fixtures/api_routes.json.
 def register_routes(app):
     """Registra as URLs e nomes de endpoints existentes."""
     app.add_url_rule('/auth/register', view_func=register, methods=['POST'])

@@ -1,9 +1,13 @@
+/* Guia de manutenção — Testes de logout: cenários executados com as dependências controladas abaixo.
+ * Os resultados cobrem os cenários descritos neste arquivo; mocks não comprovam integração real.
+ */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
+// Monta o ambiente simulado usado pelos testes; ajuste os dublês ao mudar APIs do navegador.
 function setup() {
   const values = new Map([
     ['farmacontrol_usuario', 'usuario'],

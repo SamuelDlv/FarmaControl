@@ -1,3 +1,5 @@
+# Guia de manutenção — Mantém produtos e categorias com validações compartilhadas de cadastro.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """routes.catalogo: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import database
@@ -13,7 +15,10 @@ import pymysql.cursors
 log = logging.getLogger("farmacontrol")
 
 
+# Consulta categorias produto.
 def get_categorias_produto():
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # categorias_produto.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -25,7 +30,10 @@ def get_categorias_produto():
         return responses.err("Erro interno ao buscar categorias de produto.", status=500)
 
 
+# Consulta categoria produto.
 def get_categoria_produto(categoria_id):
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # categorias_produto.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -39,7 +47,14 @@ def get_categoria_produto(categoria_id):
         return responses.err("Erro interno ao buscar categoria de produto.", status=500)
 
 
+# Cadastra categoria produto.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def create_categoria_produto():
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # descricao, nome.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # categorias_produto.
     data = request.get_json(silent=True) or {}
     nome = data.get("nome")
     descricao = data.get("descricao")
@@ -60,18 +75,27 @@ def create_categoria_produto():
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Categoria de produto criada com sucesso.", "id": cur.lastrowid}, status=201)
     except pymysql.IntegrityError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         if "Duplicate entry" in str(exc) and "nome" in str(exc):
             return responses.err("Nome da categoria já existe.", campo="nome", status=409)
         log.error("Erro DB ao criar categoria de produto: %s", exc)
         return responses.err("Erro interno ao criar categoria de produto.", status=500)
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao criar categoria de produto: %s", exc)
         return responses.err("Erro interno ao criar categoria de produto.", status=500)
 
 
+# Atualiza categoria produto.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def update_categoria_produto(categoria_id):
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # descricao, nome.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # categorias_produto.
     data = request.get_json(silent=True) or {}
     nome = data.get("nome")
     descricao = data.get("descricao")
@@ -93,18 +117,24 @@ def update_categoria_produto(categoria_id):
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Categoria de produto atualizada com sucesso."})
     except pymysql.IntegrityError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         if "Duplicate entry" in str(exc) and "nome" in str(exc):
             return responses.err("Nome da categoria já existe para outra categoria.", campo="nome", status=409)
         log.error("Erro DB ao atualizar categoria de produto: %s", exc)
         return responses.err("Erro interno ao atualizar categoria de produto.", status=500)
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao atualizar categoria de produto: %s", exc)
         return responses.err("Erro interno ao atualizar categoria de produto.", status=500)
 
 
+# Exclui categoria produto.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def delete_categoria_produto(categoria_id):
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # categorias_produto.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -116,12 +146,16 @@ def delete_categoria_produto(categoria_id):
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Categoria de produto excluída com sucesso."})
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao excluir categoria de produto: %s", exc)
         return responses.err("Erro interno ao excluir categoria de produto.", status=500)
 
 
+# Consulta produtos.
 def get_produtos():
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # categorias_produto, produtos.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -133,7 +167,10 @@ def get_produtos():
         return responses.err("Erro interno ao buscar produtos.", status=500)
 
 
+# Consulta produto.
 def get_produto(produto_id):
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # categorias_produto, produtos.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -147,6 +184,9 @@ def get_produto(produto_id):
         return responses.err("Erro interno ao buscar produto.", status=500)
 
 
+# Cadastra produto.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def create_produto():
     data = request.get_json(silent=True) or {}
     try:
@@ -163,21 +203,29 @@ def create_produto():
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Produto criado com sucesso.", "id": product_id}, status=201)
     except ValueError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         return responses.err(str(exc), status=400)
     except pymysql.IntegrityError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         if "Duplicate entry" in str(exc) and "codigo_barras" in str(exc):
             return responses.err("Código de barras já cadastrado.", campo="codigo_barras", status=409)
         log.error("Erro DB ao criar produto: %s", exc)
         return responses.err("Erro interno ao criar produto.", status=500)
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao criar produto: %s", exc)
         return responses.err("Erro interno ao criar produto.", status=500)
 
 
+# Atualiza produto.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def update_produto(produto_id):
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # produtos.
     data = request.get_json(silent=True) or {}
 
     db = database.get_db()
@@ -192,21 +240,28 @@ def update_produto(produto_id):
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Produto atualizado com sucesso."})
     except ValueError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         return responses.err(str(exc), status=400)
     except pymysql.IntegrityError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         if "Duplicate entry" in str(exc) and "codigo_barras" in str(exc):
             return responses.err("Código de barras já cadastrado para outro produto.", campo="codigo_barras", status=409)
         log.error("Erro DB ao atualizar produto: %s", exc)
         return responses.err("Erro interno ao atualizar produto.", status=500)
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao atualizar produto: %s", exc)
         return responses.err("Erro interno ao atualizar produto.", status=500)
 
 
+# Exclui produto.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def delete_produto(produto_id):
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # produtos.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -218,11 +273,14 @@ def delete_produto(produto_id):
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Produto excluído com sucesso."})
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao excluir produto: %s", exc)
         return responses.err("Erro interno ao excluir produto.", status=500)
 
 
+# Liga URLs, métodos HTTP e nomes de endpoint à instância recebida.
+# Alterar estes contratos exige revisar as telas e tests/fixtures/api_routes.json.
 def register_routes(app):
     """Registra as URLs e nomes de endpoints existentes."""
     app.add_url_rule('/categorias-produto', view_func=get_categorias_produto, methods=['GET'])

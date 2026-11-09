@@ -1,3 +1,5 @@
+# Guia de manutenção — Agrega os indicadores usados na abertura do painel do sistema.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """routes.dashboard: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import database
@@ -10,8 +12,11 @@ import pymysql.cursors
 log = logging.getLogger("farmacontrol")
 
 
+# Retorna estatísticas consolidadas para o dashboard do proprietário.
 def get_dashboard_stats():
     """Retorna estatísticas consolidadas para o dashboard do proprietário."""
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # categorias_produto, compras, estoque, fornecedores, movimentacoes_estoque, produtos.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -206,6 +211,8 @@ def get_dashboard_stats():
         return responses.err("Erro interno ao buscar estatísticas do dashboard.", status=500)
 
 
+# Liga URLs, métodos HTTP e nomes de endpoint à instância recebida.
+# Alterar estes contratos exige revisar as telas e tests/fixtures/api_routes.json.
 def register_routes(app):
     """Registra as URLs e nomes de endpoints existentes."""
     app.add_url_rule('/dashboard/stats', view_func=get_dashboard_stats, methods=['GET'])

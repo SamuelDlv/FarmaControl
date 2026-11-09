@@ -1,3 +1,5 @@
+# Guia de manutenção — Mantém o cadastro de receitas e suas referências a produtos e clientes.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """routes.receitas: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import database
@@ -10,7 +12,10 @@ import pymysql.cursors
 log = logging.getLogger("farmacontrol")
 
 
+# Consulta receitas.
 def get_receitas():
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # clientes, receitas.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -22,7 +27,10 @@ def get_receitas():
         return responses.err("Erro interno ao buscar receitas.", status=500)
 
 
+# Consulta receita.
 def get_receita(receita_id):
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # clientes, receitas.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -36,7 +44,15 @@ def get_receita(receita_id):
         return responses.err("Erro interno ao buscar receita.", status=500)
 
 
+# Cadastra receita.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def create_receita():
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # arquivo_receita_url, cliente_id, crm, data_prescricao, data_validade, itens.
+    # medico_nome, observacoes.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # clientes, produtos, receitas, receitas_itens.
     data = request.get_json(silent=True) or {}
     cliente_id = data.get("cliente_id")
     medico_nome = data.get("medico_nome")
@@ -73,11 +89,13 @@ def create_receita():
                 instrucoes_uso = item.get("instrucoes_uso")
 
                 if not produto_id or not quantidade:
+                    # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
                     db.rollback()
                     return responses.err("Dados incompletos para item de receita.", status=400)
 
                 cur.execute("SELECT id FROM produtos WHERE id = %s", (produto_id,))
                 if not cur.fetchone():
+                    # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
                     db.rollback()
                     return responses.err(f"Produto com ID {produto_id} não encontrado.", status=400)
 
@@ -92,12 +110,21 @@ def create_receita():
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Receita criada com sucesso.", "id": receita_id}, status=201)
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao criar receita: %s", exc)
         return responses.err("Erro interno ao criar receita.", status=500)
 
 
+# Atualiza receita.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def update_receita(receita_id):
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # arquivo_receita_url, cliente_id, crm, data_prescricao, data_validade, medico_nome.
+    # observacoes.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # clientes, receitas.
     data = request.get_json(silent=True) or {}
     cliente_id = data.get("cliente_id")
     medico_nome = data.get("medico_nome")
@@ -129,12 +156,17 @@ def update_receita(receita_id):
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Receita atualizada com sucesso."})
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao atualizar receita: %s", exc)
         return responses.err("Erro interno ao atualizar receita.", status=500)
 
 
+# Exclui receita.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def delete_receita(receita_id):
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # receitas.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -146,11 +178,14 @@ def delete_receita(receita_id):
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Receita excluída com sucesso."})
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao excluir receita: %s", exc)
         return responses.err("Erro interno ao excluir receita.", status=500)
 
 
+# Liga URLs, métodos HTTP e nomes de endpoint à instância recebida.
+# Alterar estes contratos exige revisar as telas e tests/fixtures/api_routes.json.
 def register_routes(app):
     """Registra as URLs e nomes de endpoints existentes."""
     app.add_url_rule('/receitas', view_func=get_receitas, methods=['GET'])

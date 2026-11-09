@@ -1,3 +1,5 @@
+# Guia de manutenção — Controla lotes, saldos, histórico, saídas, transferências e devoluções.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """routes.estoque: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core.access import INVENTORY_ROLES
@@ -21,7 +23,10 @@ import pymysql.cursors
 log = logging.getLogger("farmacontrol")
 
 
+# Consulta estoque.
 def get_estoque():
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # categorias_produto, estoque, fornecedores, movimentacoes_estoque, produtos.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -65,6 +70,7 @@ def get_estoque():
         return responses.err("Erro interno ao buscar estoque.", status=500)
 
 
+# Consulta parametros estoque.
 def get_parametros_estoque():
     db = database.get_db()
     try:
@@ -77,7 +83,10 @@ def get_parametros_estoque():
         return responses.err('Erro ao carregar parâmetros de estoque.', status=500)
 
 
+# Consulta item estoque.
 def get_item_estoque(estoque_id):
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # categorias_produto, estoque, produtos.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -108,12 +117,19 @@ def get_item_estoque(estoque_id):
         return responses.err("Erro interno ao buscar item de estoque.", status=500)
 
 
+# Cria item de estoque. Aceita produto_id (int) OU produto_nome (str).
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def create_item_estoque():
     """
     Cria item de estoque. Aceita produto_id (int) OU produto_nome (str).
     Se produto_nome for enviado sem produto_id, tenta encontrar o produto pelo nome
     ou cria um novo produto com preco_custo e preco_venda padrão.
     """
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # data_validade, localizacao, lote, produto_id, produto_nome, quantidade.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # estoque, movimentacoes_estoque, produtos.
     data = request.get_json(silent=True) or {}
     produto_id    = data.get("produto_id")
     produto_nome  = (data.get("produto_nome") or "").strip()
@@ -174,26 +190,36 @@ def create_item_estoque():
             return responses.ok({"mensagem": "Item de estoque criado com sucesso.",
                        "id": estoque_id, "produto_id": produto_id}, status=201)
     except ValueError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         return responses.err(str(exc), status=400)
     except pymysql.IntegrityError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         if "Duplicate entry" in str(exc) and "uk_produto_lote" in str(exc):
             return responses.err("Lote já cadastrado para este produto.", campo="lote", status=409)
         log.error("Erro DB ao criar item de estoque: %s", exc)
         return responses.err("Erro interno ao criar item de estoque.", status=500)
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao criar item de estoque: %s", exc)
         return responses.err("Erro interno ao criar item de estoque.", status=500)
 
 
+# Atualiza item de estoque. Aceita campos do produto (nome, principio, categoria)
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def update_item_estoque(estoque_id):
     """
     Atualiza item de estoque. Aceita campos do produto (nome, principio, categoria)
     para atualizar o produto associado. Registra ajuste de movimentação com
     a autoria da sessão quando a quantidade muda.
     """
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # data_validade, localizacao, lote, produto_id, quantidade.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # estoque, movimentacoes_estoque, produtos.
     data = request.get_json(silent=True) or {}
     produto_id        = data.get("produto_id")
     lote              = data.get("lote")
@@ -268,21 +294,28 @@ def update_item_estoque(estoque_id):
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Item de estoque atualizado com sucesso."})
     except ValueError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         return responses.err(str(exc), status=400)
     except pymysql.IntegrityError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         if "Duplicate entry" in str(exc) and "uk_produto_lote" in str(exc):
             return responses.err("Lote já cadastrado para este produto.", campo="lote", status=409)
         log.error("Erro DB ao atualizar item de estoque: %s", exc)
         return responses.err("Erro interno ao atualizar item de estoque.", status=500)
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao atualizar item de estoque: %s", exc)
         return responses.err("Erro interno ao atualizar item de estoque.", status=500)
 
 
+# Exclui item estoque.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def delete_item_estoque(estoque_id):
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # estoque, movimentacoes_estoque.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -299,13 +332,17 @@ def delete_item_estoque(estoque_id):
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Item de estoque excluído com sucesso."})
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao excluir item de estoque: %s", exc)
         return responses.err("Erro interno ao excluir item de estoque.", status=500)
 
 
+# Retorna o histórico de movimentações de um item de estoque específico.
 def get_historico_estoque(estoque_id):
     """Retorna o histórico de movimentações de um item de estoque específico."""
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # estoque, movimentacoes_estoque, usuarios.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -332,7 +369,10 @@ def get_historico_estoque(estoque_id):
         return responses.err("Erro interno ao buscar histórico de estoque.", status=500)
 
 
+# Consulta movimentacoes estoque.
 def get_movimentacoes_estoque():
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # estoque, movimentacoes_estoque, produtos, usuarios.
     try:
         produto_id = query_int(request.args, "produto_id", minimum=1)
         periodo_dias = query_int(request.args, "periodo_dias", minimum=1, maximum=3650)
@@ -404,7 +444,10 @@ def get_movimentacoes_estoque():
         return responses.err("Erro interno ao buscar movimentações de estoque.", status=500)
 
 
+# Consulta movimentacao estoque.
 def get_movimentacao_estoque(movimentacao_id):
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # estoque, movimentacoes_estoque, produtos, usuarios.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -418,7 +461,15 @@ def get_movimentacao_estoque(movimentacao_id):
         return responses.err("Erro interno ao buscar movimentação de estoque.", status=500)
 
 
+# Cadastra movimentacao estoque.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def create_movimentacao_estoque():
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # estoque_destino_id, estoque_id, finalidade, fornecedor_id, motivo, observacao.
+    # quantidade, tipo_movimentacao.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # estoque, movimentacoes_estoque, produtos.
     data = request.get_json(silent=True) or {}
     estoque_id = data.get("estoque_id")
     usuario_id = g.usuario_id
@@ -475,6 +526,8 @@ def create_movimentacao_estoque():
         with db.cursor() as cur:
             # Em transferências, a ordem fixa evita deadlock quando dois lotes
             # são transferidos simultaneamente em sentidos opostos.
+            # Transferências precisam proteger origem e destino até a confirmação.
+            # Ordene os identificadores de modo consistente ao montar a consulta.
             ids_bloqueio = sorted({estoque_id, estoque_destino_id}) if tipo_movimentacao == "transferencia" else [estoque_id]
             cur.execute(
                 "SELECT id, produto_id, quantidade, lote, data_validade FROM estoque WHERE id IN (" + ", ".join(["%s"] * len(ids_bloqueio)) + ") FOR UPDATE",
@@ -501,6 +554,9 @@ def create_movimentacao_estoque():
                     return responses.err("Fornecedor não corresponde ao cadastro do produto.", campo="fornecedor_id", status=400)
 
             settings = read_settings(cur)
+            # Saídas comerciais seguem a regra de estoque utilizável. Descarte e
+            # devolução precisam permitir retirar lotes vencidos, mantendo motivo,
+            # permissão administrativa e rastreabilidade da baixa.
             if tipo_movimentacao == 'saida' and finalidade not in ('descarte', 'devolucao_fornecedor'):
                 require_usable_stock(settings, item_estoque)
             elif tipo_movimentacao in ('entrada', 'transferencia') or finalidade in ('descarte', 'devolucao_fornecedor'):
@@ -552,14 +608,18 @@ def create_movimentacao_estoque():
             commit_audit(db, movimentacao_id)
             return responses.ok({"mensagem": "Movimentação de estoque criada com sucesso.", "id": movimentacao_id}, status=201)
     except ValueError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         return responses.err(str(exc), status=400)
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao criar movimentação de estoque: %s", exc)
         return responses.err("Erro interno ao criar movimentação de estoque.", status=500)
 
 
+# Liga URLs, métodos HTTP e nomes de endpoint à instância recebida.
+# Alterar estes contratos exige revisar as telas e tests/fixtures/api_routes.json.
 def register_routes(app):
     """Registra as URLs e nomes de endpoints existentes."""
     app.add_url_rule('/estoque', view_func=get_estoque, methods=['GET'])

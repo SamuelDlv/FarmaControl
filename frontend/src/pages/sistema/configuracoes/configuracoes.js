@@ -1,3 +1,6 @@
+/* Guia de manutenção — Edição das preferências e regras operacionais, com controle de alterações pendentes.
+ * Os seletores dependem do HTML da tela; dados e permissões devem continuar validados na API.
+ */
 /* ══════════════════════════════════════════════════════════════════════
  * FARMAControl — CONFIGURAÇÕES DO SISTEMA (PROPRIETÁRIO)
  * ══════════════════════════════════════════════════════════════════════
@@ -74,6 +77,7 @@ function normalizeConfigValue(value) {
 }
 
 /* stableConfigString(): Gera uma string estável das configurações para comparar mudanças. */
+// Serializa a configuração de modo estável para comparar o formulário com o estado salvo.
 function stableConfigString(cfg) {
   const ordered = {};
   Object.keys(cfg || {})
@@ -85,6 +89,7 @@ function stableConfigString(cfg) {
 }
 
 /* collectConfiguracoes(): Coleta todas as configurações atuais dos campos do formulário. */
+// Reúne os valores dos controles no objeto enviado à API de configurações.
 function collectConfiguracoes() {
   const cfg = {};
   document.querySelectorAll('[data-config-key]').forEach(el => {
@@ -107,6 +112,7 @@ function collectConfiguracoes() {
 }
 
 /* markDirtyState(): Marca o formulário como "modificado" (habilita botão salvar). */
+// Compara os valores atuais com a referência salva para sinalizar alterações pendentes.
 function markDirtyState() {
   currentConfigState = collectConfiguracoes();
   const dirty = stableConfigString(currentConfigState) !== savedConfigSnapshot;
@@ -115,6 +121,7 @@ function markDirtyState() {
 }
 
 /* markCleanState(): Marca o formulário como "limpo" (desabilita botão salvar). */
+// Registra a configuração confirmada como nova referência de comparação do formulário.
 function markCleanState(cfg) {
   currentConfigState = Object.assign({}, cfg || collectConfiguracoes());
   savedConfigSnapshot = stableConfigString(currentConfigState);
@@ -171,6 +178,8 @@ function labelForConfig(key, value) {
 }
 
 /* renderDynamicPanels(): Renderiza os painéis dinâmicos de configurações. */
+// Atualiza a apresentação de Dynamic Panels.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function renderDynamicPanels(cfgs) {
   const summary = document.getElementById('active-config-summary');
   if (summary) {
@@ -203,6 +212,7 @@ var toast = window.FarmaControlSettings
   : () => console.warn('Toast indisponível');
 
 /* ══ CONFIGURAÇÕES — BANCO DE DADOS ══ */
+// Escapa os valores exibidos nos painéis de configuração.
 function escapeConfigText(value) {
   return String(value).replace(
     /[&<>"']/g,
@@ -210,6 +220,7 @@ function escapeConfigText(value) {
   );
 }
 
+// Obtém os elementos do documento usados por lock Pharmacy.
 function lockPharmacy(locked) {
   document.querySelectorAll('#pharmacy-card [data-config-key]').forEach(el => {
     el.disabled = locked;
@@ -220,6 +231,7 @@ function lockPharmacy(locked) {
     ? 'Dados salvos. Clique em Editar para alterar.'
     : 'Preencha os dados e clique em Salvar alterações.';
 }
+// Sincroniza a disponibilidade dos controles enquanto uma operação está em andamento.
 function setConfigBusy(busy) {
   document
     .querySelectorAll(
@@ -229,6 +241,8 @@ function setConfigBusy(busy) {
       el.disabled = busy;
     });
 }
+// Carrega Configuracoes para uso na tela.
+// Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
 async function loadConfiguracoes() {
   if (configSaving) return false;
   configLoaded = false;
@@ -271,6 +285,7 @@ async function loadConfiguracoes() {
     return false;
   }
 }
+// Envia as preferências editadas e só atualiza a referência salva conforme a resposta da API.
 async function saveConfiguracoes() {
   if (!configLoaded || configSaving) return;
   for (const el of document.querySelectorAll('[data-config-key]')) {
@@ -317,6 +332,8 @@ async function saveConfiguracoes() {
 /* ══ DATE ══ */
 
 /* ══ COUNTERS ══ */
+// Inicializa Counters.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initCounters() {
   document.querySelectorAll('.kpi-value[data-target]').forEach(el => {
     const target = +el.dataset.target;
@@ -353,6 +370,8 @@ function initCounters() {
 }
 
 /* ══ PERIOD SELECTOR (placeholder funcional) ══ */
+// Inicializa Period Selector.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initPeriodSelector() {
   document.querySelectorAll('.period-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -371,6 +390,8 @@ function initPeriodSelector() {
 }
 
 /* ══ CONFIG ACTIONS ══ */
+// Inicializa Report Buttons.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initReportButtons() {
   document.getElementById('btn-edit-pharmacy')?.addEventListener('click', () => {
     lockPharmacy(false);
@@ -448,6 +469,8 @@ document.getElementById('btn-refresh')?.addEventListener('click', async () => {
 });
 
 /* ══ INIT ══ */
+// Inicializa Configuracoes Page.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initConfiguracoesPage() {
   // initSidebar(); // Removido: já inicializado pelo sidebar-init.js
 

@@ -1,3 +1,7 @@
+# Guia de manutenção — Testes de local server.
+# Os cenários e asserts abaixo definem os contratos esperados e os casos de regressão.
+# Leia os mocks e fixtures de cada caso antes de interpretar o resultado como integração real.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """Encerramento: conclui requisições, fecha conexões e isola a pasta no Windows."""
 
 import os
@@ -15,7 +19,10 @@ from farmacontrol.core.database import close_db
 from farmacontrol.core.local_server import LocalServer, WindowsControl, control_name
 
 
+# Agrupa os cenários de teste e suas fixtures.
 class LocalServerTests(unittest.TestCase):
+    # Cenário de regressão: close waits for request and database teardown.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_close_waits_for_request_and_database_teardown(self):
         entered, release, finished = threading.Event(), threading.Event(), threading.Event()
         connection = Mock()
@@ -67,6 +74,8 @@ class LocalServerTests(unittest.TestCase):
         self.assertEqual(results, [b'concluida'])
         connection.close.assert_called_once()
 
+    # Cenário de regressão: batch signals only this project and waits for completion.
+    # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     @unittest.skipUnless(os.name == 'nt', 'Eventos nativos do Windows')
     def test_batch_signals_only_this_project_and_waits_for_completion(self):
         root = Path(__file__).resolve().parents[1]

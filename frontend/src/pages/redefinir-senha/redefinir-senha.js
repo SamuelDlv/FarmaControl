@@ -1,3 +1,6 @@
+/* Guia de manutenção — Formulário de redefinição de senha a partir do token recebido por link.
+ * Os seletores dependem do HTML da tela; dados e permissões devem continuar validados na API.
+ */
 'use strict';
 
 const API_BASE = window.FarmaControlSettings
@@ -21,6 +24,7 @@ if (!token) {
   message.textContent = 'Este link de recuperação é inválido.';
   message.className = 'reset-message error';
 }
+// Intercepta a submissão para tratar validação e envio neste documento.
 form.addEventListener('submit', async event => {
   event.preventDefault();
   const password = document.getElementById('password').value;

@@ -1,3 +1,6 @@
+/* Guia de manutenção — Cadastro por convite, aprovação, edição de contas e permissões dos perfis.
+ * Os seletores dependem do HTML da tela; dados e permissões devem continuar validados na API.
+ */
 /* ══════════════════════════════════════════════════════════════════════
  * FARMAControl — GESTÃO DE USUÁRIOS (PROPRIETÁRIO)
  * ══════════════════════════════════════════════════════════════════════
@@ -26,6 +29,8 @@ var EASE = t => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
 var allUsers = [];
 
 /* fetchUsuarios(): Busca todos os usuários do sistema via API. */
+// Carrega Usuarios para uso na tela.
+// Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
 async function fetchUsuarios() {
   const token = window.__fcPageToken;
   try {
@@ -55,6 +60,8 @@ async function fetchUsuarios() {
 }
 
 /* renderUserEmptyState(): Mostra mensagem quando não há usuários cadastrados. */
+// Atualiza a apresentação de User Empty State.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function renderUserEmptyState(message) {
   const grid = document.querySelector('.user-grid');
   if (!grid) return;
@@ -68,6 +75,8 @@ function renderUserEmptyState(message) {
 }
 
 /* renderUserGrid(): Renderiza o grid de cards de usuários com avatar e status. */
+// Atualiza a apresentação de User Grid.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function renderUserGrid() {
   const grid = document.querySelector('.user-grid');
   if (!grid) return;
@@ -168,6 +177,8 @@ function renderUserGrid() {
 }
 
 /* toggleUserStatus(): Ativa/desativa um usuário (com confirmação). */
+// Trata a ação toggle User Status.
+// Os efeitos e mensagens abaixo devem acompanhar o resultado confirmado pelo fluxo.
 async function toggleUserStatus(id, currentStatus) {
   // Toggle: ativo ↔ inativo (frontend normalizado pelo backend; backend converte para aprovado/rejeitado)
   const newStatus = currentStatus === 'ativo' ? 'inativo' : 'ativo';
@@ -190,6 +201,8 @@ async function toggleUserStatus(id, currentStatus) {
 }
 
 /* updateKPIs(): Atualiza os contadores de KPI (total usuários, ativos, inativos). */
+// Atualiza a apresentação de KPIs.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function updateKPIs() {
   const ativos = allUsers.filter(u => u.status === 'ativo').length;
   const pendentes = allUsers.filter(u => u.status === 'pendente').length;
@@ -202,6 +215,8 @@ function updateKPIs() {
 }
 
 /* openEditModal(): Abre o modal de edição com dados do usuário preenchidos. */
+// Trata a ação excluir Usuario.
+// Os efeitos e mensagens abaixo devem acompanhar o resultado confirmado pelo fluxo.
 async function excluirUsuario(id) {
   const usuario = allUsers.find(item => Number(item.id) === Number(id));
   if (!usuario) return;
@@ -233,6 +248,7 @@ async function excluirUsuario(id) {
 }
 window.excluirUsuario = excluirUsuario;
 
+// Abre e prepara Edit Modal.
 function openEditModal(id) {
   const u = allUsers.find(x => x.id === id);
   if (!u) return;
@@ -259,6 +275,8 @@ function openEditModal(id) {
 }
 
 /* saveUserChanges(): Salva as alterações feitas no modal de edição. */
+// Trata a ação save User Changes.
+// Os efeitos e mensagens abaixo devem acompanhar o resultado confirmado pelo fluxo.
 async function saveUserChanges() {
   const modal = document.getElementById('modal-edit-user');
   const id = modal.dataset.userId;
@@ -304,6 +322,8 @@ async function saveUserChanges() {
 }
 
 /* analisarCadastro(): Aprova ou rejeita um cadastro pendente de novo usuário. */
+// Trata a ação analisar Cadastro.
+// Os efeitos e mensagens abaixo devem acompanhar o resultado confirmado pelo fluxo.
 async function analisarCadastro(id, decisao) {
   try {
     const res = await fetch(`${API_BASE}/admin/analisar-cadastro`, {
@@ -328,6 +348,8 @@ window.analisarCadastro = analisarCadastro;
 /* ══ DATE ══ */
 
 /* ══ COUNTERS ══ */
+// Inicializa Counters.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initCounters() {
   document.querySelectorAll('.kpi-value[data-target]').forEach(el => {
     const target = +el.dataset.target;
@@ -364,6 +386,8 @@ function initCounters() {
 }
 
 /* ══ PERIOD SELECTOR ══ */
+// Inicializa Period Selector.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initPeriodSelector() {
   const months = [
     'janeiro',
@@ -404,6 +428,8 @@ function initPeriodSelector() {
 /* (Filtro por grade substituído pela filtragem reativa em renderUserGrid) */
 
 /* ══ MODALS MANAGEMENT ══ */
+// Inicializa Modals.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initModals() {
   // Fechar modal ao clicar no overlay
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
@@ -425,6 +451,8 @@ function initModals() {
 }
 
 /* ══ CRIAR NOVO USUÁRIO ══ */
+// Trata a ação criar Novo Usuario.
+// Os efeitos e mensagens abaixo devem acompanhar o resultado confirmado pelo fluxo.
 async function criarNovoUsuario() {
   const modal = document.getElementById('modal-new-user');
   const nomeInput = modal.querySelector('input[placeholder="Ex: Maria Silva"]');
@@ -505,6 +533,8 @@ function showInviteSentModal(email) {
 }
 
 /* ══ EXPORTAR USUÁRIOS (CSV) ══ */
+// Prepara a exportação de Usuarios CSV.
+// Mantenha filtros, cabeçalhos e transformação dos valores coerentes com os dados exportados.
 async function exportUsuariosCSV() {
   try {
     const res = await fetch(`${API_BASE}/admin/usuarios`);
@@ -542,6 +572,8 @@ async function exportUsuariosCSV() {
 }
 
 /* ══ PERMISSIONS MODAL ══ */
+// Inicializa Permissions Modal.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initPermissionsModal() {
   // Bolinhas de permissões selecionáveis
   document.querySelectorAll('#modal-permissions .perm-item').forEach(item => {
@@ -576,6 +608,8 @@ function initPermissionsModal() {
 }
 
 /* ══ USER ACTIONS ══ */
+// Inicializa Report Buttons.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initReportButtons() {
   const actionNames = {
     'rpt-estoque': 'Novo Usuário',
@@ -634,6 +668,8 @@ function initReportButtons() {
 }
 
 /* ══ CARREGAR KPIs DE USUÁRIOS DO BANCO ══ */
+// Carrega Usuarios KPIs para uso na tela.
+// Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
 async function loadUsuariosKPIs() {
   try {
     const res = await fetch(`${API_BASE}/admin/pendentes`);
@@ -670,6 +706,7 @@ document.getElementById('btn-refresh')?.addEventListener('click', async () => {
 });
 
 /* ══ TOAST — centralizado no global-settings.js ══ */
+// Apresenta uma mensagem de retorno sem interromper a interação com o documento.
 function toast(msg, type = 'success') {
   if (window.FarmaControlSettings && typeof window.FarmaControlSettings.showToast === 'function') {
     window.FarmaControlSettings.showToast(
@@ -680,6 +717,7 @@ function toast(msg, type = 'success') {
 }
 
 /* ══ PROFILE TABS ══ */
+// Obtém os elementos do documento usados por switch Profile Tab.
 function switchProfileTab(btn) {
   const profileId = btn.dataset.profile;
 
@@ -705,6 +743,8 @@ function switchProfileTab(btn) {
 }
 
 /* ══ PROFILE PERMISSIONS ══ */
+// Inicializa Profile Permissions.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initProfilePermissions() {
   document.querySelectorAll('#modal-edit-profiles .profile-perm').forEach(item => {
     item.addEventListener('click', e => {
@@ -737,6 +777,8 @@ function initProfilePermissions() {
 }
 
 /* ══ PASSWORD MANAGEMENT ══ */
+// Trata a ação toggle Password Visibility.
+// Os efeitos e mensagens abaixo devem acompanhar o resultado confirmado pelo fluxo.
 function togglePasswordVisibility() {
   const input = document.getElementById('user-password');
   const btn = document.getElementById('toggle-password');
@@ -749,6 +791,7 @@ function togglePasswordVisibility() {
   }
 }
 
+// Obtém os elementos do documento usados por generate Password.
 function generatePassword() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%';
   let password = '';
@@ -768,6 +811,8 @@ function generatePassword() {
 /* (Atalhos de teclado e gerenciamento da sidebar delegados ao sidebar-init.js) */
 
 /* ══ INIT ══ */
+// Inicializa Usuarios Page.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initUsuariosPage() {
   // O global-settings.js já cuida da identidade do usuário e configurações básicas.
   // Vamos apenas garantir que a sidebar local funcione se necessário, mas o global-settings já faz o applyUser.
@@ -816,6 +861,8 @@ const permissionLabels = {
 };
 let profilePermissions = [];
 
+// Atualiza a apresentação de Profile Permission Editor.
+// Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
 function renderProfilePermissionEditor(activeSlug) {
   const modal = document.getElementById('modal-edit-profiles');
   const body = modal?.querySelector('.modal-body');
@@ -849,6 +896,7 @@ function renderProfilePermissionEditor(activeSlug) {
   );
 }
 
+// Abre e prepara Profile Editor.
 async function openProfileEditor() {
   const modal = document.getElementById('modal-edit-profiles');
   try {
@@ -867,6 +915,8 @@ async function openProfileEditor() {
   }
 }
 
+// Trata a ação save Profile Permissions.
+// Os efeitos e mensagens abaixo devem acompanhar o resultado confirmado pelo fluxo.
 async function saveProfilePermissions() {
   if (!profilePermissions.length) return;
   const button = document.querySelector('#modal-edit-profiles .btn-save');
@@ -892,6 +942,8 @@ async function saveProfilePermissions() {
   }
 }
 
+// Inicializa Profile Editor.
+// Registra os controles e eventos deste recurso quando o documento está pronto.
 function initProfileEditor() {
   document.getElementById('btn-edit-profiles')?.addEventListener('click', openProfileEditor);
 }

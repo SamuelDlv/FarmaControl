@@ -1,3 +1,5 @@
+# Guia de manutenção — Controla baseline, checksums e aplicação ordenada de migrações novas.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """Histórico de migrações MySQL: status (somente leitura), baseline e apply."""
 import argparse
 from contextlib import contextmanager
@@ -14,6 +16,8 @@ BASE_VERSION = 23
 TABLE = 'schema_migrations'
 
 
+# A leitura normaliza finais de linha para manter identidade entre Windows e Linux.
+# Mesmo comentários alteram o checksum: migrações registradas devem permanecer imutáveis.
 def checksum(path):
     # CRLF e LF representam o mesmo SQL no Windows e no CI Linux.
     return hashlib.sha256(path.read_text(encoding='utf-8-sig').encode('utf-8')).hexdigest()
@@ -35,6 +39,7 @@ def discover(directory=DIRECTORY):
     return sorted(migrations, key=lambda item: item['version'])
 
 
+# Executa as consultas e validações de baseline contract.
 def baseline_contract(db, path=BASELINE):
     contract = json.loads(path.read_text(encoding='utf-8'))
     with db.cursor() as cur:
@@ -46,6 +51,7 @@ def baseline_contract(db, path=BASELINE):
         raise ValueError('Base anterior à 023 ou incompleta. Faltam: ' + ', '.join(missing))
 
 
+# Executa as consultas e validações de history.
 def history(db):
     with db.cursor() as cur:
         cur.execute('SELECT COUNT(*) AS n FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s', (TABLE,))
@@ -55,6 +61,8 @@ def history(db):
         return cur.fetchall()
 
 
+# Confere arquivos contra o histórico, incluindo checksum e estados interrompidos.
+# A consulta não deve aplicar DDL nem tentar reparar automaticamente divergências.
 def status(db, directory=DIRECTORY, baseline_path=BASELINE):
     migrations = discover(directory)
     recorded = history(db)
@@ -78,6 +86,7 @@ def status(db, directory=DIRECTORY, baseline_path=BASELINE):
             'pending': [{k: v for k, v in m.items() if k != 'path'} for m in pending]}
 
 
+# Executa as consultas e validações de migration lock.
 @contextmanager
 def migration_lock(db):
     # Conexão exclusiva do runner: abandona snapshots de status anteriores.
@@ -97,6 +106,8 @@ def migration_lock(db):
             cur.execute('SELECT RELEASE_LOCK(%s)', (lock_name,))
 
 
+# Registra a adoção do histórico após revisão explícita do legado e conferência estrutural.
+# A presença de colunas não comprova tipos, índices nem transformações de dados antigas.
 def baseline(db, *, legacy_reviewed=False, directory=DIRECTORY, baseline_path=BASELINE):
     if not legacy_reviewed:
         raise ValueError('Revise as migrações legadas e use --legacy-reviewed para registrar a base 023.')
@@ -120,6 +131,8 @@ def baseline(db, *, legacy_reviewed=False, directory=DIRECTORY, baseline_path=BA
         return status(db, directory, baseline_path)
 
 
+# Aplica migrações pendentes sob bloqueio e registra o estado de cada versão.
+# DDL no MySQL pode confirmar implicitamente: falhas parciais exigem inspeção, não repetição cega.
 def apply(db, directory=DIRECTORY, baseline_path=BASELINE):
     with migration_lock(db):
         current = status(db, directory, baseline_path)

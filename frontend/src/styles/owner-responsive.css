@@ -1,6 +1,11 @@
+/* Guia de manutenção — Ajusta a disposição das telas internas para diferentes larguras de janela.
+ * A ordem das regras participa da cascata; confira os estilos compartilhados e os breakpoints antes de mover seletores.
+ */
 /* Responsividade compartilhada das páginas do perfil Proprietário. */
 
 /* Colunas laterais iguais mantem a data no centro, mesmo sem acoes. */
+/* Adaptação de layout sob a condição (min-width: 861px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (min-width: 861px) {
   .main > .topbar {
     display: grid;
@@ -32,11 +37,14 @@
 
 /* Itens sem permissao devem permanecer invisiveis mesmo quando a pagina
    declara .sb-item { display:flex }. */
+/* Estrutura da navegação: confira o alinhamento com a área principal e as regras responsivas. */
 .sidebar .sb-item[hidden],
 .sidebar .sb-group-label[hidden] {
   display: none !important;
 }
 
+/* Adaptação de layout sob a condição (max-width: 860px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 860px) {
   /* A sidebar passa a ser sobreposta. Conteúdo e painel auxiliar ocupam uma
      única coluna para que nada seja comprimido ou desapareça. */
@@ -185,6 +193,8 @@
   }
 }
 
+/* Adaptação de layout sob a condição (max-width: 600px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 600px) {
   .topbar {
     padding-inline: 12px !important;
@@ -219,10 +229,12 @@ body * {
 }
 
 /* Dados extensos permanecem legíveis; a rolagem fica dentro da tabela. */
+/* Apresentação tabular: preserve legibilidade das colunas e comportamento em janelas estreitas. */
 .table-wrap table,
 .table-wrapper table {
   min-width: 1050px;
 }
+/* Apresentação tabular: preserve legibilidade das colunas e comportamento em janelas estreitas. */
 .table-wrap th,
 .table-wrap td,
 .table-wrapper th,
@@ -231,6 +243,7 @@ body * {
   overflow-wrap: normal;
   word-break: normal;
 }
+/* Apresentação tabular: preserve legibilidade das colunas e comportamento em janelas estreitas. */
 .table-wrap .med-name,
 .table-wrap .med-meta,
 .table-wrap .prod-name,
@@ -285,20 +298,25 @@ body * {
 .summary-val {
   white-space: nowrap;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .fc-view-overlay .rank-item,
 .fc-view-overlay .exp-item {
   padding: 10px 0;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .fc-view-overlay .rank-name {
   white-space: normal;
   overflow-wrap: anywhere;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .fc-view-overlay .modal-body {
   overflow-x: auto;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .fc-view-overlay .cat-row {
   margin-bottom: 12px;
 }
+/* Camada de diálogo: posicionamento e empilhamento devem manter os controles visíveis e clicáveis. */
 .fc-view-overlay .cat-label {
   white-space: normal;
   overflow-wrap: anywhere;
@@ -320,16 +338,22 @@ body * {
 .panel-row {
   grid-template-columns: minmax(0, 1fr) 280px;
 }
+/* Adaptação de layout sob a condição (max-width: 1199px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 1199px) {
   .panel-row {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+/* Adaptação de layout sob a condição (min-width: 861px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (min-width: 861px) {
   .kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+/* Adaptação de layout sob a condição (min-width: 1400px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (min-width: 1400px) {
   .kpi-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -343,11 +367,14 @@ body:not(.fc-auth) .search-field input {
   background: transparent !important;
   min-width: 0;
 }
+/* Estado de foco: mantenha indicação visível para navegação pelo teclado. */
 .search-field:focus-within {
   outline: 2px solid var(--sage);
   outline-offset: 2px;
 }
 
+/* Adaptação de layout sob a condição (max-width: 1100px) and (min-width: 861px).
+ * Confira menu, tabelas e formulários ao modificar este breakpoint. */
 @media (max-width: 1100px) and (min-width: 861px) {
   .two-col {
     grid-template-columns: minmax(0, 1fr);

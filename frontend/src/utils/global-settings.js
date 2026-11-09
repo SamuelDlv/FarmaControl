@@ -1,3 +1,6 @@
+/* Guia de manutenção — Compartilha preferências, identidade visual e transporte HTTP com credenciais e CSRF.
+ * Os seletores dependem do HTML da tela; dados e permissões devem continuar validados na API.
+ */
 /**
  * Preferências visuais compartilhadas: cor de destaque, densidade e animações.
  * A aplicação tem uma única aparência clara; a paleta ajusta apenas os acentos.
@@ -112,6 +115,7 @@
     return clean;
   }
 
+  // Lê um valor do armazenamento tratando indisponibilidade sem interromper a inicialização.
   function readStored(storage, key) {
     try {
       const raw = storage.getItem(key);
@@ -132,6 +136,8 @@
 
   /* ══ saveStored(cfg): Salva as configurações no localStorage.
    * Mantém as configurações antigas e sobrescreve apenas as novas. */
+  // Trata a ação save Stored.
+  // Os efeitos e mensagens abaixo devem acompanhar o resultado confirmado pelo fluxo.
   function saveStored(cfg) {
     localStorage.setItem(
       STORAGE_KEY,
@@ -233,6 +239,7 @@
     return `rgba(${rgb.r},${rgb.g},${rgb.b},${opacity})`;
   }
 
+  // Deriva as variantes da cor de destaque utilizadas pelos componentes da interface.
   function generateColorPalette(hexColor) {
     return {
       sage: hexColor,
@@ -251,6 +258,7 @@
   }
 
   /* ══ REGENERAR STYLE COM VALORES DIRETOS (v2 — sem var() references) ══ */
+  // Atualiza a folha dinâmica que aplica as cores calculadas aos componentes existentes.
   function regenerateStyle(palette) {
     /* Remover o antigo se existir */
     const old = document.getElementById('fc-global-visual-settings');
@@ -293,6 +301,7 @@
    * Faz: 1) Calcula a paleta de cores, 2) Setar CSS vars no <html>,
    * 3) Gera <style> inline com valores diretos, 4) Aplica densidade/animações,
    * 5) Configura sidebar recolhida. É chamada ao carregar cada página. */
+  // Propaga as preferências para variáveis e classes usadas pelos estilos compartilhados.
   function applySettings(cfg) {
     const settings = getEffectiveSettings(cfg);
     const selectedColor = String(settings.cor_destaque || '').toLowerCase();
@@ -362,6 +371,7 @@
   }
 
   /* ══ USUÁRIO ══ */
+  // Lê a identidade em cache para apresentação; permissões reais são verificadas no servidor.
   function getCurrentUser() {
     try {
       return JSON.parse(sessionStorage.getItem('farmacontrol_usuario') || '{}') || {};
@@ -401,6 +411,7 @@
   }
 
   /* ══ LOAD REMOTO ══ */
+  // Consulta as preferências do servidor para atualizar a configuração mantida no cliente.
   async function loadRemoteSettings() {
     try {
       /* Antes do login, a API entrega somente a paleta publica; apos o
@@ -426,6 +437,7 @@
   /* ══ init(): Função de inicialização automática.
    * Executada ao carregar o script. Aplica as configurações salvas
    * e atualiza as informações do usuário na interface. */
+  // Coordena a inicialização desta camada e os recursos compartilhados usados por ela.
   async function init() {
     if (__initialized) return;
     __initialized = true;
@@ -447,6 +459,7 @@
   /* ══ showToast(): Exibe uma notificação temporária (toast) no canto da tela.
    * Tipos: 'success' (verde), 'error' (vermelho), 'info' (azul).
    * Desaparece automaticamente após 3 segundos. */
+  // Exibe uma mensagem temporária para comunicar o resultado da ação ao usuário.
   function showToast(msg, type = 'success') {
     let el = document.getElementById('fc-toast');
     if (!el) {
@@ -484,6 +497,7 @@
 
   /* Confirmação visual compartilhada: substitui o alert/confirm nativo do
      navegador para ações destrutivas terem o mesmo acabamento do sistema. */
+  // Apresenta a confirmação compartilhada e devolve a escolha para o fluxo que a solicitou.
   function showConfirm({
     title = 'Confirmar ação',
     message = '',
@@ -527,6 +541,7 @@
       overlay.addEventListener('click', event => {
         if (event.target === overlay) finish(false);
       });
+      // Atende atalhos de teclado; preserve a navegação e os controles acessíveis.
       document.addEventListener('keydown', onKey);
       requestAnimationFrame(() => overlay.classList.add('open'));
       overlay.querySelector('.fc-confirm-cancel').focus();

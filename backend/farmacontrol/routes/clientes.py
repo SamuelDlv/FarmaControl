@@ -1,3 +1,5 @@
+# Guia de manutenção — Atende consulta e manutenção do cadastro de clientes.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """routes.clientes: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import database
@@ -10,7 +12,10 @@ import pymysql.cursors
 log = logging.getLogger("farmacontrol")
 
 
+# Consulta clientes.
 def get_clientes():
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # clientes.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -22,7 +27,10 @@ def get_clientes():
         return responses.err("Erro interno ao buscar clientes.", status=500)
 
 
+# Consulta cliente.
 def get_cliente(cliente_id):
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # clientes.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -36,7 +44,15 @@ def get_cliente(cliente_id):
         return responses.err("Erro interno ao buscar cliente.", status=500)
 
 
+# Cadastra cliente.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def create_cliente():
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # cpf, data_nascimento, email, endereco, nome, sobrenome.
+    # telefone.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # clientes.
     data = request.get_json(silent=True) or {}
     nome = data.get("nome")
     sobrenome = data.get("sobrenome")
@@ -62,6 +78,7 @@ def create_cliente():
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Cliente criado com sucesso.", "id": cur.lastrowid}, status=201)
     except pymysql.IntegrityError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         if "Duplicate entry" in str(exc) and "cpf" in str(exc):
             return responses.err("CPF já cadastrado.", campo="cpf", status=409)
@@ -70,12 +87,21 @@ def create_cliente():
         log.error("Erro DB ao criar cliente: %s", exc)
         return responses.err("Erro interno ao criar cliente.", status=500)
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao criar cliente: %s", exc)
         return responses.err("Erro interno ao criar cliente.", status=500)
 
 
+# Atualiza cliente.
+# Recebe os campos do JSON da requisição; as validações abaixo definem o contrato aceito.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def update_cliente(cliente_id):
+    # Chaves lidas do JSON neste fluxo (obrigatoriedade validada abaixo):
+    # cpf, data_nascimento, email, endereco, nome, sobrenome.
+    # telefone.
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # clientes.
     data = request.get_json(silent=True) or {}
     nome = data.get("nome")
     sobrenome = data.get("sobrenome")
@@ -102,6 +128,7 @@ def update_cliente(cliente_id):
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Cliente atualizado com sucesso."})
     except pymysql.IntegrityError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         if "Duplicate entry" in str(exc) and "cpf" in str(exc):
             return responses.err("CPF já cadastrado para outro cliente.", campo="cpf", status=409)
@@ -110,12 +137,17 @@ def update_cliente(cliente_id):
         log.error("Erro DB ao atualizar cliente: %s", exc)
         return responses.err("Erro interno ao atualizar cliente.", status=500)
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao atualizar cliente: %s", exc)
         return responses.err("Erro interno ao atualizar cliente.", status=500)
 
 
+# Exclui cliente.
+# A confirmação passa por commit_audit para manter a alteração e seu histórico juntos.
 def delete_cliente(cliente_id):
+    # Dependências SQL com nome literal nas consultas deste fluxo:
+    # clientes.
     db = database.get_db()
     try:
         with db.cursor() as cur:
@@ -127,11 +159,14 @@ def delete_cliente(cliente_id):
             commit_audit(db, cur.lastrowid)
             return responses.ok({"mensagem": "Cliente excluído com sucesso."})
     except pymysql.MySQLError as exc:
+        # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
         db.rollback()
         log.error("Erro DB ao excluir cliente: %s", exc)
         return responses.err("Erro interno ao excluir cliente.", status=500)
 
 
+# Liga URLs, métodos HTTP e nomes de endpoint à instância recebida.
+# Alterar estes contratos exige revisar as telas e tests/fixtures/api_routes.json.
 def register_routes(app):
     """Registra as URLs e nomes de endpoints existentes."""
     app.add_url_rule('/clientes', view_func=get_clientes, methods=['GET'])

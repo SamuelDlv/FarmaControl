@@ -1,2 +1,5 @@
+/* Guia de manutenção — Interações da página de privacidade e navegação do conteúdo legal.
+ * A ordem das regras participa da cascata; confira os estilos compartilhados e os breakpoints antes de mover seletores.
+ */
 /* Entrada de estilo exclusiva da Política; a base é compartilhada. */
 @import url('../shared/legal.css');

@@ -1,3 +1,5 @@
+# Guia de manutenção — Registra o histórico com campos permitidos e confirmação junto à operação.
+# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
 """Auditoria transacional com campos permitidos, sem segredos ou dados clínicos."""
 from flask import g, request, session
 
@@ -57,6 +59,8 @@ def event_description(resource, data):
     return description
 
 
+# Constrói o evento com a rota parametrizada e a lista explícita de campos.
+# Não ampliar o log copiando o JSON inteiro: senhas, tokens e dados clínicos devem ficar fora.
 def write_event(db, status=200):
     actor = getattr(g, "audit_actor", None) or getattr(g, "usuario_id", None) or session.get("usuario_id")
     parts = request.path.strip("/").split("/")
@@ -111,6 +115,8 @@ def write_event(db, status=200):
             (actor, actor, actor, description, details, status))
 
 
+# Histórico e alteração usam a mesma conexão e o mesmo commit.
+# A marca em g impede que o hook HTTP grave novamente um evento já confirmado.
 def commit_audit(db, entity_id=None):
     """A alteração e seu histórico são confirmados na mesma transação."""
     if request.method == "POST" and isinstance(entity_id, int) and entity_id > 0:

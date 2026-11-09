@@ -1,3 +1,6 @@
+/* Guia de manutenção — Testes de login-attempts: cenários executados com as dependências controladas abaixo.
+ * Os resultados cobrem os cenários descritos neste arquivo; mocks não comprovam integração real.
+ */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');

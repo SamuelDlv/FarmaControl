@@ -1,3 +1,6 @@
+-- Guia de manutenção: privilégios técnicos de conexão, distintos dos cargos de usuários da aplicação.
+-- Este script opcional concede permissões no banco; revise-o como administrador antes de aplicar.
+-- Não incluir credenciais aqui: criação de contas e associação de roles pertencem à instalação.
 -- Opcional: executar como administrador após schema.sql, em servidor saudável.
 -- MySQL 8+ / MariaDB 10.4+. Não cria usuários nem atribui roles.
 -- Os perfis funcionais da aplicação independem destas roles técnicas.

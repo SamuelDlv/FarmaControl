@@ -1,3 +1,6 @@
+/* Guia de manutenção — Verificador de input rules: confira pré-requisitos, argumentos e cenários antes de executar.
+ * Os resultados cobrem os cenários descritos neste arquivo; mocks não comprovam integração real.
+ */
 /* Cenários de edição no Chrome; executados por check_navigation.cjs --input-rules. */
 const assert = require('node:assert/strict');
 
@@ -5,6 +8,7 @@ module.exports = async function checkInputRules({ evaluate, send, origin }) {
   let checks = 0;
   const equal = (actual, expected, message) => { assert.equal(actual, expected, message); checks++; };
   const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+  // Prepara a página usada pelo cenário de teste e expõe os controles necessários às asserções.
   async function page(name) {
     await send('Page.navigate', { url: origin + '/pages/sistema/' + name + '/' + name + '.html' });
     for (let i = 0; i < 60; i++) {

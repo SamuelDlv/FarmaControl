@@ -1,4 +1,6 @@
 <!doctype html>
+<!-- Guia de manutenção — Formulário de redefinição de senha a partir do token recebido por link.
+     Preserve a ordem dos assets compartilhados e os IDs usados pelos scripts. -->
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
@@ -9,9 +11,11 @@
     <script src="../../utils/input-rules.js" defer></script>
   </head>
   <body>
+    <!-- Região principal: conteúdo específico desta tela e seus estados de carregamento. -->
     <main class="reset-card">
       <h1>Crie uma nova senha</h1>
       <p>Escolha uma senha com pelo menos 8 caracteres para recuperar seu acesso.</p>
+      <!-- Formulário: IDs e nomes dos campos são usados pelo JavaScript; a API valida os dados recebidos. -->
       <form id="reset-form">
         <label for="password">Nova senha</label>
         <div class="password-wrap">
