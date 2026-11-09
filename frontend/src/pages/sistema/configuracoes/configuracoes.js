@@ -143,7 +143,7 @@ function applyConfigToFields(cfgs) {
       el.checked = value === 'true' || value === '1' || value === 'sim';
       return;
     }
-    el.value = value;
+    el.value = key === 'cnpj' ? value.replace(/[./-]/g, '') : value;
   });
 }
 

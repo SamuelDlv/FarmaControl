@@ -396,6 +396,7 @@
         }
       }
     </style>
+    <script src="../../../utils/input-rules.js" defer></script>
   </head>
   <body>
     <div class="app">
@@ -807,6 +808,7 @@
                         class="form-input"
                         data-config-key="nome_farmacia"
                         placeholder="Nome da farmácia"
+                        maxlength="255"
                       />
                     </div>
                     <div class="form-group">
@@ -815,7 +817,12 @@
                         type="text"
                         class="form-input"
                         data-config-key="cnpj"
-                        placeholder="00.000.000/0000-00"
+                        placeholder="00000000000000"
+                        data-input-kind="digits"
+                        inputmode="numeric"
+                        maxlength="14"
+                        pattern="[0-9]{14}"
+                        title="Informe os 14 números do CNPJ"
                       />
                     </div>
                   </div>
@@ -827,15 +834,19 @@
                         class="form-input"
                         data-config-key="crf_responsavel"
                         placeholder="Número do CRF"
+                        maxlength="100"
                       />
                     </div>
                     <div class="form-group">
                       <label class="form-label">Telefone</label>
                       <input
-                        type="text"
+                        type="tel"
                         class="form-input"
                         data-config-key="telefone"
                         placeholder="(00) 0000-0000"
+                        data-input-kind="phone"
+                        inputmode="tel"
+                        maxlength="30"
                       />
                     </div>
                   </div>
@@ -846,6 +857,7 @@
                       class="form-input"
                       data-config-key="endereco"
                       placeholder="Endereço completo"
+                      maxlength="500"
                     />
                   </div>
                   <div class="form-grid-3">
@@ -973,6 +985,7 @@
                         class="form-input"
                         data-config-key="email_notificacao"
                         placeholder="email@farmacia.com.br"
+                        maxlength="254"
                       />
                     </div>
                     <div class="form-group">
@@ -986,6 +999,8 @@
                         min="1"
                         max="365"
                         required
+                        step="1"
+                        inputmode="numeric"
                       />
                       <p class="form-hint">Alertar produtos com vencimento nos próximos N dias</p>
                     </div>
@@ -1012,6 +1027,8 @@
                         min="0"
                         max="1000000"
                         required
+                        step="1"
+                        inputmode="numeric"
                       />
                       <p class="form-hint">
                         Padrão para novos produtos; cadastros existentes mantêm seu mínimo
@@ -1026,6 +1043,8 @@
                         min="1"
                         max="1000000"
                         required
+                        step="1"
+                        inputmode="numeric"
                       />
                       <p class="form-hint">Limite superior para reposição</p>
                     </div>
@@ -1038,6 +1057,8 @@
                         min="0"
                         max="1000000"
                         required
+                        step="1"
+                        inputmode="numeric"
                       />
                       <p class="form-hint">Quantidade para sugerir compra</p>
                     </div>

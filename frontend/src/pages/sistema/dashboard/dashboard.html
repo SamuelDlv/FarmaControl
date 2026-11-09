@@ -148,6 +148,7 @@
     <link rel="stylesheet" href="/styles/light-theme-contrast.css" />
     <link rel="stylesheet" href="/styles/page-transitions.css" />
     <link rel="stylesheet" href="../../../styles/owner-responsive.css" />
+    <script src="../../../utils/input-rules.js" defer></script>
   </head>
   <body>
     <div class="fc-dashboard-boot" id="fc-dashboard-boot" role="status" aria-live="polite">
@@ -783,7 +784,7 @@
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Quantidade</label>
-              <input type="number" class="form-input" id="mov-quantidade" placeholder="0" />
+              <input type="number" class="form-input" id="mov-quantidade" placeholder="0" min="0" step="1" inputmode="numeric" />
             </div>
             <div class="form-group">
               <label class="form-label">Tipo</label>
@@ -800,6 +801,7 @@
               class="form-input"
               id="mov-obs"
               placeholder="Ex: Reposição de estoque, Venda balcão..."
+              maxlength="255"
             />
           </div>
         </div>

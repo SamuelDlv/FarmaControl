@@ -3,6 +3,7 @@
 from farmacontrol.core import database
 from farmacontrol.core import responses
 from farmacontrol.services.audit import commit_audit
+from farmacontrol.services.contact_rules import validate_supplier
 from flask import request
 import logging
 import pymysql.cursors
@@ -38,6 +39,12 @@ def get_fornecedor(fornecedor_id):
 
 def create_fornecedor():
     data = request.get_json(silent=True) or {}
+    if not isinstance(data, dict):
+        return responses.err("Informe os dados do fornecedor.", status=400)
+    try:
+        validate_supplier(data)
+    except ValueError as exc:
+        return responses.err(str(exc), status=400)
     nome_fantasia = data.get("nome_fantasia")
     razao_social = data.get("razao_social")
     cnpj = data.get("cnpj")
@@ -77,6 +84,12 @@ def create_fornecedor():
 
 def update_fornecedor(fornecedor_id):
     data = request.get_json(silent=True) or {}
+    if not isinstance(data, dict):
+        return responses.err("Informe os dados do fornecedor.", status=400)
+    try:
+        validate_supplier(data)
+    except ValueError as exc:
+        return responses.err(str(exc), status=400)
     nome_fantasia = data.get("nome_fantasia")
     razao_social = data.get("razao_social")
     cnpj = data.get("cnpj")

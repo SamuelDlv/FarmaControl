@@ -59,3 +59,11 @@ Chart.js e fontes podem depender de serviços externos conforme os HTMLs. Não e
 `frame_analysis.js` era uma ferramenta manual da antiga transição e foi removido na preparação do repositório. A navegação atual carrega documentos completos; alterações não devem reintroduzir um motor SPA presumindo que ele ainda existe.
 
 As configurações globais são persistidas no banco. Cache visual local ajuda a primeira pintura, mas não substitui a resposta da API nem representa confirmação de salvamento.
+
+## Restrições dos campos
+
+`utils/input-rules.js` restringe a edição por eventos delegados, incluindo campos dinâmicos. Quantidades aceitam inteiros não negativos; preços aceitam centavos (na digitação, use o separador decimal do navegador; na colagem, ponto ou vírgula). Sinais negativos, expoentes e letras são bloqueados nos campos numéricos, inclusive na colagem e ao arrastar texto.
+
+CNPJ aceita 14 dígitos, preserva zeros iniciais e aceita colagem da máscara convencional. Telefones aceitam números e pontuação telefônica; e-mails não aceitam espaços. Os limites de texto seguem os tamanhos existentes no schema. Nomes comerciais, códigos, lotes, endereços e observações continuam aceitando letras e números. O backend também valida o formato dos contatos de fornecedores e das configurações. Não há alteração estrutural nem migração de banco nesta mudança.
+
+Regressão de edição em Chrome isolado, com APIs simuladas: `node scripts/check_navigation.cjs --input-rules`. Evidências textuais ficam em `.audit-backup/navigation/browser-input-rules.json`.

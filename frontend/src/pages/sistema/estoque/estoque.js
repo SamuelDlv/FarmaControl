@@ -1256,7 +1256,7 @@ async function openFornecedorForm(id) {
   };
   v('sup-nome', f.nome_fantasia);
   v('sup-razao', f.razao_social);
-  v('sup-cnpj', f.cnpj);
+  v('sup-cnpj', String(f.cnpj || '').replace(/[./-]/g, ''));
   v('sup-contato', f.contato_nome);
   v('sup-telefone', f.contato_telefone);
   v('sup-email', f.contato_email);
@@ -1268,6 +1268,9 @@ async function openFornecedorForm(id) {
   document.body.style.overflow = 'hidden';
 }
 async function salvarFornecedor() {
+  for (const input of document.querySelectorAll('#supplier-form-overlay input')) {
+    if (!input.reportValidity()) return;
+  }
   const nome = document.getElementById('sup-nome').value.trim();
   const razao = document.getElementById('sup-razao').value.trim();
   const cnpj = document.getElementById('sup-cnpj').value.trim();

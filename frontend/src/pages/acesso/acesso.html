@@ -94,6 +94,7 @@
     />
     <script src="../../utils/global-settings.js"></script>
     <link rel="stylesheet" href="../../styles/light-theme-contrast.css" />
+    <script src="../../utils/input-rules.js" defer></script>
   </head>
   <body class="fc-auth">
     <div class="fc-boot-screen" id="fc-login-boot" role="status" aria-live="polite">
@@ -294,6 +295,7 @@
                     name="email"
                     placeholder="seu@email.com"
                     autocomplete="email"
+                    maxlength="180"
                   />
                 </div>
                 <p class="field-error" id="err-login-email" role="alert" aria-live="polite">
@@ -410,6 +412,7 @@
                       name="nome"
                       placeholder="Nome"
                       autocomplete="given-name"
+                      maxlength="80"
                     />
                   </div>
                   <p class="field-error" id="err-reg-nome" role="alert" aria-live="polite">
@@ -434,6 +437,7 @@
                       name="sobrenome"
                       placeholder="Sobrenome"
                       autocomplete="family-name"
+                      maxlength="80"
                     />
                   </div>
                   <p class="field-error" id="err-reg-sobrenome" role="alert" aria-live="polite">
@@ -464,6 +468,7 @@
                     name="email"
                     placeholder="seu@email.com"
                     autocomplete="email"
+                    maxlength="180"
                   />
                 </div>
                 <p class="field-error" id="err-reg-email" role="alert" aria-live="polite">
@@ -910,6 +915,7 @@
           autocomplete="email"
           placeholder="seu@email.com"
           required
+          maxlength="180"
         />
         <button class="btn-primary" type="submit">
           <span class="btn-text">Enviar link de recuperação</span>

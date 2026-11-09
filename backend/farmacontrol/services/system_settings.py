@@ -1,6 +1,7 @@
 """Validação e leitura das preferências persistidas da farmácia."""
 import re
 from datetime import date
+from farmacontrol.services.contact_rules import validate_cnpj, validate_phone
 
 DEFAULTS = {
     'fuso_horario': 'America/Sao_Paulo', 'idioma': 'pt-BR', 'moeda': 'BRL',
@@ -114,6 +115,10 @@ def validate_settings(values, current=None):
             value = str(int(value))
         if key == 'email_notificacao' and value and not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', value):
             raise ValueError('Informe um e-mail válido para alertas.')
+        if key == 'cnpj' and value:
+            validate_cnpj(value)
+        if key == 'telefone':
+            validate_phone(value, limit=30)
         clean[key] = value
     merged = {**DEFAULTS, **(current or {}), **clean}
     if int(merged['estoque_minimo_padrao']) > int(merged['estoque_maximo_padrao']):

@@ -7,7 +7,8 @@ const http = require('node:http');
 const assert = require('node:assert/strict');
 const { spawn } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
-const phase = process.argv.includes('--profiles') ? 'profiles' : 'navigation';
+const phase = process.argv.includes('--input-rules') ? 'input-rules' :
+  process.argv.includes('--profiles') ? 'profiles' : 'navigation';
 const backup = path.join(root, '.audit-backup', 'navigation');
 fs.mkdirSync(backup, { recursive: true });
 const pages = [
@@ -330,6 +331,13 @@ function fingerprint() {
         throw new Error(r.exceptionDetails.exception?.description || r.exceptionDetails.text);
       return r.result.value;
     };
+    if (phase === 'input-rules') {
+      report.inputRules = await require('./check_input_rules.cjs')({ evaluate, send, origin, root });
+      assert.deepEqual(report.errors, [], 'Exceções no navegador');
+      report.passed = true;
+      console.log(JSON.stringify(report.inputRules));
+      return;
+    }
     if (phase === 'profiles') {
       const defaults = {
         proprietario: pages,

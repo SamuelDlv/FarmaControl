@@ -609,15 +609,15 @@ function renderCmpItem(row) {
     </div>
     <div class="form-group">
       <label class="form-label">Qtd.</label>
-      <input type="number" class="form-input" data-field="quantidade" value="${row.quantidade || ''}" min="1" placeholder="0">
+      <input type="number" class="form-input" data-field="quantidade" step="1" inputmode="numeric" value="${row.quantidade || ''}" min="1" placeholder="0">
     </div>
     <div class="form-group">
       <label class="form-label">Preço unit. (R$)</label>
-      <input type="number" class="form-input" data-field="preco_unitario" value="${row.preco_unitario || ''}" min="0" step="0.01" placeholder="0,00">
+      <input type="number" class="form-input" data-field="preco_unitario" inputmode="decimal" value="${row.preco_unitario || ''}" min="0" step="0.01" placeholder="0,00">
     </div>
     <div class="form-group">
       <label class="form-label">Lote (se recebido)</label>
-      <input type="text" class="form-input" data-field="lote_recebido" value="${row.lote_recebido || ''}" placeholder="Ex: LT-2026">
+      <input type="text" class="form-input" data-field="lote_recebido" maxlength="50" value="${row.lote_recebido || ''}" placeholder="Ex: LT-2026">
     </div>
     <div class="form-group">
       <label class="form-label">Validade (se recebido)</label>

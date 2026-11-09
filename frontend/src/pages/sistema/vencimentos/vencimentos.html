@@ -124,6 +124,7 @@
     <link rel="stylesheet" href="/styles/light-theme-contrast.css" />
     <link rel="stylesheet" href="/styles/page-transitions.css" />
     <link rel="stylesheet" href="../../../styles/owner-responsive.css" />
+    <script src="../../../utils/input-rules.js" defer></script>
   </head>
   <body>
     <div class="app">
@@ -822,6 +823,8 @@
                 id="descarte-qty"
                 placeholder="0"
                 min="1"
+                step="1"
+                inputmode="numeric"
               />
             </div>
             <div class="field-group">
@@ -956,11 +959,12 @@
                 class="field-input-light"
                 id="lote-numero"
                 placeholder="Ex: ABC1234"
+                maxlength="50"
               />
             </div>
             <div class="field-group">
               <label class="field-label">Quantidade Inicial</label>
-              <input type="number" class="field-input-light" id="lote-quantidade" placeholder="0" />
+              <input type="number" class="field-input-light" id="lote-quantidade" placeholder="0" min="0" step="1" inputmode="numeric" />
             </div>
           </div>
           <div class="form-row">
@@ -976,6 +980,8 @@
                 class="field-input-light"
                 id="lote-preco"
                 placeholder="0,00"
+                min="0"
+                inputmode="decimal"
               />
             </div>
           </div>

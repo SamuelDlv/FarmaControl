@@ -129,7 +129,8 @@
   <link rel="stylesheet" href="/styles/page-transitions.css">
   <link rel="stylesheet" href="../../../styles/owner-responsive.css">
   <link rel="stylesheet" href="log.css">
-</head>
+  <script src="../../../utils/input-rules.js" defer></script>
+  </head>
 
 <body>
   <div class="app">
@@ -330,8 +331,13 @@
           </div>
           <section class="log-panel" aria-label="Histórico de atividades">
             <form id="log-filters" class="log-filters" novalidate>
-              <label>Buscar atividade<input type="search" id="filtro-busca" name="busca"
-                  maxlength="120" placeholder="Venda, fornecedor, número do registro…"></label>
+              <label>Buscar atividade<input
+                  type="search"
+                  id="filtro-busca"
+                  name="busca"
+                  maxlength="120"
+                  placeholder="Venda, fornecedor, número do registro…"
+                /></label>
               <label>Atividade<select id="filtro-atividade" name="atividade">
                   <option value="alteracoes">Operações e acessos</option>
                   <option value="">Todas as atividades</option>
