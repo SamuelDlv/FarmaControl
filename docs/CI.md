@@ -20,7 +20,16 @@ acionamento manual pelo GitHub Actions. Usa Python 3.12, Node 22 e Ubuntu 24.04.
 - Os testes criam e removem bases aleatórias. Não usam o `.env` privado da instalação.
 - Não publica screenshots nem faz deploy ou migração da base operacional.
 
-Os dois jobs precisam ficar verdes para a validação ser considerada concluída.
+## Compatibilidade e encerramento
+
+- A matriz de schema importa e reimporta o arquivo completo em MySQL 8.0.46 e
+  MariaDB 10.4, com uma conta limitada à base descartável, sem privilégios globais.
+- O job Windows executa o BAT real contra os eventos de controle e verifica o
+  isolamento entre pastas. Também verifica que uma requisição em andamento termina
+  e que o teardown fecha sua conexão antes de concluir o encerramento.
+- Esses testes não reproduzem uma instalação XAMPP com arquivos internos corrompidos.
+
+Todos os jobs precisam ficar verdes para a validação ser considerada concluída.
 O workflow publica resultados na aba Actions. Exigir esses checks antes de merge
 depende de uma regra de proteção da branch; criar o workflow não ativa essa regra.
 
@@ -34,6 +43,7 @@ node --test tests/*.test.cjs
 node scripts/check_frontend.cjs
 python -B scripts/audit_static.py
 python -B scripts/check_migrations_mysql.py
+python -B scripts/check_schema_mysql.py
 python -B scripts/check_catalogo_mysql.py
 python -B scripts/check_devolucao_mysql.py --browser
 ```

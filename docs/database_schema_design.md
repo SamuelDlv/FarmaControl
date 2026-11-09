@@ -140,7 +140,7 @@ O script 013 apaga dados; não faz parte do procedimento comum de instalação o
 | `fc_support_ro` | Consulta e diagnóstico |
 | `fc_database_admin` | Administração do banco |
 
-Essas roles não são os perfis funcionais salvos em `perfis`. O schema/migração cria roles, mas não define senhas nem atribui contas reais automaticamente. Consulte os exemplos no [backend](../backend/README.md).
+Essas roles não são os perfis funcionais salvos em `perfis`. O schema base não cria roles nem concede privilégios. O provisionamento opcional fica em `backend/setup/technical_roles.sql`; a migração histórica 015 permanece preservada. Nenhum desses scripts define senhas ou atribui contas reais automaticamente. Consulte os exemplos no [backend](../backend/README.md).
 
 ## Backup e validação
 

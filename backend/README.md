@@ -164,7 +164,7 @@ python scripts/check_seed_mysql.py
 
 ### Roles técnicas do MySQL
 
-As roles do MySQL são destinadas somente à equipe de TI e são diferentes dos perfis funcionais da aplicação (`proprietario`, `farmaceutico`, `atendente` etc.), que continuam nas tabelas `perfis` e `perfil_permissoes`. O `schema.sql` já cria as roles para instalações novas; em instalações existentes, aplique `migrations/015_roles_tecnicas_mysql.sql` usando uma conta com `CREATE ROLE` e permissão para conceder privilégios.
+As roles técnicas são destinadas somente à equipe de TI e são diferentes dos perfis funcionais da aplicação (`proprietario`, `farmaceutico`, `atendente` etc.), que continuam nas tabelas `perfis` e `perfil_permissoes`. O `schema.sql` cria somente o banco da aplicação. Para provisionar roles, execute opcionalmente `setup/technical_roles.sql` com uma conta administrativa, após a importação e em um servidor saudável. A migração histórica `015_roles_tecnicas_mysql.sql` permanece imutável; não é um passo obrigatório de instalação no XAMPP. Consulte [MySQL/MariaDB e XAMPP](../docs/MYSQL_XAMPP.md).
 
 | Role | Finalidade | Privilégios no banco `farmacontrol` |
 |---|---|---|
@@ -180,6 +180,9 @@ CREATE USER 'farmacontrol_app'@'localhost' IDENTIFIED BY '<senha-secreta>';
 GRANT 'fc_runtime_rw' TO 'farmacontrol_app'@'localhost';
 SET DEFAULT ROLE 'fc_runtime_rw' TO 'farmacontrol_app'@'localhost';
 ```
+
+O exemplo acima usa a sintaxe MySQL 8. No MariaDB, o último comando é
+`SET DEFAULT ROLE fc_runtime_rw FOR 'farmacontrol_app'@'localhost';`.
 
 Não use `fc_database_admin` no backend e não conceda privilégios globais (`*.*`) a essas contas.
 

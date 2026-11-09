@@ -52,13 +52,14 @@ class AppStructureTests(unittest.TestCase):
         self.assertEqual(response.data, (FRONTEND_DIR / "pages/acesso/acesso.html").read_bytes())
 
     def test_local_entrypoint_preserves_server_options(self):
-        with patch("flask.Flask.run") as run:
+        with patch("farmacontrol.core.local_server.run_local") as run:
             runpy.run_path(str(BACKEND_DIR / "app.py"), run_name="__main__")
-        run.assert_called_once_with(host="127.0.0.1", debug=False, port=5000)
+        run.assert_called_once()
+        self.assertEqual(run.call_args.args[0].config["APP_ENV"], "test")
 
     def test_production_entrypoint_still_requires_wsgi(self):
         with patch.dict(os.environ, {"APP_ENV": "production", "COOKIE_SECURE": "true"}), \
-                patch("flask.Flask.run") as run:
+                patch("farmacontrol.core.local_server.run_local") as run:
             with self.assertRaisesRegex(RuntimeError, "WSGI"):
                 runpy.run_path(str(BACKEND_DIR / "app.py"), run_name="__main__")
         run.assert_not_called()

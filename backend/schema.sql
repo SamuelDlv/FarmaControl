@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════
---  FarmaControl — Schema MySQL Completo (Versão Atualizada)
+--  FarmaControl — Schema MySQL 8 / MariaDB 10.4+ (instalação nova)
 --  Ideal para novas instalações em localhost.
 -- ═══════════════════════════════════════════════════════════════
 
@@ -9,34 +9,8 @@ CREATE DATABASE IF NOT EXISTS farmacontrol
 
 USE farmacontrol;
 
--- ───────────────────────────────────────────
---  Acessos técnicos ao banco (somente TI)
--- ───────────────────────────────────────────
--- Estas roles do MySQL não correspondem aos perfis da aplicação, que ficam
--- nas tabelas perfis e perfil_permissoes abaixo. A criação e a atribuição de
--- usuários devem ser feitas por uma conta administrativa da TI.
-CREATE ROLE IF NOT EXISTS
-  'fc_runtime_rw',
-  'fc_schema_deployer',
-  'fc_support_ro',
-  'fc_database_admin';
-
--- Backend: manipula dados e executa rotinas, sem poder alterar o schema.
-GRANT SELECT, INSERT, UPDATE, DELETE, EXECUTE
-  ON farmacontrol.* TO 'fc_runtime_rw';
-
--- Deploy/migrações: altera objetos somente dentro do banco FarmaControl.
-GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, DROP, INDEX, REFERENCES,
-      CREATE VIEW, SHOW VIEW, TRIGGER, EVENT, CREATE ROUTINE, ALTER ROUTINE, EXECUTE
-  ON farmacontrol.* TO 'fc_schema_deployer';
-
--- Suporte: diagnóstico sem alteração de dados.
-GRANT SELECT, SHOW VIEW
-  ON farmacontrol.* TO 'fc_support_ro';
-
--- Administração do banco da aplicação, com delegação controlada pela TI.
-GRANT ALL PRIVILEGES
-  ON farmacontrol.* TO 'fc_database_admin' WITH GRANT OPTION;
+-- Acessos técnicos opcionais: setup/technical_roles.sql (somente TI).
+-- Este schema não cria contas/roles nem altera privilégios do servidor.
 
 -- ───────────────────────────────────────────
 --  1. Perfis de acesso (Roles)

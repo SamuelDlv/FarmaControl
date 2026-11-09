@@ -24,7 +24,7 @@ Existem sete perfis: proprietário, gerente/administrador, farmacêutico, atende
 ## Requisitos
 
 - Python 3.12, versão usada na validação local, com `venv` e `pip`.
-- Servidor MySQL compatível com o schema e com as instruções de roles. Uso de MariaDB exige conferir diferenças de SQL na versão instalada.
+- Servidor MySQL 8 ou MariaDB 10.4+ (como o distribuído no XAMPP). Workbench e phpMyAdmin são clientes para administrar esse servidor.
 - Navegador moderno e acesso aos recursos externos usados pela interface, como Chart.js e Google Fonts.
 - Git para versionar/publicar; Node 22+ e Chrome apenas para as verificações que os utilizam.
 
@@ -76,7 +76,7 @@ python -m venv .venv
 if (-not (Test-Path backend/.env)) { Copy-Item backend/.env.example backend/.env }
 ```
 
-Preencha `backend/.env` e, em uma instalação nova, execute `backend/schema.sql` no MySQL Workbench. O schema cria a base `farmacontrol`; use esse nome em `DB_NAME`. Depois inicie:
+Preencha `backend/.env` e, em uma instalação nova, execute `backend/schema.sql` no MySQL Workbench ou importe-o pelo phpMyAdmin do XAMPP. O schema cria a base `farmacontrol`; use esse nome em `DB_NAME`. As roles técnicas são opcionais e ficam em `backend/setup/technical_roles.sql`, para execução separada pela TI. Depois inicie:
 
 ```powershell
 .\.venv\Scripts\python.exe backend/app.py
@@ -94,7 +94,9 @@ As migrações opcionais 014 e 017 criam usuários com credenciais públicas par
 
 ### Iniciar e encerrar no Windows
 
-Após a configuração, `Iniciar-FarmaControl.bat` usa `.venv/Scripts/python.exe` e abre o navegador após dois segundos. Mantenha a janela do servidor aberta. Encerre com `Ctrl+C` ou com `Encerrar-FarmaControl.bat`, que procura processos Python iniciados com o caminho deste projeto.
+Após a configuração, `Iniciar-FarmaControl.bat` usa `.venv/Scripts/python.exe` e abre o navegador após dois segundos. Mantenha a janela do servidor aberta. Encerre com `Ctrl+C` ou com `Encerrar-FarmaControl.bat`: o servidor para de receber requisições e aguarda as que já estão em andamento, incluindo o fechamento das conexões do banco. O BAT sinaliza somente a instância desta pasta na sessão Windows, sem finalizar processos à força nem parar MySQL/MariaDB ou Apache. Se demorar mais de 30 segundos, informa que não confirmou o término; confira a janela do servidor.
+
+Após atualizar de uma versão antiga, encerre uma vez com `Ctrl+C` e reinicie pelo iniciador para habilitar o novo sinal de encerramento. O modo local mantém `APP_DEBUG` para diagnóstico, sem recarga automática. Para usar XAMPP, inicie o MySQL pelo painel antes da aplicação; pare o banco pelo próprio painel somente depois de encerrar o FarmaControl. Apache é necessário para o phpMyAdmin, mas não para servir o FarmaControl. Veja [compatibilidade e diagnóstico do banco](docs/MYSQL_XAMPP.md).
 
 O servidor local escuta em `127.0.0.1:5000`. O `.env` distribuído nesta preparação está sem credenciais: preencha os dados da sua instalação. Gere uma chave persistente com:
 
