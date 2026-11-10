@@ -2588,3 +2588,26 @@ body.fc-auth {
     display: none;
   }
 }
+
+/* O contorno fica no invólucro estável, sem redesenhar a sombra do input
+   quando o navegador alterna entre senha oculta e texto visível. */
+.field-wrap--password {
+  border-radius: var(--rad-md);
+  transition: box-shadow 0.2s var(--ease);
+}
+.field-wrap--password:focus-within {
+  box-shadow: var(--shadow-focus);
+}
+.field-wrap--password:focus-within input {
+  border-color: var(--sage);
+}
+.field-wrap--password:has(input.is-error) {
+  box-shadow: 0 0 0 3px var(--err-pale, rgba(192, 58, 58, 0.12));
+}
+.field-wrap--password input.is-error {
+  border-color: var(--err, #c03a3a);
+}
+.field-wrap--password input:focus,
+.field-wrap--password input.is-error {
+  box-shadow: none;
+}
