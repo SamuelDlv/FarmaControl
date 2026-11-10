@@ -350,6 +350,28 @@ body {
   color: var(--ink-60);
   background: var(--surface);
 }
+#btn-nova-transacao svg,
+#btn-refresh svg {
+  flex-shrink: 0;
+}
+#btn-refresh.is-refreshing {
+  cursor: wait;
+  opacity: 0.65;
+}
+#btn-refresh.is-refreshing svg {
+  animation: fc-financeiro-refresh 0.65s linear infinite;
+  transform-origin: center;
+}
+@keyframes fc-financeiro-refresh {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #btn-refresh.is-refreshing svg {
+    animation: none;
+  }
+}
 .ghost-btn.sm {
   height: 26px;
   font-size: 11px;

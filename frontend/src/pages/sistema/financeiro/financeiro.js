@@ -762,11 +762,19 @@
   // ── Refresh Button ──
   const btnRefresh = document.getElementById('btn-refresh');
   if (btnRefresh) {
-    btnRefresh.addEventListener('click', () => {
-      btnRefresh.style.opacity = '0.5';
-      loadAll().then(() => {
-        btnRefresh.style.opacity = '1';
-      });
+    btnRefresh.addEventListener('click', async () => {
+      if (btnRefresh.disabled) return;
+      btnRefresh.disabled = true;
+      btnRefresh.classList.add('is-refreshing');
+      btnRefresh.setAttribute('aria-busy', 'true');
+      try {
+        // Mantém o retorno visual perceptível mesmo com respostas em cache.
+        await Promise.all([loadAll(), new Promise(resolve => setTimeout(resolve, 650))]);
+      } finally {
+        btnRefresh.disabled = false;
+        btnRefresh.classList.remove('is-refreshing');
+        btnRefresh.removeAttribute('aria-busy');
+      }
     });
   }
 
