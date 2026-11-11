@@ -651,8 +651,8 @@
                   </svg>
                 </div>
                 <div class="report-body">
-                  <p class="report-name">Agendar Entrega</p>
-                  <p class="report-desc">Definir data de recebimento</p>
+                  <p class="report-name">Atualizar pedidos</p>
+                  <p class="report-desc">Receber ou cancelar pendentes</p>
                 </div>
                 <button class="report-dl">
                   <svg width="12" height="12" viewBox="0 0 13 13" fill="none">
@@ -746,12 +746,11 @@
             </svg>
           </div>
           <div>
-            <div class="modal-title">Agendar Entrega</div>
-            <div style="font-size: 11px; color: var(--ink-35); margin-top: 2px;">Confirme o
-              recebimento dos pedidos pendentes</div>
+            <div class="modal-title">Atualizar pedidos</div>
+            <div style="font-size: 11px; color: var(--ink-35); margin-top: 2px;">Receba ou cancele pedidos pendentes em um só lugar</div>
           </div>
           <button class="modal-close" aria-label="Fechar"
-            onclick="document.getElementById('modal-agenda-entrega').classList.remove('open')">✕</button>
+            onclick="closeModalAtualizarPedido()">✕</button>
         </div>
         <div class="modal-body" id="agenda-entrega-body">
           <!-- Renderizado via JS -->

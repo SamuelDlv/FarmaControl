@@ -6,7 +6,7 @@
  * ══════════════════════════════════════════════════════════════════════
  *
  * Gerencia pedidos de compra para fornecedores:
- * - Tabela de pedidos com status (pendente, aprovado, recebido, cancelado)
+ * - Tabela de pedidos com status (pendente, recebido, cancelado)
  * - Modal de nova compra (selecionar produtos, quantidades, fornecedor)
  * - Histórico de compras com filtros
  * - Exportação CSV de pedidos e histórico
@@ -360,7 +360,7 @@ function initReportButtons() {
     openModalNovaCompra();
   });
 
-  // 2. Agendar Entrega → modal para definir a data de recebimento do pedido pendente
+  // 2. Atualizar pedidos → receber ou cancelar no mesmo modal.
   document.getElementById('rpt-saidas')?.addEventListener('click', () => {
     openModalAgendarEntrega();
   });
@@ -402,30 +402,42 @@ function compraEscape(value) {
   );
 }
 
-// Abre e prepara Modal Agendar Entrega.
-function openModalAgendarEntrega() {
-  const pendentes = (window.__allCompras || []).filter(c => c.status === 'pendente');
+// Abre o fluxo unificado de recebimento e cancelamento.
+function openModalAgendarEntrega(compraId) {
+  const pendentes = (window.__allCompras || []).filter(
+    c => c.status === 'pendente' && (compraId == null || String(c.id) === String(compraId))
+  );
+  const hoje = new Date();
+  const dataHoje = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
 
   let html = '';
   if (pendentes.length === 0) {
     html =
-      '<p style="text-align:center;padding:20px;color:var(--ink-35);font-size:13px">Não há pedidos pendentes para agendar. Crie um pedido clicando em <strong>Novo Pedido</strong>.</p>';
+      '<p class="purchase-update-help">Não há pedidos pendentes para atualizar.</p>';
   } else {
     html = pendentes
       .map(
         c => `
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border-color,rgba(13,21,16,0.1))">
+      <section class="purchase-update">
+      <div class="purchase-update-heading">
         <div style="flex:1;min-width:0">
-          <div style="font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${compraEscape(c.fornecedor_nome || c.fornecedor || `Pedido #${c.id}`)}</div>
+          <div style="font-weight:600;font-size:12.5px">PC-${String(c.id).padStart(4, '0')} · ${compraEscape(c.fornecedor_nome || c.fornecedor || 'Sem fornecedor')}</div>
           <div style="font-size:11.5px;color:var(--ink-35)">R$ ${Number(
             c.valor_total ?? c.valor ?? 0
           )
             .toFixed(2)
             .replace('.', ',')}</div>
         </div>
-        <input type="date" class="form-input" style="width:auto;flex:0 0 auto" id="agenda-${c.id}" value="${c.data_entrega || ''}">
-        <button class="ghost-btn sm" onclick="salvarAgendamento(${c.id})">Receber</button>
       </div>
+      <label class="form-label" for="pedido-status-${c.id}">Alterar status para</label>
+      <select class="form-input" id="pedido-status-${c.id}" onchange="alterarStatusPedido(${c.id})">
+        <option value="recebido">Recebido — dar entrada no estoque</option>
+        <option value="cancelado">Cancelado — encerrar o pedido</option>
+      </select>
+      <p class="purchase-update-help" id="pedido-ajuda-${c.id}" role="status">O recebimento registra os produtos no estoque.</p>
+      <div id="pedido-recebimento-${c.id}">
+      <label class="form-label" for="agenda-${c.id}">Data do recebimento</label>
+      <input type="date" class="form-input" id="agenda-${c.id}" value="${dataHoje}">
       ${(c.itens || [])
         .map(
           item => `
@@ -438,6 +450,9 @@ function openModalAgendarEntrega() {
         </div>`
         )
         .join('')}
+      </div>
+      <button class="btn-modal-submit" id="pedido-salvar-${c.id}" onclick="salvarAgendamento(${c.id})">Confirmar recebimento</button>
+      </section>
     `
       )
       .join('');
@@ -452,21 +467,44 @@ function openModalAgendarEntrega() {
   }
 }
 
+function closeModalAtualizarPedido() {
+  document.getElementById('modal-agenda-entrega')?.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+window.alterarStatusPedido = function alterarStatusPedido(id) {
+  const cancelar = document.getElementById(`pedido-status-${id}`).value === 'cancelado';
+  document.getElementById(`pedido-recebimento-${id}`).hidden = cancelar;
+  document.getElementById(`pedido-ajuda-${id}`).textContent = cancelar
+    ? 'O pedido será cancelado sem movimentar o estoque.'
+    : 'O recebimento registra os produtos no estoque.';
+  document.getElementById(`pedido-salvar-${id}`).textContent = cancelar
+    ? 'Confirmar cancelamento' : 'Confirmar recebimento';
+};
+
+const comprasEmAtualizacao = new Set();
 window.salvarAgendamento = async function salvarAgendamento(id) {
-  const input = document.getElementById(`agenda-${id}`);
-  const dataEntrega = input?.value;
-  if (!dataEntrega) {
-    toast('Selecione a data de entrega.', 'error');
+  if (comprasEmAtualizacao.has(id)) return;
+  const compra = (window.__allCompras || []).find(c => String(c.id) === String(id));
+  if (!compra || compra.status !== 'pendente') {
+    toast('Este pedido não está mais pendente. Atualize a lista.', 'error');
     return;
   }
-  const compra = (window.__allCompras || []).find(c => c.id === id);
+  const status = document.getElementById(`pedido-status-${id}`)?.value;
+  if (!['recebido', 'cancelado'].includes(status)) return;
+  const input = document.getElementById(`agenda-${id}`);
+  const dataEntrega = input?.value;
+  if (status === 'recebido' && !dataEntrega) {
+    toast('Selecione a data do recebimento.', 'error');
+    return;
+  }
   const itensRecebimento = (compra?.itens || []).map(item => ({
     id: item.id,
     lote_recebido: document.getElementById(`recebe-lote-${item.id}`)?.value.trim() || null,
     data_validade_recebida: document.getElementById(`recebe-validade-${item.id}`)?.value || null
   }));
   if (
-    itensRecebimento.some(
+    status === 'recebido' && itensRecebimento.some(
       item =>
         compra.itens.find(original => original.id === item.id)?.exige_validade &&
         !item.data_validade_recebida
@@ -475,31 +513,46 @@ window.salvarAgendamento = async function salvarAgendamento(id) {
     toast('Informe a validade dos itens marcados com *.', 'error');
     return;
   }
+  const button = document.getElementById(`pedido-salvar-${id}`);
+  const select = document.getElementById(`pedido-status-${id}`);
+  comprasEmAtualizacao.add(id);
+  if (button) button.disabled = true;
+  if (select) select.disabled = true;
   try {
     const res = await fetch(`${API_BASE}/compras/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        status: 'recebido',
-        data_recebimento: dataEntrega,
-        itens_recebimento: itensRecebimento
+        status,
+        ...(status === 'recebido' ? {
+          data_recebimento: dataEntrega,
+          itens_recebimento: itensRecebimento
+        } : {})
       })
     });
     // Nota: o backend atualiza de forma parcial — campos não enviados
     // (fornecedor_id, usuario_id, valor_total) são mantidos com seus valores atuais.
     // data_recebimento é registrada automaticamente quando o status vira 'recebido'.
     const data = await res.json();
-    if (data.ok) {
-      toast(data.mensagem || 'Entrega recebida! Entrada registrada no estoque.', 'success');
-      loadComprasTable();
-      document.getElementById('modal-agenda-entrega')?.classList.remove('open');
-      document.body.style.overflow = '';
+    if (res.ok && data.ok) {
+      compra.status = status;
+      closeModalAtualizarPedido();
+      updatePendentesBadge();
+      renderPurchases();
+      toast(status === 'recebido'
+        ? 'Pedido recebido! Entrada registrada no estoque.'
+        : 'Pedido cancelado. O estoque não foi alterado.', 'success');
+      await Promise.all([loadComprasStats(), loadComprasTable()]);
     } else {
-      toast(data.mensagem || 'Erro ao confirmar recebimento.', 'error');
+      toast(data.mensagem || 'Não foi possível atualizar o pedido.', 'error');
     }
   } catch (err) {
-    console.error('Erro ao agendar entrega:', err);
+    console.error('Erro ao atualizar pedido:', err);
     toast('Servidor indisponível. Verifique o backend.', 'error');
+  } finally {
+    comprasEmAtualizacao.delete(id);
+    if (button) button.disabled = false;
+    if (select) select.disabled = false;
   }
 };
 
@@ -1022,7 +1075,9 @@ function renderPurchases() {
         </td>
         <td><span class="cat-tag">${c.fornecedor_nome || '—'}</span></td>
         <td class="mono">PC-${c.id.toString().padStart(4, '0')}</td>
-        <td class="c"><span class="pill-type ${cls}">${label}</span></td>
+        <td class="c">${st === 'pendente'
+          ? `<button class="purchase-status-action pill-type ${cls}" aria-label="Atualizar pedido PC-${String(c.id).padStart(4, '0')}: receber ou cancelar">${label} ▾</button>`
+          : `<span class="pill-type ${cls}">${label}</span>`}</td>
         <td class="r fw6">${c.itens_count || 0}</td>
         <td class="r muted">—</td>
         <td class="r fw6">${valorTotal}</td>
@@ -1041,6 +1096,10 @@ function renderPurchases() {
       // Ignora cliques dentro de células de ações
       if (e.target.closest('.row-actions, .row-btn')) return;
       const id = row.dataset.id;
+      if ((window.__allCompras || []).find(c => String(c.id) === id)?.status === 'pendente') {
+        openModalAgendarEntrega(id);
+        return;
+      }
       try {
         const res2 = await fetch(`${API_BASE}/compras/${id}`);
         const r2 = await res2.json();
