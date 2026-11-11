@@ -480,7 +480,7 @@
               </svg>
               Exportar
             </button>
-            <button class="tb-btn primary" id="btn-add-lote">
+            <button class="tb-btn primary" id="btn-add-lote" data-fc-write="estoque">
               <svg width="12" height="12" viewBox="0 0 13 13" fill="none">
                 <path
                   d="M6.5 1.5v10M1.5 6.5h10"
@@ -870,7 +870,7 @@
         </div>
         <div class="modal-foot">
           <button class="btn-ghost" id="descarte-cancel">Cancelar</button>
-          <button class="btn-modal-submit btn-danger" id="descarte-save">
+          <button class="btn-modal-submit btn-danger" id="descarte-save" data-fc-write="estoque">
             <svg viewBox="0 0 16 16" fill="none">
               <path
                 d="M13 5L6.5 11.5 3 8"
@@ -1003,7 +1003,7 @@
           <button class="btn-ghost" onclick="closeLoteModal()">Cancelar</button>
           <button
             class="btn-modal-submit"
-            id="btn-lote-submit"
+            id="btn-lote-submit" data-fc-write="estoque"
             style="background: var(--sage); color: white; border: none"
           >
             <svg viewBox="0 0 16 16" fill="none">

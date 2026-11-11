@@ -709,7 +709,7 @@
           '</td>' +
           '<td>' + (t.venda_id || t.compra_id
             ? '<span class="muted">Vinculada à ' + (t.venda_id ? 'venda #' + escapeHTML(t.venda_id) : 'compra #' + escapeHTML(t.compra_id)) + '</span>'
-            : '<button type="button" class="ghost-btn" data-edit-transaction="' + escapeHTML(t.id) + '" aria-label="Editar valor da transação ' + escapeHTML(t.id) + '">Editar valor</button>') + '</td>' +
+            : '<button type="button" class="ghost-btn" data-fc-write="financeiro" data-edit-transaction="' + escapeHTML(t.id) + '" aria-label="Editar valor da transação ' + escapeHTML(t.id) + '">Editar valor</button>') + '</td>' +
           '</tr>'
         );
       })

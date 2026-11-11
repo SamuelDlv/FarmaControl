@@ -9,6 +9,11 @@
   'use strict';
   const collapseButtons = new WeakSet();
   const initializedSidebars = new WeakSet();
+  let verifiedContext = null;
+  try {
+    const contextElement = document.getElementById('fc-session-context');
+    if (contextElement) verifiedContext = JSON.parse(contextElement.textContent);
+  } catch (_) { /* A API continua responsável pela autorização. */ }
   // O script roda no head: evita pintar o menu parcial antes de restaurar o estado.
   document.documentElement.classList.add('fc-sidebar-pending');
 
@@ -54,9 +59,10 @@
   // Lê a identidade em cache para apresentação; permissões reais são verificadas no servidor.
   function getCurrentUser() {
     try {
-      return JSON.parse(sessionStorage.getItem('farmacontrol_usuario') || 'null');
+      const cached = JSON.parse(sessionStorage.getItem('farmacontrol_usuario') || 'null');
+      return verifiedContext ? { ...cached, ...verifiedContext } : cached;
     } catch (_) {
-      return null;
+      return verifiedContext;
     }
   }
 
@@ -88,12 +94,36 @@
     return (ROLE_MODULES[user.perfil] || ['dashboard']).includes(module);
   }
 
+  window.fcCanWriteModule = function (module) {
+    const user = getCurrentUser();
+    if (!user?.perfil || !hasModuleAccess(module)) return false;
+    if (verifiedContext && Array.isArray(verifiedContext.modulos_escrita))
+      return verifiedContext.modulos_escrita.includes(module);
+    if (user.perfil === 'visualizador') return false;
+    if (user.perfil === 'atendente' && ['estoque', 'vencimentos'].includes(module)) return false;
+    return true;
+  };
+
+  function applyWriteAccess() {
+    if (document.getElementById('fc-write-access')) return;
+    const style = document.createElement('style');
+    style.id = 'fc-write-access';
+    style.textContent = [...ROLE_MODULES.proprietario, 'vendas', 'log'].flatMap(module => [
+      !window.fcCanWriteModule(module) ? `[data-fc-write="${module}"] { display:none !important; }` : '',
+      !hasModuleAccess(module) ? `[data-fc-read="${module}"] { display:none !important; }` : ''
+    ]).join('\n');
+    document.head.appendChild(style);
+  }
+
   function applyModuleAccess() {
     const user = getCurrentUser();
     if (!user?.perfil) return true;
+    applyWriteAccess();
     const currentModule = getModuleFromUrl(window.location.href);
     if (!hasModuleAccess(currentModule)) {
-      window.location.replace('../dashboard/dashboard.html');
+      const fallback = verifiedContext?.pagina_inicial;
+      if (fallback) window.location.replace(fallback);
+      else window.location.replace('/pages/acesso/acesso.html');
       return false;
     }
     document.querySelectorAll('.sb-item[href]').forEach(item => {
@@ -330,7 +360,10 @@
       const apiBase = window.FarmaControlSettings?.API_BASE || 'http://localhost:5000';
       // keepalive permite invalidar o cookie mesmo quando a navegacao comeca em seguida.
       try {
-        const response = await fetch(`${apiBase}/auth/logout`, { method: 'POST', keepalive: true });
+        const response = await fetch(`${apiBase}/auth/logout`, {
+          method: 'POST', keepalive: true, credentials: 'include',
+          headers: { 'X-CSRF-Token': verifiedContext?.csrf_token || sessionStorage.getItem?.('farmacontrol_csrf') || '' }
+        });
         if (!response.ok) throw new Error('Não foi possível encerrar a sessão. Tente novamente.');
       } catch (_) {
         logoutPending = false;

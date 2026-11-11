@@ -451,7 +451,7 @@ function openModalAgendarEntrega(compraId) {
         )
         .join('')}
       </div>
-      <button class="btn-modal-submit" id="pedido-salvar-${c.id}" onclick="salvarAgendamento(${c.id})">Confirmar recebimento</button>
+      <button class="btn-modal-submit" data-fc-write="compras" id="pedido-salvar-${c.id}" onclick="salvarAgendamento(${c.id})">Confirmar recebimento</button>
       </section>
     `
       )
@@ -1076,7 +1076,7 @@ function renderPurchases() {
         <td><span class="cat-tag">${c.fornecedor_nome || '—'}</span></td>
         <td class="mono">PC-${c.id.toString().padStart(4, '0')}</td>
         <td class="c">${st === 'pendente'
-          ? `<button class="purchase-status-action pill-type ${cls}" aria-label="Atualizar pedido PC-${String(c.id).padStart(4, '0')}: receber ou cancelar">${label} ▾</button>`
+          ? `<button data-fc-write="compras" class="purchase-status-action pill-type ${cls}" aria-label="Atualizar pedido PC-${String(c.id).padStart(4, '0')}: receber ou cancelar">${label} ▾</button>`
           : `<span class="pill-type ${cls}">${label}</span>`}</td>
         <td class="r fw6">${c.itens_count || 0}</td>
         <td class="r muted">—</td>
@@ -1096,7 +1096,8 @@ function renderPurchases() {
       // Ignora cliques dentro de células de ações
       if (e.target.closest('.row-actions, .row-btn')) return;
       const id = row.dataset.id;
-      if ((window.__allCompras || []).find(c => String(c.id) === id)?.status === 'pendente') {
+      if ((window.__allCompras || []).find(c => String(c.id) === id)?.status === 'pendente' &&
+          window.fcCanWriteModule?.('compras') !== false) {
         openModalAgendarEntrega(id);
         return;
       }

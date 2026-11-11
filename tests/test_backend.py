@@ -244,7 +244,11 @@ class BackendTests(unittest.TestCase):
             with self.subTest(path=path):
                 response = self.client.get("/" + path.relative_to(ROOT / "frontend/src").as_posix())
                 self.assertEqual(response.status_code, 200)
-                self.assertEqual(response.data, path.read_bytes())
+                import re
+                # HTML interno inclui capacidades verificadas da sessão; o asset
+                # original permanece intacto depois de retirar esse único bloco.
+                served = re.sub(rb'<script type="application/json" id="fc-session-context">.*?</script>', b'', response.data)
+                self.assertEqual(served, path.read_bytes())
 
     # Cenário de regressão: financial date is validated and parameterized.
     # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.

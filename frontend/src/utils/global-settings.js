@@ -12,6 +12,11 @@
   const API_BASE = /^https?:$/.test(pageUrl.protocol) ? pageUrl.origin : 'http://localhost:5000';
   const STORAGE_KEY = 'farmacontrol_configuracoes';
   const CSRF_KEY = 'farmacontrol_csrf';
+  let verifiedCsrf = null;
+  try {
+    const context = document.getElementById('fc-session-context');
+    if (context) verifiedCsrf = JSON.parse(context.textContent).csrf_token || null;
+  } catch (_) { /* Sessões antigas continuam usando o token do login. */ }
 
   /* Centraliza credenciais e CSRF para as chamadas da API em todas as telas. */
   const nativeFetch = window.fetch.bind(window);
@@ -34,7 +39,7 @@
       options.signal = callerSignal ? AbortSignal.any([pageSignal, callerSignal]) : pageSignal;
     }
     if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
-      const csrf = sessionStorage.getItem(CSRF_KEY);
+      const csrf = verifiedCsrf || sessionStorage.getItem(CSRF_KEY);
       if (csrf) {
         const headers = new Headers(options.headers || (input && input.headers) || {});
         headers.set('X-CSRF-Token', csrf);
@@ -374,7 +379,13 @@
   // Lê a identidade em cache para apresentação; permissões reais são verificadas no servidor.
   function getCurrentUser() {
     try {
-      return JSON.parse(sessionStorage.getItem('farmacontrol_usuario') || '{}') || {};
+      const cached = JSON.parse(sessionStorage.getItem('farmacontrol_usuario') || '{}') || {};
+      const context = document.getElementById('fc-session-context');
+      if (!context) return cached;
+      const verified = JSON.parse(context.textContent);
+      const user = { ...(cached.id === verified.id ? cached : {}), ...verified };
+      if (cached.perfil !== verified.perfil) user.perfil_nome = verified.perfil;
+      return user;
     } catch (_) {
       return {};
     }
@@ -416,7 +427,11 @@
     try {
       /* Antes do login, a API entrega somente a paleta publica; apos o
          login, carrega as configuracoes completas autorizadas para o perfil. */
-      const endpoint = getCurrentUser()?.perfil ? '/configuracoes' : '/configuracoes/visual';
+      const user = getCurrentUser();
+      const canReadSettings = Array.isArray(user.permissoes)
+        ? user.permissoes.includes('configuracoes')
+        : ['proprietario', 'admin', 'ti'].includes(user.perfil);
+      const endpoint = canReadSettings ? '/configuracoes' : '/configuracoes/visual';
       const res = await fetch(`${API_BASE}${endpoint}`);
       const result = await res.json();
       if (!result.ok) return {};

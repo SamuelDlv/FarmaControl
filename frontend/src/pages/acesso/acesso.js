@@ -395,9 +395,12 @@ function initLoginForm() {
 
     /* Todos os perfis usam a mesma base de telas. O acesso aos módulos é
        definido pelo perfil em sidebar-init.js. */
-    const destino = '../sistema/dashboard/dashboard.html';
-    /* O dashboard possui a única inicialização pós-login. Evitar uma segunda
-       tela aqui elimina a troca visual de paleta entre os dois carregadores. */
+    const destino = data.pagina_inicial;
+    if (!destino) {
+      showToast('Sua conta não possui módulos disponíveis. Peça a revisão das permissões ao administrador.', 'error');
+      return;
+    }
+    /* A página inicial respeita os módulos atuais, inclusive sem dashboard. */
     window.location.href = destino;
   });
 }

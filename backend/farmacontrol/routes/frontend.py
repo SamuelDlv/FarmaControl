@@ -8,9 +8,11 @@ from farmacontrol.core.paths import FRONTEND_DIR
 from flask import current_app as app
 from flask import g
 from flask import redirect
+from flask import session
 import mimetypes
 import os
 import re
+import json
 
 
 FRONTEND_ASSETS = str(FRONTEND_DIR)
@@ -56,9 +58,7 @@ def _serve_frontend_file(directory, filename, allowed_extensions=None):
             response.headers['Cache-Control'] = 'no-store'
             return response
         module = os.path.relpath(target, system_root).split(os.sep)[0]
-        allowed = (g.usuario_perfil in access.ADMIN_ROLES if module == 'log' else
-                   g.usuario_perfil in access.SALES_ROLES if module == 'vendas' else
-                   module in g.usuario_permissoes)
+        allowed = access.pode_acessar_modulo(g.usuario_perfil, g.usuario_permissoes, module)
         if not allowed:
             response = app.make_response(responses.err('Seu perfil nao tem permissao para acessar esta página.', status=403))
             response.headers['Cache-Control'] = 'no-store'
@@ -66,6 +66,20 @@ def _serve_frontend_file(directory, filename, allowed_extensions=None):
     mime, _ = mimetypes.guess_type(target)
     with open(target, 'rb') as fh:
         data = fh.read()
+    if protected_html:
+        modules = ('estoque', 'vencimentos', 'compras', 'financeiro', 'usuarios', 'configuracoes', 'vendas')
+        context = {
+            'id': g.usuario_id, 'perfil': g.usuario_perfil,
+            'permissoes': sorted(g.usuario_permissoes),
+            'modulos_escrita': [m for m in modules if access.pode_acessar_modulo(
+                g.usuario_perfil, g.usuario_permissoes, m, escrita=True)],
+            'pagina_inicial': access.pagina_inicial(g.usuario_perfil, g.usuario_permissoes),
+            'csrf_token': session.get('csrf_token'),
+        }
+        # JSON inerte, revalidado a cada HTML; não depende do cache da aba.
+        payload = json.dumps(context, ensure_ascii=True).replace('<', '\\u003c')
+        tag = f'<script type="application/json" id="fc-session-context">{payload}</script>'
+        data = data.replace(b'<head>', ('<head>' + tag).encode('utf-8'), 1)
     resp = app.response_class(data, mimetype=mime or 'application/octet-stream')
     resp.headers['Cache-Control'] = (
         'no-store' if protected_html else

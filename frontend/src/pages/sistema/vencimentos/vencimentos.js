@@ -371,7 +371,7 @@ function renderTable() {
             <button class="action-btn" title="Ver detalhes" data-action="detail" data-id="${l.id}">
               <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.25"/><path d="M8 7.5v4M8 5v.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>
             </button>
-            <button class="action-btn danger" title="Registrar descarte / devolução" data-action="descarte" data-id="${l.id}">
+            <button data-fc-write="estoque" class="action-btn danger" title="Registrar descarte / devolução" data-action="descarte" data-id="${l.id}">
               <svg viewBox="0 0 16 16" fill="none"><path d="M3 4h10M5.5 4V3a.5.5 0 01.5-.5h4a.5.5 0 01.5.5v1M6 7v4.5M10 7v4.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/><rect x="3" y="4" width="10" height="9" rx="1" stroke="currentColor" stroke-width="1.25"/></svg>
             </button>
           </div>

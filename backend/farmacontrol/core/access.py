@@ -48,6 +48,32 @@ EDITABLE_PROFILE_SLUGS = (
 
 READ_ONLY_PROFILE_SLUGS = {"visualizador"}
 
+# Atendente consulta saldos/validades; ajustes físicos cabem à equipe de estoque.
+READ_ONLY_MODULES_BY_ROLE = {'atendente': {'estoque', 'vencimentos'}}
+
+
+def pode_acessar_modulo(perfil, permissoes, modulo, *, escrita=False):
+    """Regra única para HTML, API e capacidades entregues ao navegador."""
+    if perfil not in PERFIS_VALIDOS:
+        return False
+    if escrita and (perfil in READ_ONLY_PROFILE_SLUGS or
+                    modulo in READ_ONLY_MODULES_BY_ROLE.get(perfil, set())):
+        return False
+    if modulo == 'log':
+        return perfil in ADMIN_ROLES
+    if modulo == 'vendas':
+        return perfil in SALES_ROLES
+    return modulo in PERMISSION_MODULES and modulo in permissoes
+
+
+def pagina_inicial(perfil, permissoes):
+    """Escolhe uma página permitida, inclusive quando dashboard foi revogado."""
+    for modulo in ('dashboard', 'vendas', 'estoque', 'vencimentos', 'compras',
+                   'financeiro', 'relatorios', 'usuarios', 'configuracoes', 'log'):
+        if pode_acessar_modulo(perfil, permissoes, modulo):
+            return f'/pages/sistema/{modulo}/{modulo}.html'
+    return None
+
 
 # Distingue leitura de escrita e respeita fronteiras dos caminhos.
 # Ao criar uma área nova, revise também modulo_da_rota e a matriz persistida de permissões.

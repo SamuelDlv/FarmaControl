@@ -470,7 +470,7 @@
               </svg>
               Exportar CSV
             </button>
-            <button class="tb-btn" id="btn-novo-lote">
+            <button class="tb-btn" id="btn-novo-lote" data-fc-write="estoque">
               <svg width="12" height="12" viewBox="0 0 13 13" fill="none">
                 <path
                   d="M6.5 1.5v10M1.5 6.5h10"
@@ -907,7 +907,7 @@
                     </svg>
                   </button>
                 </div>
-                <div class="report-item" id="rpt-fin">
+                <div class="report-item" id="rpt-fin" data-fc-read="financeiro">
                   <div class="report-icon">
                     <svg viewBox="0 0 16 16" fill="none">
                       <path
@@ -1072,7 +1072,7 @@
         </div>
         <div class="modal-foot">
           <button class="btn-modal-cancel" onclick="closeLoteModal()">Cancelar</button>
-          <button class="btn-modal-submit" id="btn-lote-submit">Cadastrar Lote</button>
+          <button class="btn-modal-submit" id="btn-lote-submit" data-fc-write="estoque">Cadastrar Lote</button>
         </div>
       </div>
     </div>

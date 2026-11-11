@@ -29,12 +29,15 @@ def validar_entrada():
         origin = request.headers.get("Origin")
         if origin and origin not in {request.host_url.rstrip("/"), *app.config["ALLOWED_ORIGINS"]}:
             return responses.err("Origem da requisição não autorizada.", status=403)
-        g.auth_attempts = app.extensions["auth_limiter"].check_with_status(request.remote_addr or "unknown")
-        retry = g.auth_attempts["retry_after"]
-        if retry:
-            response = app.make_response(responses.err("Muitas tentativas. Aguarde antes de tentar novamente.", status=429))
-            response.headers["Retry-After"] = str(retry)
-            return response
+        # Sair deve continuar possível mesmo após esgotar tentativas de login.
+        # Origem, CSRF e auditoria do logout permanecem obrigatórios.
+        if request.path != '/auth/logout':
+            g.auth_attempts = app.extensions["auth_limiter"].check_with_status(request.remote_addr or "unknown")
+            retry = g.auth_attempts["retry_after"]
+            if retry:
+                response = app.make_response(responses.err("Muitas tentativas. Aguarde antes de tentar novamente.", status=429))
+                response.headers["Retry-After"] = str(retry)
+                return response
     if request.is_json:
         data = request.get_json(silent=True)
         if not isinstance(data, dict):
@@ -101,14 +104,10 @@ def proteger_api():
     perfil = g.usuario_perfil
     permissoes = g.usuario_permissoes
     modulo = access.modulo_da_rota(path)
-    # O Visualizador pode consultar exclusivamente; esta proteção não depende
-    # do menu nem da configuração de módulos salva no banco.
-    if perfil in access.READ_ONLY_PROFILE_SLUGS and request.method not in {"GET", "HEAD", "OPTIONS"}:
-        return responses.err("O perfil Visualizador possui acesso somente para consulta.", status=403)
-    # PDV: acesso operacional fixo, também aplicado ao menu.
-    permitido = perfil in access.SALES_ROLES if modulo == "vendas" else modulo in permissoes
-    if path == "/admin/logs":
-        permitido = perfil in access.ADMIN_ROLES
+    escrita = request.method not in {'GET', 'HEAD', 'OPTIONS'}
+    if path == '/admin/logs':
+        modulo = 'log'
+    permitido = access.pode_acessar_modulo(perfil, permissoes, modulo, escrita=escrita)
     if not permitido:
         log.warning("Acesso negado: usuario=%s perfil=%s rota=%s", usuario_id, perfil, path)
         return responses.err("Seu perfil nao tem permissao para acessar este recurso.", status=403)

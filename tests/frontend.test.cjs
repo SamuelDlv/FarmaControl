@@ -31,6 +31,7 @@ function environment() {
   const sandbox = {
     window,
     document,
+    fetch: (...args) => window.fetch(...args),
     Headers,
     URL,
     Event,
@@ -235,4 +236,29 @@ test('paletas conservam acentos e não geram superfícies do modo removido', () 
     assert.equal(palette.surface2, undefined);
   }
   assert.equal(settings.getPalette('#4a7c59').sage2, '#3a6447');
+});
+
+test('preferências respeitam os módulos dos sete perfis e evitam acesso administrativo indevido', async () => {
+  for (const role of ['proprietario','admin','ti','farmaceutico','atendente','compras','visualizador']) {
+    const e = environment();
+    const modules = ['proprietario','admin','ti'].includes(role) ? ['configuracoes'] : ['estoque'];
+    e.storage.setItem('farmacontrol_usuario', JSON.stringify({ id:42, perfil:role, permissoes:modules }));
+    e.document.getElementById = () => null;
+    e.run('global-settings.js');
+    await e.window.FarmaControlSettings.loadRemote();
+    assert.equal(e.calls[0].input.endsWith(modules.includes('configuracoes') ? '/configuracoes' : '/configuracoes/visual'), true, role);
+  }
+});
+
+test('contexto do servidor prevalece sobre perfil e token antigos do navegador', async () => {
+  const e = environment();
+  e.storage.setItem('farmacontrol_usuario', JSON.stringify({ id:42, perfil:'proprietario', permissoes:['configuracoes'] }));
+  e.document.getElementById = id => id === 'fc-session-context' ? {
+    textContent: JSON.stringify({ id:42, perfil:'atendente', permissoes:['estoque'], csrf_token:'token-validado' })
+  } : null;
+  e.run('global-settings.js');
+  await e.window.FarmaControlSettings.loadRemote();
+  assert.equal(e.calls[0].input.endsWith('/configuracoes/visual'), true);
+  await e.window.fetch('/auth/logout', { method:'POST' });
+  assert.equal(e.calls[1].init.headers.get('X-CSRF-Token'), 'token-validado');
 });

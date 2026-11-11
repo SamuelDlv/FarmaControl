@@ -472,7 +472,7 @@
             </div>
           </div>
           <div class="topbar-actions">
-            <button class="btn-primary" id="btn-add">
+            <button class="btn-primary" id="btn-add" data-fc-write="estoque">
               <svg viewBox="0 0 16 16" fill="none">
                 <path
                   d="M8 3v10M3 8h10"
@@ -484,7 +484,7 @@
               <span>Novo Produto</span>
             </button>
             <div class="tb-divider"></div>
-            <button class="btn-icon" title="Gerenciar Fornecedores" id="btn-suppliers">
+            <button class="btn-icon" title="Gerenciar Fornecedores" id="btn-suppliers" data-fc-write="compras">
               <svg viewBox="0 0 20 20" fill="none">
                 <path
                   d="M4 16v-2a3 3 0 013-3h6a3 3 0 013 3v2"
@@ -769,7 +769,7 @@
         </div>
         <div class="modal-foot">
           <button class="btn-ghost" id="suppliers-cancel">Fechar</button>
-          <button class="btn-modal-submit" id="suppliers-new">
+          <button class="btn-modal-submit" id="suppliers-new" data-fc-write="compras">
             <svg viewBox="0 0 16 16" fill="none">
               <path
                 d="M8 3v10M3 8h10"
@@ -903,7 +903,7 @@
         </div>
         <div class="modal-foot">
           <button class="btn-ghost" id="supplier-form-cancel">Cancelar</button>
-          <button class="btn-modal-submit" id="supplier-form-save">
+          <button class="btn-modal-submit" id="supplier-form-save" data-fc-write="compras">
             <svg viewBox="0 0 16 16" fill="none">
               <path
                 d="M13 5L6.5 11.5 3 8"
@@ -1090,7 +1090,7 @@
         </div>
         <div class="modal-foot">
           <button class="btn-ghost" id="modal-cancel">Cancelar</button>
-          <button class="btn-modal-submit" id="modal-save">
+          <button class="btn-modal-submit" id="modal-save" data-fc-write="estoque">
             <svg viewBox="0 0 16 16" fill="none">
               <path
                 d="M13 5L6.5 11.5 3 8"
@@ -1237,7 +1237,7 @@
         </div>
         <div class="modal-foot">
           <button class="btn-ghost" id="edit-cancel">Cancelar</button>
-          <button class="btn-modal-submit" id="edit-save">
+          <button class="btn-modal-submit" id="edit-save" data-fc-write="estoque">
             <svg viewBox="0 0 16 16" fill="none">
               <path
                 d="M13 5L6.5 11.5 3 8"
@@ -1347,7 +1347,7 @@
         </div>
         <div class="modal-foot">
           <button class="btn-ghost" id="move-cancel">Cancelar</button>
-          <button class="btn-modal-submit" id="move-save">
+          <button class="btn-modal-submit" id="move-save" data-fc-write="estoque">
             <svg viewBox="0 0 16 16" fill="none">
               <path
                 d="M13 5L6.5 11.5 3 8"

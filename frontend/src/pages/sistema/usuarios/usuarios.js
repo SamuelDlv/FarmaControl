@@ -142,19 +142,19 @@ function renderUserGrid() {
     );
     const deleteAction =
       Number(u.id) !== currentUserId
-        ? `<button class="user-action-btn danger" onclick="excluirUsuario(${u.id})">Excluir</button>`
+        ? `<button data-fc-write="usuarios" class="user-action-btn danger" onclick="excluirUsuario(${u.id})">Excluir</button>`
         : '';
     let actionsHtml = '';
     if (u.status === 'pendente') {
       actionsHtml = `
-        <button class="user-action-btn" style="background: var(--sage-pale); color: var(--sage); border-color: var(--sage-border);" onclick="analisarCadastro(${u.id}, 'aprovado')">Aprovar</button>
-        <button class="user-action-btn danger" onclick="analisarCadastro(${u.id}, 'rejeitado')">Rejeitar</button>
+        <button data-fc-write="usuarios" class="user-action-btn" style="background: var(--sage-pale); color: var(--sage); border-color: var(--sage-border);" onclick="analisarCadastro(${u.id}, 'aprovado')">Aprovar</button>
+        <button data-fc-write="usuarios" class="user-action-btn danger" onclick="analisarCadastro(${u.id}, 'rejeitado')">Rejeitar</button>
         ${deleteAction}
       `;
     } else {
       actionsHtml = `
-        <button class="user-action-btn" onclick="openEditModal(${u.id})">Editar</button>
-        <button class="user-action-btn ${u.status === 'ativo' ? 'danger' : ''}" onclick="toggleUserStatus(${u.id}, '${u.status}')">
+        <button data-fc-write="usuarios" class="user-action-btn" onclick="openEditModal(${u.id})">Editar</button>
+        <button data-fc-write="usuarios" class="user-action-btn ${u.status === 'ativo' ? 'danger' : ''}" onclick="toggleUserStatus(${u.id}, '${u.status}')">
           ${u.status === 'ativo' ? 'Desativar' : 'Ativar'}
         </button>
         ${deleteAction}

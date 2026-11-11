@@ -71,6 +71,10 @@ form.addEventListener('submit', async e => {
   if (!res.ok || !data.ok) return fail(data.mensagem || 'Não foi possível concluir o cadastro.');
   sessionStorage.setItem('farmacontrol_usuario', JSON.stringify(data.usuario));
   sessionStorage.setItem('farmacontrol_csrf', data.csrf_token);
-  location.href = '../sistema/dashboard/dashboard.html';
+  if (!data.pagina_inicial) {
+    statusEl.textContent = 'Cadastro confirmado. Peça ao administrador para liberar os módulos do seu perfil.';
+    return;
+  }
+  location.href = data.pagina_inicial;
 });
 main();

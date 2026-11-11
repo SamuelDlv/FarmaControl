@@ -343,16 +343,16 @@ function renderTable() {
         <td>${chipMap[p.status]}</td>
         <td>
           <div class="row-actions">
-            <button class="action-btn btn-edit"   data-id="${p.id}" title="Editar">
+            <button data-fc-write="estoque" class="action-btn btn-edit"   data-id="${p.id}" title="Editar">
               <svg viewBox="0 0 16 16" fill="none"><path d="M11 2l3 3-8 8H3v-3l8-8z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
-            <button class="action-btn btn-move"   data-id="${p.id}" title="Movimentar">
+            <button data-fc-write="estoque" class="action-btn btn-move"   data-id="${p.id}" title="Movimentar">
               <svg viewBox="0 0 16 16" fill="none"><path d="M8 3v10M4 9l4 4 4-4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <button class="action-btn btn-history" data-id="${p.id}" title="Histórico">
               <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
             </button>
-            <button class="action-btn btn-delete" data-id="${p.id}" title="Excluir">
+            <button data-fc-write="estoque" class="action-btn btn-delete" data-id="${p.id}" title="Excluir">
               <svg viewBox="0 0 16 16" fill="none"><path d="M3 4h10M5 4V3a1 1 0 011-1h4a1 1 0 011 1v1m2 0v10a1 1 0 01-1 1H4a1 1 0 01-1-1V4h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 7v6M10 7v6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
             </button>
           </div>
@@ -820,6 +820,10 @@ function setMoveDir(dir) {
 /* openMoveModal(): Abre o modal de movimentação de estoque para um produto específico. */
 // Abre e prepara Move Modal.
 function openMoveModal(id) {
+  if (window.fcCanWriteModule?.('estoque') === false) {
+    showToast('Seu perfil possui somente consulta de estoque.', 'warn');
+    return;
+  }
   const p = produtos.find(x => x.id === id);
   if (!p) return;
   const mo = moveOverlay();
@@ -1207,11 +1211,11 @@ function renderFornecedoresList() {
         <div style="font-size:12px;color:var(--ink-35,rgba(13,21,16,0.45))">CNPJ ${f.cnpj}${f.contato_nome ? ' · ' + f.contato_nome : ''}${f.contato_telefone ? ' · ' + f.contato_telefone : ''}</div>
       </div>
       <div class="sup-item-actions">
-        <button class="sup-btn sup-btn-edit" data-act="edit" data-id="${f.id}" title="Editar">
+        <button data-fc-write="compras" class="sup-btn sup-btn-edit" data-act="edit" data-id="${f.id}" title="Editar">
           <svg viewBox="0 0 16 16" fill="none" width="14" height="14"><path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Editar
         </button>
-        <button class="sup-btn sup-btn-delete" data-act="delete" data-id="${f.id}" title="Excluir">
+        <button data-fc-write="compras" class="sup-btn sup-btn-delete" data-act="delete" data-id="${f.id}" title="Excluir">
           <svg viewBox="0 0 16 16" fill="none" width="14" height="14"><path d="M3 4.5h10M6.2 4.5V3.2a1 1 0 011-1h1.6a1 1 0 011 1v1.3M12.6 4.5v8.5a1 1 0 01-1 1H4.4a1 1 0 01-1-1V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Excluir
         </button>

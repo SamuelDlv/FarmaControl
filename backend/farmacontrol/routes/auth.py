@@ -145,6 +145,7 @@ def register():
             return responses.ok({
                 "mensagem": "Convite confirmado. Seu acesso já está liberado.",
                 "csrf_token": session["csrf_token"],
+                "pagina_inicial": access.pagina_inicial(role, permissoes),
                 "usuario": {"id": usuario_criado_id, "nome": nome, "sobrenome": sobrenome,
                             "email": email, "perfil": role, "perfil_nome": perfil["nome"],
                             "permissoes": sorted(permissoes)},
@@ -415,6 +416,7 @@ def login():
             {
                 "mensagem": f"Bem-vindo, {usuario['nome']}!",
                 "csrf_token": session["csrf_token"],
+                "pagina_inicial": access.pagina_inicial(usuario['perfil'], permissoes),
                 "usuario": {
                     "id":          usuario["id"],
                     "nome":        usuario["nome"],

@@ -58,6 +58,16 @@ Consulte o [guia dos comentários para manutenção](../docs/COMENTARIOS_MANUTEN
 
 Mantenha o menu compatível com permissões devolvidas pelo servidor. Para conteúdo vindo de usuários ou da API, prefira inserção textual e preserve as rotinas de escape existentes. Verifique desktop e mobile quando alterar layout, modal, tabela ou sidebar.
 
+O Flask insere `fc-session-context` (JSON inerte) no HTML interno, com perfil,
+módulos e capacidades de escrita revalidados, página inicial permitida e token
+CSRF da sessão. O HTML usa `no-store`; não copie esse contexto para logs ou
+artefatos publicados. Menu e transporte priorizam esse contexto sobre caches
+antigos, inclusive ao abrir outra aba. Controles com `data-fc-write="estoque"`
+(ou outro módulo) ficam ocultos sem capacidade de escrita; `data-fc-read`
+controla atalhos que consultam outro módulo. A API valida novamente toda ação.
+Preferências visuais usam `/configuracoes/visual` quando o perfil não tem acesso
+ao módulo administrativo de configurações.
+
 ## Recursos e limites
 
 Chart.js e fontes podem depender de serviços externos conforme os HTMLs. Não existe garantia de funcionamento visual completo offline. O backend serve os arquivos de `frontend/src`; os favicons existentes em mais de um caminho foram preservados por compatibilidade.

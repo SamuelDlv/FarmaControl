@@ -80,6 +80,7 @@ Em produção, use `APP_ENV=production`, uma chave persistente válida e HTTPS. 
 | Conta | Deve existir e estar aprovada; perfil e credencial são revalidados no banco |
 | Matriz | Módulo precisa estar concedido ao perfil em `perfil_permissoes` |
 | Visualizador | Toda mutação protegida é recusada, mesmo com módulo concedido |
+| Atendente | Estoque e vencimentos são somente consulta; vendas mantêm a operação do balcão |
 | Vendas, clientes e receitas | Acesso fixo de proprietário, admin, farmacêutico, atendente e TI |
 | `/admin/logs` | Acesso fixo de proprietário, admin e TI |
 | Mutação autenticada | Exige `X-CSRF-Token` igual ao da sessão |
@@ -91,7 +92,7 @@ A maior parte das rotas administrativas corresponde ao módulo `usuarios`. As pe
 
 A sessão usa cookie assinado, HttpOnly e SameSite=Lax. Um HMAC vincula o cookie à senha atual, invalidando sessões após troca de credencial. A chave de assinatura deve persistir entre reinícios e ser a mesma nos processos da instalação.
 
-Corpos de requisição têm limite de 1 MiB. Mutações de autenticação compartilham limite de 5 requisições por IP em uma janela fixa de 300 segundos, por processo. O contador inclui login, logout e demais mutações de autenticação, bem-sucedidas ou não. Erros de credenciais informam `tentativas_restantes` e `aguarde_segundos`; ao esgotar o limite, há também `Retry-After`, e solicitações seguintes retornam 429. Há validação de `Origin` quando presente, JSON e tipos de campos; senhas novas exigem ao menos oito caracteres e no máximo 72 bytes UTF-8. APIs protegidas e autenticação recebem `no-store`. Cabeçalhos contra enquadramento e interpretação indevida de conteúdo são adicionados pelo servidor; HSTS depende do modo de produção.
+Corpos de requisição têm limite de 1 MiB. Mutações de autenticação, exceto logout, compartilham limite de 5 requisições por IP em uma janela fixa de 300 segundos, por processo. O contador inclui login e demais mutações de autenticação, bem-sucedidas ou não. Logout não consome esse limite e continua disponível quando a cota estiver esgotada; mantém validação de origem, CSRF e auditoria atômica. Erros de credenciais informam `tentativas_restantes` e `aguarde_segundos`; ao esgotar o limite, há também `Retry-After`, e solicitações seguintes retornam 429. Há validação de `Origin` quando presente, JSON e tipos de campos; senhas novas exigem ao menos oito caracteres e no máximo 72 bytes UTF-8. APIs protegidas e autenticação recebem `no-store`. Cabeçalhos contra enquadramento e interpretação indevida de conteúdo são adicionados pelo servidor; HSTS depende do modo de produção.
 
 `validar_sessao()` é compartilhada pelas APIs e pela entrega dos HTMLs internos, revalidando situação, perfil e vínculo com a senha no banco. A proteção dos arquivos considera seu caminho físico em `frontend/src/pages/sistema`. Novas páginas internas devem permanecer nessa pasta e carregar a guarda visual descrita no [frontend](../frontend/README.md).
 

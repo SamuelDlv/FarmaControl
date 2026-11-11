@@ -47,7 +47,7 @@ function renderCriticalProductRow(p) {
       <td class="r">${p.estoque_minimo}</td>
       <td>${validade}</td>
       <td><span class="status-badge ${p.status_classe}">${statusLabel}</span></td>
-      <td class="c"><button class="row-btn" onclick="window.location.href='../estoque/estoque.html?repor=${Number(p.estoque_id)}'">Repor</button></td>
+      <td class="c"><button data-fc-write="estoque" class="row-btn" onclick="window.location.href='../estoque/estoque.html?repor=${Number(p.estoque_id)}'">Repor</button></td>
     </tr>`;
 }
 
@@ -107,7 +107,7 @@ async function loadDashboardStats() {
               <td class="r">${p.estoque_minimo}</td>
               <td>${validade}</td>
               <td><span class="status-badge ${p.status_classe}">${statusLabel}</span></td>
-              <td class="c"><button class="row-btn" onclick="window.location.href='../estoque/estoque.html?repor=${Number(p.estoque_id)}'">Repor</button></td>
+              <td class="c"><button data-fc-write="estoque" class="row-btn" onclick="window.location.href='../estoque/estoque.html?repor=${Number(p.estoque_id)}'">Repor</button></td>
             </tr>`;
           })
           .join('');
@@ -451,7 +451,7 @@ function handleViewLink(linkText, btn) {
             '">' +
             (p.status_classe === 'crit' ? 'Crítico' : 'Baixo') +
             '</span></td>' +
-            '<td class="c" data-label="Ação"><a class="row-btn" href="../estoque/estoque.html?repor=' +
+            '<td class="c" data-label="Ação"><a data-fc-write="estoque" class="row-btn" href="../estoque/estoque.html?repor=' +
             Number(p.estoque_id) +
             '">Repor</a></td>' +
             '</tr>'
@@ -488,7 +488,7 @@ function handleViewLink(linkText, btn) {
             formatDate(p.data_validade) +
             '</dd></div>' +
             '</dl>' +
-            '<a class="row-btn critical-product-mobile-action" href="../estoque/estoque.html?repor=' +
+            '<a data-fc-write="estoque" class="row-btn critical-product-mobile-action" href="../estoque/estoque.html?repor=' +
             Number(p.estoque_id) +
             '">Repor estoque</a>' +
             '</article>'
@@ -496,7 +496,7 @@ function handleViewLink(linkText, btn) {
         .join('');
       table.closest('.critical-products-table')?.appendChild(mobileList);
     });
-    const tableHtml = `<div class="table-wrap"><table><thead><tr><th>Produto</th><th>Lote</th><th>Qtd.</th><th>Mín.</th><th>Status</th><th>Ação</th></tr></thead><tbody>${rows.map(p => `<tr><td>${dashboardEscape(p.nome)}</td><td>${dashboardEscape(p.lote)}</td><td>${p.quantidade}</td><td>${p.estoque_minimo}</td><td>${p.status_classe === 'crit' ? 'Crítico' : 'Baixo'}</td><td><a class="row-btn" href="../estoque/estoque.html?repor=${Number(p.estoque_id)}">Repor</a></td></tr>`).join('')}</tbody></table></div>`;
+    const tableHtml = `<div class="table-wrap"><table><thead><tr><th>Produto</th><th>Lote</th><th>Qtd.</th><th>Mín.</th><th>Status</th><th>Ação</th></tr></thead><tbody>${rows.map(p => `<tr><td>${dashboardEscape(p.nome)}</td><td>${dashboardEscape(p.lote)}</td><td>${p.quantidade}</td><td>${p.estoque_minimo}</td><td>${p.status_classe === 'crit' ? 'Crítico' : 'Baixo'}</td><td><a data-fc-write="estoque" class="row-btn" href="../estoque/estoque.html?repor=${Number(p.estoque_id)}">Repor</a></td></tr>`).join('')}</tbody></table></div>`;
     window.fcOpenViewModal(
       'Produtos Críticos',
       `${rows.length} lotes com estoque crítico ou baixo`,
