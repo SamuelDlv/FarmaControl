@@ -431,6 +431,11 @@
   },
   {
     "method": "PUT",
+    "path": "/financeiro/transacoes/<int:transacao_id>",
+    "function": "update_financeiro_transacao"
+  },
+  {
+    "method": "PUT",
     "path": "/configuracoes",
     "function": "save_configuracoes"
   },

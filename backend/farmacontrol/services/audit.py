@@ -103,6 +103,16 @@ def write_event(db, status=200):
                 lines.append(f"Perfil {profile}: " + (", ".join(sorted(modules)) or "sem módulos"))
     if getattr(g, "audit_previous_status", None) is not None:
         lines.append(f"Status anterior: {safe_value(g.audit_previous_status)}")
+    if resource == 'financeiro' and request.method == 'PUT':
+        # Somente snapshots definidos pelo servidor; não aceita antes/depois do payload.
+        changes = getattr(g, 'audit_changes', {})
+        if 'valor' in changes:
+            before, after = changes['valor']
+            lines.append(f"Valor anterior (R$): {safe_value(before)}")
+            lines.append(f"Valor novo (R$): {safe_value(after)}")
+            values = getattr(g, 'audit_values', {})
+            lines.append(f"Motivo da correção: {safe_value(values.get('motivo_alteracao'))}")
+            lines.append(f"Usuário criador do lançamento: {safe_value(values.get('usuario_criador_id'))}")
     details = "\n".join(lines)
     # MEDIUMTEXT comporta os itens de compras/vendas sem truncar o histórico.
     with db.cursor() as cur:

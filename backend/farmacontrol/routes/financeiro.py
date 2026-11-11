@@ -4,6 +4,7 @@
 
 from datetime import datetime
 from datetime import timedelta
+from decimal import Decimal, InvalidOperation
 from farmacontrol.core import database
 from farmacontrol.core import responses
 from farmacontrol.core.query import QueryError, query_int
@@ -251,7 +252,7 @@ def financeiro_transacoes():
         with db.cursor() as cur:
             cur.execute("""
                 SELECT t.id, t.descricao, t.valor, t.data_transacao,
-                       t.status, t.metodo_pagamento,
+                       t.status, t.metodo_pagamento, t.venda_id, t.compra_id,
                        fc.tipo, fc.nome AS categoria_nome
                 FROM financeiro_transacoes t
                 JOIN financeiro_categorias fc ON fc.id = t.categoria_id
@@ -266,6 +267,9 @@ def financeiro_transacoes():
             'id': r['id'],
             'descricao': r['descricao'],
             'valor': float(r['valor']),
+            'valor_exato': format(Decimal(str(r['valor'])), '.2f'),
+            'venda_id': r.get('venda_id'),
+            'compra_id': r.get('compra_id'),
             'data_transacao': r['data_transacao'].strftime('%Y-%m-%d %H:%M:%S') if r['data_transacao'] else '—',
             'status': r['status'],
             'metodo_pagamento': r['metodo_pagamento'],
@@ -350,6 +354,74 @@ def create_financeiro_transacao():
         return jsonify({'ok': False, 'mensagem': 'Erro ao salvar transação.'}), 400
 
 
+def _valor_correcao(value):
+    """Valida centavos exatos e o limite de DECIMAL(12,2), sem arredondar."""
+    try:
+        amount = Decimal(str(value))
+        if not amount.is_finite() or not Decimal('0') < amount <= Decimal('9999999999.99'):
+            raise ValueError
+        if amount != amount.quantize(Decimal('0.01')):
+            raise ValueError
+        return amount.quantize(Decimal('0.01'))
+    except (InvalidOperation, ValueError):
+        raise ValueError('Informe um valor positivo com até duas casas decimais.') from None
+
+
+def update_financeiro_transacao(transacao_id):
+    """Corrige o valor manual e registra antes/depois na mesma transação."""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return responses.err('Informe os dados da correção.', status=400)
+    if set(data) - {'valor', 'valor_anterior', 'motivo'}:
+        return responses.err('Esta operação permite corrigir somente o valor.', status=400)
+    try:
+        novo = _valor_correcao(data.get('valor'))
+        esperado = _valor_correcao(data.get('valor_anterior'))
+    except ValueError as exc:
+        return responses.err(str(exc), campo='valor', status=400)
+    motivo = data.get('motivo')
+    if not isinstance(motivo, str) or not 3 <= len(motivo.strip()) <= 255:
+        return responses.err('Informe o motivo da correção (3 a 255 caracteres).', campo='motivo', status=400)
+    motivo = ' '.join(motivo.split())
+    if len(motivo) < 3:
+        return responses.err('Informe o motivo da correção (3 a 255 caracteres).', campo='motivo', status=400)
+    if not _fin_tables_exist():
+        return responses.err('Tabelas financeiras não configuradas.', status=503)
+    db = database.get_db()
+    try:
+        with db.cursor() as cur:
+            cur.execute('''SELECT id, valor, usuario_id, categoria_id, status, venda_id, compra_id
+                           FROM financeiro_transacoes WHERE id = %s FOR UPDATE''', (transacao_id,))
+            anterior = cur.fetchone()
+            if not anterior:
+                db.rollback()
+                return responses.err('Transação não encontrada.', status=404)
+            if anterior['venda_id'] or anterior['compra_id']:
+                db.rollback()
+                return responses.err('Lançamento vinculado a venda ou compra. Corrija a operação de origem.', status=409)
+            atual = Decimal(str(anterior['valor']))
+            if atual != esperado:
+                db.rollback()
+                return responses.err('O valor foi alterado por outro usuário. Atualize a lista e revise a correção.', status=409)
+            if atual == novo:
+                db.rollback()
+                return responses.err('Informe um valor diferente do atual.', campo='valor', status=400)
+            cur.execute('UPDATE financeiro_transacoes SET valor = %s WHERE id = %s', (novo, transacao_id))
+            # Os valores anteriores vêm da linha bloqueada, nunca do navegador.
+            g.audit_description = 'Corrigiu valor de transação financeira'
+            g.audit_values = {'valor': format(novo, '.2f'), 'motivo_alteracao': motivo,
+                              'usuario_criador_id': anterior['usuario_id'],
+                              'categoria_id': anterior['categoria_id'], 'status': anterior['status']}
+            g.audit_changes = {'valor': (format(atual, '.2f'), format(novo, '.2f'))}
+            commit_audit(db)
+        return responses.ok({'mensagem': 'Valor corrigido e alteração registrada no log.',
+                             'id': transacao_id, 'valor_anterior': format(atual, '.2f'), 'valor': format(novo, '.2f')})
+    except Exception as exc:
+        db.rollback()
+        log.error('Erro ao corrigir transação financeira %s: %s', transacao_id, exc)
+        return responses.err('Não foi possível salvar a correção e seu histórico.', status=500)
+
+
 # Liga URLs, métodos HTTP e nomes de endpoint à instância recebida.
 # Alterar estes contratos exige revisar as telas e tests/fixtures/api_routes.json.
 def register_routes(app):
@@ -359,3 +431,4 @@ def register_routes(app):
     app.add_url_rule('/financeiro/categorias', view_func=financeiro_categorias, methods=['GET'])
     app.add_url_rule('/financeiro/transacoes', view_func=financeiro_transacoes, methods=['GET'])
     app.add_url_rule('/financeiro/transacoes', view_func=create_financeiro_transacao, methods=['POST'])
+    app.add_url_rule('/financeiro/transacoes/<int:transacao_id>', view_func=update_financeiro_transacao, methods=['PUT'])

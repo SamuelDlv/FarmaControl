@@ -132,6 +132,9 @@
   let chartPeriod = 'month';
   let chartCursor = new Date();
   let expenseDetailsVisible = false;
+  let transactionsById = new Map();
+  let editingTransaction = null;
+  let savingCorrection = false;
   chartCursor.setHours(0, 0, 0, 0);
 
   function isoDate(date) {
@@ -578,6 +581,12 @@
     expenseDetailsVisible = true;
     button.textContent = 'Ocultar detalhes';
     button.setAttribute('aria-expanded', 'true');
+    await loadExpenseDetails();
+  }
+
+  async function loadExpenseDetails() {
+    const container = document.getElementById('cat-list');
+    if (!container || !expenseDetailsVisible) return;
     container.innerHTML = '<div class="empty-state">Carregando lançamentos...</div>';
     try {
       const requestedDays = currentDays;
@@ -660,11 +669,12 @@
   // Atualiza a apresentação de Transaction Table.
   // Revise os seletores e o HTML correspondente ao alterar os componentes gerados.
   function renderTransactionTable(transacoes) {
+    transactionsById = new Map(transacoes.map(t => [String(t.id), t]));
     const tbody = document.getElementById('trans-body');
     if (!tbody) return;
     if (!transacoes.length) {
       tbody.innerHTML =
-        '<tr><td colspan="6" style="text-align:center;color:var(--ink-35);padding:24px;">Nenhuma transação encontrada</td></tr>';
+        '<tr><td colspan="7" style="text-align:center;color:var(--ink-35);padding:24px;">Nenhuma transação encontrada</td></tr>';
       return;
     }
     tbody.innerHTML = transacoes
@@ -697,6 +707,9 @@
           '<td style="font-size:12px;color:var(--ink-35);">' +
           fmtDate(t.data_transacao) +
           '</td>' +
+          '<td>' + (t.venda_id || t.compra_id
+            ? '<span class="muted">Vinculada à ' + (t.venda_id ? 'venda #' + escapeHTML(t.venda_id) : 'compra #' + escapeHTML(t.compra_id)) + '</span>'
+            : '<button type="button" class="ghost-btn" data-edit-transaction="' + escapeHTML(t.id) + '" aria-label="Editar valor da transação ' + escapeHTML(t.id) + '">Editar valor</button>') + '</td>' +
           '</tr>'
         );
       })
@@ -708,7 +721,77 @@
   // Confira o formato da resposta e o tratamento de indisponibilidade ao alterar esta consulta.
   async function loadAll() {
     await Promise.all([loadKPIs(), loadChart(), loadCategories(), loadTransactions()]);
+    if (expenseDetailsVisible) await loadExpenseDetails();
   }
+
+  // Correções preservam a data, os vínculos e o usuário que criou o lançamento.
+  document.getElementById('trans-body')?.addEventListener('click', e => {
+    const button = e.target.closest('[data-edit-transaction]');
+    if (!button || savingCorrection) return;
+    const transaction = transactionsById.get(button.dataset.editTransaction);
+    if (!transaction || transaction.venda_id || transaction.compra_id) return;
+    editingTransaction = { ...transaction };
+    const original = transaction.valor_exato || Number(transaction.valor).toFixed(2);
+    document.getElementById('edit-tx-summary').textContent =
+      `Transação #${transaction.id} · ${transaction.descricao} · ${fmtDate(transaction.data_transacao)}`;
+    document.getElementById('edit-tx-before').value = fmtBRL(Number(original));
+    document.getElementById('edit-tx-value').value = original;
+    document.getElementById('edit-tx-reason').value = '';
+    document.getElementById('edit-tx-error').textContent = '';
+    document.getElementById('modal-editar-transacao').classList.add('open');
+    document.getElementById('edit-tx-value').focus();
+  });
+
+  window.closeEditTransModal = function () {
+    if (savingCorrection) return;
+    document.getElementById('modal-editar-transacao')?.classList.remove('open');
+    editingTransaction = null;
+  };
+
+  document.getElementById('form-edit-transacao')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    if (!editingTransaction || savingCorrection) return;
+    const valueInput = document.getElementById('edit-tx-value');
+    const reasonInput = document.getElementById('edit-tx-reason');
+    const error = document.getElementById('edit-tx-error');
+    const button = document.getElementById('btn-save-correcao');
+    const valor = valueInput.value;
+    const motivo = reasonInput.value.trim();
+    const anterior = editingTransaction.valor_exato || Number(editingTransaction.valor).toFixed(2);
+    error.textContent = '';
+    if (!valueInput.checkValidity() || Number(valor) <= 0 || motivo.length < 3) {
+      error.textContent = 'Informe um valor positivo com até duas casas decimais e o motivo da correção.';
+      return;
+    }
+    if (Number(valor) === Number(anterior)) {
+      error.textContent = 'Informe um valor diferente do atual.';
+      return;
+    }
+    savingCorrection = true;
+    button.disabled = true;
+    valueInput.disabled = true;
+    reasonInput.disabled = true;
+    try {
+      const res = await fetch(API + '/transacoes/' + editingTransaction.id, {
+        method: 'PUT', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ valor, valor_anterior: anterior, motivo })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.mensagem || 'Não foi possível salvar a correção.');
+      savingCorrection = false;
+      closeEditTransModal();
+      toast('Valor corrigido. Antes, depois e motivo registrados no log.', 'success');
+      await loadAll();
+    } catch (err) {
+      error.textContent = err.message || 'Não foi possível salvar a correção. Tente novamente.';
+    } finally {
+      savingCorrection = false;
+      button.disabled = false;
+      valueInput.disabled = false;
+      reasonInput.disabled = false;
+    }
+  });
 
   window.fcPageListen(document, 'visibilitychange', () => {
     if (!document.hidden && window.__fcPageToken === token) loadAll();
@@ -802,11 +885,17 @@
     if (e.target.classList.contains('modal-overlay') && e.target.id === 'modal-nova-transacao') {
       closeTransModal();
     }
+    if (e.target.classList.contains('modal-overlay') && e.target.id === 'modal-editar-transacao') {
+      closeEditTransModal();
+    }
   });
 
   // Close on Escape
   window.fcPageListen(document, 'keydown', e => {
-    if (e.key === 'Escape') closeTransModal();
+    if (e.key === 'Escape') {
+      closeTransModal();
+      closeEditTransModal();
+    }
   });
 
   // Carrega Categories For Modal para uso na tela.
