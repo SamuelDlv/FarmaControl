@@ -85,6 +85,7 @@ class PermissionTests(unittest.TestCase):
                             escrita=method == 'PUT'), expected(role, self.profile_permissions[role], module, method))
 
     def test_logout_works_for_all_roles_even_when_auth_budget_is_exhausted(self):
+        api.app.extensions['auth_limiter'] = AuthLimiter(limit=5)
         other = api.app.test_client()
         for _ in range(5):
             self.assertEqual(other.post('/auth/login', json={}).status_code, 400)

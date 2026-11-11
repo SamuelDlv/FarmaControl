@@ -25,7 +25,7 @@ with patch("pymysql.connect", side_effect=AssertionError("Banco real proibido no
 from farmacontrol.core import access
 from farmacontrol.core import credentials as credentials_module
 from farmacontrol.core import database
-from farmacontrol.core.security import AuthLimiter
+from farmacontrol.core.security import AuthLimiter, LoginFailureLimiter
 from farmacontrol.core.security import credential_stamp
 from farmacontrol.routes import financeiro
 from farmacontrol.services import email
@@ -42,7 +42,9 @@ class BackendTests(unittest.TestCase):
         self.block_db.start()
         self.addCleanup(self.block_db.stop)
         api.app.config.update(TESTING=True, SECRET_KEY="somente-testes", SESSION_COOKIE_SECURE=False)
-        api.app.extensions["auth_limiter"] = AuthLimiter()
+        api.app.extensions["auth_limiter"] = AuthLimiter(limit=100)
+        api.app.extensions["login_failure_limiter"] = LoginFailureLimiter()
+        api.app.extensions["auth_action_limiter"] = AuthLimiter()
         self.client = api.app.test_client()
         self.cur = Mock()
         self.cur.__enter__ = Mock(return_value=self.cur)

@@ -6,7 +6,7 @@
 import unittest
 from unittest.mock import patch
 import test_backend as base
-from farmacontrol.core.security import AuthLimiter
+from farmacontrol.core.security import AuthLimiter, LoginFailureLimiter
 
 api = base.api
 
@@ -25,6 +25,7 @@ class SecurityTests(unittest.TestCase):
     # Cenário de regressão: auth rate limit cannot be bypassed with forwarded header.
     # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_auth_rate_limit_cannot_be_bypassed_with_forwarded_header(self):
+        api.app.extensions['auth_limiter'] = AuthLimiter(limit=5)
         for index in range(5):
             response = self.client.post('/auth/login', json={},
                                         headers={'X-Forwarded-For': f'192.0.2.{index}'})
@@ -44,7 +45,7 @@ class SecurityTests(unittest.TestCase):
     # Cenário de regressão: wrong password reports remaining attempts and wait until reset.
     # Os asserts abaixo especificam o resultado e os efeitos que precisam permanecer estáveis.
     def test_wrong_password_reports_remaining_attempts_and_wait_until_reset(self):
-        api.app.extensions["auth_limiter"] = AuthLimiter(limit=2, window=300)
+        api.app.extensions["login_failure_limiter"] = LoginFailureLimiter(limit=2, window=300)
         credentials = {'email': 'teste@example.com', 'password': 'incorreta'}
         with patch('farmacontrol.core.security.time.monotonic', return_value=100), \
                 patch.object(credentials_module, 'verificar_senha', return_value=False):

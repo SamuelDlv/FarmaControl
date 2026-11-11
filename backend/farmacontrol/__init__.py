@@ -11,7 +11,7 @@ from flask_cors import CORS
 
 from farmacontrol.core.paths import BACKEND_DIR
 from farmacontrol.core.runtime_config import runtime_config
-from farmacontrol.core.security import AuthLimiter
+from farmacontrol.core.security import AuthLimiter, LoginFailureLimiter
 
 
 # Compõe uma instância independente; conectar ao banco fica para a primeira operação.
@@ -32,7 +32,11 @@ def create_app():
     if app.config["ALLOWED_ORIGINS"]:
         CORS(app, origins=app.config["ALLOWED_ORIGINS"], supports_credentials=True,
              allow_private_network=False)
-    app.extensions["auth_limiter"] = AuthLimiter()
+    # Cota geral para redes compartilhadas; não é reiniciada por login/logout.
+    app.extensions["auth_limiter"] = AuthLimiter(limit=100, window=300)
+    app.extensions["login_failure_limiter"] = LoginFailureLimiter(limit=5, window=300)
+    # Cadastro/recuperação continuam limitados separadamente para evitar abuso.
+    app.extensions["auth_action_limiter"] = AuthLimiter(limit=5, window=300)
 
     from farmacontrol.core.database import close_db
     from farmacontrol import middleware

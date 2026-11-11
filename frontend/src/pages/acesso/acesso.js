@@ -299,12 +299,14 @@ function initAutoClear() {
 ═══════════════════════════════════════════ */
 /* initLoginForm(): Configura o formulário de login (validação + envio). */
 let loginAttemptsTimer;
+let loginAttemptsScope;
 // Exibe as tentativas restantes e o tempo de espera informados pelo servidor.
 // O contador visual não remove nem redefine o bloqueio da API.
 function showLoginAttempts(data) {
   const message = $('login-attempts');
   if (!message) return;
   clearInterval(loginAttemptsTimer);
+  loginAttemptsScope = data.limite_escopo || null;
   message.classList.remove('show');
   message.textContent = '';
   if (!Number.isInteger(data.tentativas_restantes)) return;
@@ -325,7 +327,9 @@ function showLoginAttempts(data) {
     }
     const minutes = String(Math.floor(remaining / 60)).padStart(2, '0');
     const secs = String(remaining % 60).padStart(2, '0');
-    message.textContent = `Nenhuma tentativa disponível. Aguarde ${minutes}:${secs} para tentar novamente.`;
+    const label = data.limite_escopo === 'ip'
+      ? 'Limite de autenticação deste IP atingido.' : 'Nenhuma tentativa disponível para esta conta.';
+    message.textContent = `${label} Aguarde ${minutes}:${secs} para tentar novamente.`;
   };
   update();
   loginAttemptsTimer = setInterval(update, 1000);
@@ -336,6 +340,10 @@ function showLoginAttempts(data) {
 function initLoginForm() {
   const form = $('form-login');
   if (!form) return;
+  $('login-email')?.addEventListener('input', () => {
+    // Trocar a conta não remove um bloqueio geral do IP.
+    if (loginAttemptsScope === 'conta') showLoginAttempts({});
+  });
 
   // Intercepta a submissão para tratar validação e envio neste documento.
   form.addEventListener('submit', async e => {

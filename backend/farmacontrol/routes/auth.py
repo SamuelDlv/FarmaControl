@@ -6,7 +6,7 @@ from farmacontrol.core import access
 from farmacontrol.core import credentials
 from farmacontrol.core import database
 from farmacontrol.core import responses
-from farmacontrol.core.security import credential_stamp
+from farmacontrol.core.security import credential_stamp, login_account_key
 from farmacontrol.services import email as email_service
 from farmacontrol.services.audit import commit_audit
 from flask import current_app as app
@@ -344,8 +344,16 @@ def login():
     if not isinstance(remember, bool):
         return responses.err("Valor de lembrar acesso inválido.", campo="remember")
 
-    db = database.get_db()
+    failure_limiter = app.extensions['login_failure_limiter']
+    account_key, attempt = None, None
+
+    def failed_login():
+        g.auth_attempts = failure_limiter.finish(account_key, attempt['ticket'], 'failure')
+        return responses.err('E-mail ou senha incorretos.', status=401)
+
+    db = None
     try:
+        db = database.get_db()
         with db.cursor() as cur:
             cur.execute(
                 """
@@ -361,9 +369,19 @@ def login():
             )
             usuario = cur.fetchone()
 
+            # O ID real evita contornar o contador com variações de e-mail que
+            # a collation do banco reconheça como pertencentes à mesma conta.
+            identity = f"id:{usuario['id']}" if usuario else 'email:' + email
+            account_key = login_account_key(app.config['SECRET_KEY'], identity)
+            attempt = failure_limiter.begin(account_key)
+            g.auth_limit_scope = 'conta'
+            g.auth_attempts = attempt
+            if attempt['retry_after']:
+                return responses.err('Muitas falhas nesta conta. Aguarde antes de tentar novamente.', status=429)
+
             # Usuário não encontrado — mensagem genérica (segurança)
             if not usuario:
-                return responses.err("E-mail ou senha incorretos.", status=401)
+                return failed_login()
 
             # Verifica senha (timing-safe via bcrypt)
             senha_ok = credentials.verificar_senha(senha, usuario["senha_hash"])
@@ -371,7 +389,7 @@ def login():
             if not senha_ok:
                 credentials.registrar_acesso(cur, usuario["id"], sucesso=False, motivo="senha incorreta")
                 commit_audit(db, cur.lastrowid)
-                return responses.err("E-mail ou senha incorretos.", status=401)
+                return failed_login()
 
             # Conta pendente
             if usuario["status"] == "pendente":
@@ -411,6 +429,7 @@ def login():
         session["credential_stamp"] = credential_stamp(app.config["SECRET_KEY"], usuario["senha_hash"])
         session["perfil"] = usuario["perfil"]
         session["csrf_token"] = secrets.token_urlsafe(32)
+        failure_limiter.finish(account_key, attempt['ticket'], 'success')
         log.info("Login OK: %s (%s)", email, usuario["perfil"])
         return responses.ok(
             {
@@ -434,9 +453,14 @@ def login():
 
     except pymysql.MySQLError as exc:
         # Desfaz as gravações ainda não confirmadas desta operação antes de responder à falha.
-        db.rollback()
+        if db is not None:
+            db.rollback()
         log.error("Erro DB no login: %s", exc)
         return responses.err("Erro interno. Tente novamente em instantes.", status=500)
+    finally:
+        # Idempotente após sucesso/falha; libera reservas em erros e contas não aprovadas.
+        if attempt and attempt['ticket'] is not None:
+            failure_limiter.finish(account_key, attempt['ticket'])
 
 
 # Invalida a sessao atual no navegador.

@@ -33,11 +33,18 @@ def validar_entrada():
         # Origem, CSRF e auditoria do logout permanecem obrigatórios.
         if request.path != '/auth/logout':
             g.auth_attempts = app.extensions["auth_limiter"].check_with_status(request.remote_addr or "unknown")
+            g.auth_limit_scope = 'ip'
             retry = g.auth_attempts["retry_after"]
             if retry:
                 response = app.make_response(responses.err("Muitas tentativas. Aguarde antes de tentar novamente.", status=429))
                 response.headers["Retry-After"] = str(retry)
                 return response
+            if request.path != '/auth/login':
+                g.auth_attempts = app.extensions['auth_action_limiter'].check_with_status(
+                    (request.remote_addr or 'unknown', request.endpoint))
+                g.auth_limit_scope = 'acao'
+                if g.auth_attempts['retry_after']:
+                    return responses.err('Muitas solicitações desta operação. Aguarde antes de tentar novamente.', status=429)
     if request.is_json:
         data = request.get_json(silent=True)
         if not isinstance(data, dict):
@@ -70,12 +77,17 @@ def security_headers(response):
         remaining = attempts["remaining"]
         wait = attempts["reset_after"] if remaining == 0 else 0
         data.update(tentativas_restantes=remaining, aguarde_segundos=wait)
+        scope = getattr(g, 'auth_limit_scope', 'ip')
+        data['limite_escopo'] = scope
         if remaining:
             noun = "tentativa disponível" if remaining == 1 else "tentativas disponíveis"
             data["mensagem"] += f" Restam {remaining} {noun} antes do bloqueio temporário."
         else:
             minutes, seconds = divmod(wait, 60)
-            data["mensagem"] = ("Limite de tentativas atingido. "
+            label = {'conta': 'Limite de falhas desta conta atingido. ',
+                     'ip': 'Limite de autenticação deste IP atingido. ',
+                     'acao': 'Limite de solicitações desta operação atingido. '}[scope]
+            data["mensagem"] = (label +
                                 f"Aguarde {minutes:02d}:{seconds:02d} para tentar novamente.")
             response.headers["Retry-After"] = str(wait)
         response.set_data(app.json.dumps(data))

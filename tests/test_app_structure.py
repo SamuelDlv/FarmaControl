@@ -41,6 +41,8 @@ class AppStructureTests(unittest.TestCase):
         first, second = create_app(), create_app()
         self.assertEqual(str(first.url_map), str(second.url_map))
         self.assertIsNot(first.extensions["auth_limiter"], second.extensions["auth_limiter"])
+        self.assertIsNot(first.extensions['login_failure_limiter'], second.extensions['login_failure_limiter'])
+        self.assertIsNot(first.extensions['auth_action_limiter'], second.extensions['auth_action_limiter'])
         first.extensions["auth_limiter"].check_with_status("local")
         self.assertEqual(second.extensions["auth_limiter"].check_with_status("local")["remaining"],
                          first.extensions["auth_limiter"].check_with_status("other")["remaining"])
