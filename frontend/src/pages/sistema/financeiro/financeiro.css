@@ -1381,6 +1381,18 @@ tr:hover td {
   font-weight: 600;
   color: var(--ink-60);
 }
+#form-edit-transacao label[for="edit-tx-reason"] {
+  margin-bottom: 4px;
+}
+
+#edit-tx-reason {
+  height: auto;
+  min-height: 80px;
+  padding: 10px 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
 .form-input,
 .form-select {
   height: 38px;
