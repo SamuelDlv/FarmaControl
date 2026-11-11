@@ -27,7 +27,7 @@ Revisado em **09/11/2026**. Consulte também o [índice da documentação](../do
 
 Cada módulo de rotas expõe `register_routes(app)`, preservando as URLs, os métodos HTTP e os nomes dos endpoints. Os handlers usam o contexto Flask atual; a conexão permanece em `g` e é encerrada ao terminar o contexto. O limitador de autenticação pertence à instância da aplicação (`app.extensions`).
 
-Para adicionar uma área, crie um módulo em `farmacontrol/routes/` e registre-o em `create_app()`. Regras reutilizáveis ficam em `services/`; infraestrutura HTTP e segurança ficam em `core/`. Testes e scripts importam a responsabilidade diretamente do módulo correspondente. Os comentários no código identificam entradas, dependências SQL e limites de transação; consulte o [guia de manutenção](../docs/COMENTARIOS_MANUTENCAO.md).
+Para adicionar uma área, crie um módulo em `farmacontrol/routes/` e registre-o em `create_app()`. Regras reutilizáveis ficam em `services/`; infraestrutura HTTP e segurança ficam em `core/`. Testes e scripts importam a responsabilidade diretamente do módulo correspondente. Os comentários no código identificam entradas, dependências SQL e limites de transação; consulte o [guia de manutenção](../docs/DESENVOLVIMENTO.md#manutencao).
 
 ## Configuração
 
@@ -94,7 +94,7 @@ A sessão usa cookie assinado, HttpOnly e SameSite=Lax. Um HMAC vincula o cookie
 
 Corpos de requisição têm limite de 1 MiB. A autenticação possui duas cotas independentes: **5 falhas por conta em 300 segundos** e **100 requisições por IP em 300 segundos**. Login bem-sucedido zera somente as falhas da conta; logout não consome nem reinicia nenhuma cota. A cota por IP inclui mutações de autenticação, bem-sucedidas ou não, exceto logout. Cadastro, recuperação, redefinição e recusa de convite também mantêm cota separada de 5 solicitações por operação/IP em 300 segundos.
 
-As respostas informam `limite_escopo`, `tentativas_restantes`, `aguarde_segundos` e, no bloqueio, `Retry-After`. As cotas ficam em memória por processo e usam relógio monotônico; reiniciar o backend limpa os contadores. Logout mantém validação de origem, CSRF e auditoria atômica. Consulte [a política e seus cenários de verificação](../docs/LIMITES_AUTENTICACAO.md).
+As respostas informam `limite_escopo`, `tentativas_restantes`, `aguarde_segundos` e, no bloqueio, `Retry-After`. As cotas ficam em memória por processo e usam relógio monotônico; reiniciar o backend limpa os contadores. Logout mantém validação de origem, CSRF e auditoria atômica. Consulte [a política e seus cenários de verificação](../docs/SEGURANCA.md#limites).
 
 Há validação de `Origin` quando presente, JSON e tipos de campos; senhas novas exigem ao menos oito caracteres e no máximo 72 bytes UTF-8. APIs protegidas e autenticação recebem `no-store`. Cabeçalhos contra enquadramento e interpretação indevida de conteúdo são adicionados pelo servidor; HSTS depende do modo de produção.
 
@@ -107,7 +107,7 @@ O IP vem de `request.remote_addr`; encaminhamento por proxy precisa ser configur
 O controle de versões do banco está documentado em
 [migrations/README.md](migrations/README.md). `python scripts/migrate.py status`
 consulta o histórico sem gravar; adoção da baseline e aplicação são comandos
-explícitos. O [CI](../docs/CI.md) verifica migrações em bases descartáveis.
+explícitos. O [CI](../docs/DESENVOLVIMENTO.md#ci) verifica migrações em bases descartáveis.
 
 O catálogo aceita medicamentos e outros produtos no mesmo estoque, compras e vendas. O campo `tipo_produto` distingue `medicamento` de `outro`; categorias organizam alimentos (incluindo bebidas), higiene, cosméticos, saúde sexual, itens infantis, suplementos, acessórios e primeiros socorros. Categorias não determinam o tipo: um creme pode ser medicamento ou cosmético conforme seu cadastro.
 
@@ -134,7 +134,7 @@ O schema e as migrações são fontes locais de definição, não um retrato con
 
 ### Carga massiva de teste (opcional)
 
-O arquivo [`017_popula_farmacia_teste (Opcional).sql`](migrations/017_popula_farmacia_teste%20%28Opcional%29.sql)
+O arquivo [`017_popula_farmacia_teste (Opcional).sql`](migrations/017_popula_farmacia_teste (Opcional).sql)
 simula 180 dias de uma farmácia: 28 usuários com diferentes perfis e estados de
 cadastro, 20 fornecedores, 500 clientes, 200 produtos, 600 lotes, 800 compras,
 6.000 vendas, 12.000 itens de venda, financeiro, movimentações, receitas fictícias,
@@ -171,7 +171,7 @@ python scripts/check_seed_mysql.py
 
 ### Roles técnicas do MySQL
 
-As roles técnicas são destinadas somente à equipe de TI e são diferentes dos perfis funcionais da aplicação (`proprietario`, `farmaceutico`, `atendente` etc.), que continuam nas tabelas `perfis` e `perfil_permissoes`. O `schema.sql` cria somente o banco da aplicação. Para provisionar roles, execute opcionalmente `setup/technical_roles.sql` com uma conta administrativa, após a importação e em um servidor saudável. A migração histórica `015_roles_tecnicas_mysql.sql` permanece imutável; não é um passo obrigatório de instalação no XAMPP. Consulte [MySQL/MariaDB e XAMPP](../docs/MYSQL_XAMPP.md).
+As roles técnicas são destinadas somente à equipe de TI e são diferentes dos perfis funcionais da aplicação (`proprietario`, `farmaceutico`, `atendente` etc.), que continuam nas tabelas `perfis` e `perfil_permissoes`. O `schema.sql` cria somente o banco da aplicação. Para provisionar roles, execute opcionalmente `setup/technical_roles.sql` com uma conta administrativa, após a importação e em um servidor saudável. A migração histórica `015_roles_tecnicas_mysql.sql` permanece imutável; não é um passo obrigatório de instalação no XAMPP. Consulte [MySQL/MariaDB e XAMPP](../docs/database_schema_design.md#mysql-xampp).
 
 | Role | Finalidade | Privilégios no banco `farmacontrol` |
 |---|---|---|
@@ -241,8 +241,6 @@ separadamente. Datas futuras são rejeitadas com uma mensagem de validação.
 não têm atividades, além dos autores excluídos preservados no histórico.
 Depois de atualizar o backend, reinicie o processo local para ativar as mudanças.
 
-
-
 ## Configurações da farmácia
 
 A tela salva as três seções em `PUT /configuracoes`, em uma única transação com auditoria.
@@ -302,7 +300,6 @@ estruturados; registros legados sem finalidade mantêm o tratamento anterior.
 O contador de lotes descartados usa a finalidade estruturada, sem inferir
 que observações antigas sejam autorizações de descarte.
 
-
 ## Validação de referência
 
 Em 09/11/2026, a suíte geral passou com 195 testes Python e 25 JavaScript, além
@@ -322,4 +319,4 @@ node --test tests/*.test.cjs
 node scripts/check_frontend.cjs
 ```
 
-Os pré-requisitos dos testes adicionais estão em [CI](../docs/CI.md).
+Os pré-requisitos dos testes adicionais estão em [CI](../docs/DESENVOLVIMENTO.md#ci).

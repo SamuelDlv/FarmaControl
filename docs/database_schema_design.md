@@ -1,12 +1,12 @@
 # Banco de dados — FarmaControl
 
-Revisado em **19/10/2026** a partir do [schema](../backend/schema.sql) e das [migrações](../backend/migrations). Esta revisão não consultou nem alterou um servidor de banco.
+Consolidado em **11/11/2026**; referência de estrutura revisada em **19/10/2026** a partir do [schema](../backend/schema.sql) e das [migrações](../backend/migrations). Esta revisão não consultou nem alterou um servidor de banco.
 
 ## Instalação e compatibilidade
 
-O schema cria a base `farmacontrol` com `utf8mb4` e tabelas InnoDB. Inclui 24 tabelas, roles técnicas, perfis, categorias e configurações iniciais. Não cria automaticamente uma conta administrativa da aplicação com senha.
+O schema cria a base `farmacontrol` com `utf8mb4` e tabelas InnoDB. Inclui 24 tabelas, perfis, categorias e configurações iniciais. Roles técnicas são provisionadas separadamente. Não cria automaticamente uma conta administrativa da aplicação com senha.
 
-Use-o em uma instalação nova. Em base existente, compare estrutura e migrações; `CREATE TABLE IF NOT EXISTS` não atualiza todas as colunas, índices ou dados de uma tabela antiga. O arquivo contém instruções específicas de MySQL, inclusive roles e concessões: compatibilidade com MariaDB precisa ser conferida na versão de destino.
+Use-o em uma instalação nova. Em base existente, compare estrutura e migrações; `CREATE TABLE IF NOT EXISTS` não atualiza todas as colunas, índices ou dados de uma tabela antiga. O schema base é verificado pelo CI em MySQL 8 e MariaDB 10.4; não executa roles ou concessões globais. Veja [instalação e diagnóstico no XAMPP](#mysql-xampp).
 
 ## Tabelas
 
@@ -108,6 +108,8 @@ Usuários, convites, recuperação e aceites possuem finalidades diferentes. Tok
 | `019` | Reorganização de categorias comerciais |
 | `020` | Ampliação dos detalhes de auditoria |
 | `021` | Remoção das permissões de Previsão IA |
+| `022` | Descarte e finalidade de movimentações |
+| `023` | Referência histórica do fornecedor na devolução |
 | `20261005_perfil_permissoes.sql` | Matriz de permissões por perfil |
 
 Os dois arquivos 002 têm finalidades distintas e foram preservados. A numeração não define um comando automático seguro para qualquer banco. Leia os pré-requisitos e efeitos de cada arquivo; migrações podem atualizar dados além da estrutura.
@@ -147,3 +149,85 @@ Essas roles não são os perfis funcionais salvos em `perfis`. O schema base nã
 O banco não está dentro do repositório. Preserve estrutura, dados e rotinas necessárias em backup separado; não versione exportações com dados reais. Siga [transferência](TRANSFERENCIA.md) para migração entre máquinas.
 
 Testes unitários usam banco simulado. `check_catalogo_mysql.py` e `check_seed_mysql.py` são verificações adicionais com bases temporárias e privilégios próprios. A revisão documental de 19/10 não executou esses scripts nem confirmou as migrações instaladas.
+
+Para baseline, status e versões novas em `managed/`, siga o [procedimento de migrações](../backend/migrations/README.md). Não execute a pasta inteira em uma base existente.
+
+<a id="mysql-xampp"></a>
+
+## MySQL, MariaDB e XAMPP
+
+O Workbench é um cliente de administração. O XAMPP normalmente distribui MariaDB
+com o nome “MySQL” no painel; confira a versão real com:
+
+```sql
+SELECT VERSION(), @@version_comment, @@port, @@datadir;
+```
+
+O schema base usa InnoDB e `utf8mb4_unicode_ci`, disponíveis em MySQL 8 e
+MariaDB 10.4+. A matriz de CI verifica a importação completa nos dois motores.
+Não copie a pasta de dados entre MySQL e MariaDB: transfira o banco da aplicação
+por exportação/importação SQL, conforme [TRANSFERENCIA.md](TRANSFERENCIA.md).
+
+### Instalação nova
+
+1. Inicie o servidor escolhido. Se MySQL instalado e XAMPP coexistirem, use portas
+   diferentes ou execute somente um deles na mesma porta.
+2. Importe `backend/schema.sql` pelo Workbench ou phpMyAdmin. É um schema para
+   instalação nova, não uma rotina de reparo ou de atualização de dados existentes.
+3. Configure `backend/.env` para essa instância: `DB_HOST`, `DB_PORT`, `DB_NAME`,
+   `DB_USER` e `DB_PASSWORD`. Não presuma que senha e porta são iguais nos dois PCs.
+4. Inicie o FarmaControl. O Apache é necessário somente para acessar o phpMyAdmin;
+   o FarmaControl serve suas próprias páginas em `127.0.0.1:5000`.
+
+As tabelas `perfis` e `perfil_permissoes` fazem parte do schema e continuam
+controlando o acesso funcional. As roles técnicas `fc_*` são opcionais: a TI pode
+executar `backend/setup/technical_roles.sql` separadamente, com privilégios
+administrativos. O schema base não executa `CREATE ROLE`, `GRANT`, reparos ou
+alterações nas tabelas internas `mysql.*`. As migrações históricas não foram alteradas.
+
+### Erro 1034 na tabela mysql.db
+
+Uma falha no `GRANT` com índice incorreto na tabela `db` aponta para o sistema de privilégios.
+`mysql.db` pertence ao sistema de privilégios do servidor, não às tabelas do
+FarmaControl. Separar as roles evita que a importação dependa desse provisionamento,
+mas não recupera um servidor já corrompido. Não há reparo automático na aplicação.
+
+Se o problema reaparecer, preserve backup antes de manutenção, registre a versão
+e consulte o log de erro. `CHECK TABLE mysql.db` permite diagnosticar essa tabela;
+`REPAIR TABLE` só se aplica aos motores que o suportam, como Aria/MyISAM, e não
+é reparo de InnoDB. Não transforme reparos repetidos em etapa normal de importação.
+Não exclua `ibdata1`, arquivos de redo/Aria ou substitua a pasta `data` como tentativa
+genérica: isso pode destruir dados ou agravar a recuperação.
+
+### Encerramento
+
+Encerre primeiro o FarmaControl com `Ctrl+C` ou `Encerrar-FarmaControl.bat` e
+aguarde a confirmação. O servidor local interrompe a aceitação de requisições e
+aguarda os handlers ativos terminarem, com commit/rollback conforme a rota e
+fechamento das conexões pelo Flask. Só depois pare o MySQL no painel do XAMPP,
+se desejar. O BAT não para o banco, Apache ou outros processos.
+
+O sinal de controle é um evento nativo da sessão Windows, identificado pelo
+caminho absoluto do projeto. Não há endpoint HTTP de desligamento, senha gravada
+em arquivo ou finalização forçada como alternativa. Após atualizar uma versão
+antiga já aberta, use `Ctrl+C` uma vez e reinicie pelo iniciador. Se o BAT não
+confirmar o encerramento em 30 segundos, confira a janela do servidor; ele pode
+estar aguardando uma requisição demorada. Não desligue o banco nesse intervalo.
+
+### “MySQL shutdown unexpectedly” no painel
+
+A mensagem do painel é genérica e não identifica a causa. O BAT anterior encontrado
+no repositório encerrava somente o Python do projeto à força; não continha comando
+para encerrar `mysqld`. Esse registro não comprova que o BAT derrubou o banco.
+
+Abra **Logs** ao lado de MySQL no XAMPP e preserve o trecho do momento da falha
+(normalmente `mysql/data/mysql_error.log`, ou o destino configurado em `my.ini`).
+Verifique ali se há erro de porta em uso, privilégios, Aria, InnoDB ou recuperação.
+Confira também se outro serviço MySQL está usando a mesma porta. A causa específica depende desse log; não pode ser confirmada somente pelo painel.
+
+Referências oficiais:
+
+- [Erro 1034](https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1000-to-1099/e1034)
+- [REPAIR TABLE e motores suportados](https://mariadb.com/docs/server/reference/sql-statements/table-statements/repair-table)
+- [SET DEFAULT ROLE no MariaDB](https://mariadb.com/docs/server/reference/sql-statements/account-management-sql-statements/set-default-role)
+- [Diagnóstico de quedas do MySQL](https://dev.mysql.com/doc/refman/8.4/en/crashing.html)

@@ -1,58 +1,38 @@
 # Documentação do FarmaControl
 
-Referência revisada em **09/11/2026**, a partir do código e dos SQLs presentes nesta cópia. A revisão documental não executa migrações nem confirma a estrutura de um banco instalado.
+Organizada em **11/11/2026**: **11 Markdown**, sendo oito guias principais, um guia do Postman e dois históricos mensais. Guias são agrupados por assunto; revisões e resultados são consultados por data. A consolidação documental não executa migrações nem confirma o estado de uma instalação.
 
-## Por onde começar
+## Guias por assunto
 
-| Objetivo | Documento |
+| Guia | Conteúdo |
 | --- | --- |
-| Instalar e conhecer os módulos | [README principal](../README.md) |
-| Instalar Python e dependências no Windows | [Instalador de dependências](../README.md#instalador-de-dependências-windows) |
-| Configurar API, ambiente e permissões | [Backend](../backend/README.md) |
-| Localizar os arquivos da estrutura modular do backend | [Mapa da refatoração](REFATORACAO_BACKEND.md) |
-| Entender páginas, estilos e navegação | [Frontend](../frontend/README.md) |
-| Consultar login, convites e recuperação | [Autenticação](../frontend/src/pages/README-authentication.md) |
-| Entender tabelas e migrações | [Banco de dados](database_schema_design.md) |
-| Visualizar tabelas, chaves e relacionamentos | [Atlas EER e dicionário de dados](database_eer.md) |
-| Consultar endpoints | [Referência da API](API.md) |
-| Operar vendas de balcão | [Vendas e PDV](pdv.md) |
-| Desenvolver e executar verificações | [Desenvolvimento](DESENVOLVIMENTO.md) |
-| Entender os comentários e acompanhar um fluxo no código | [Manutenção e transferência do código](COMENTARIOS_MANUTENCAO.md) |
-| Consultar verificações automáticas e testes de integração | [CI e reprodução local](CI.md) |
-| Conferir baseline e aplicar migrações novas | [Migrações do banco](../backend/migrations/README.md) |
-| Criar uma migração controlada | [Convenção de migrações](../backend/migrations/managed/README.md) |
-| Registrar devolução ao fornecedor | [Devolução](devolucao-fornecedor.md) |
-| Configurar e diagnosticar MySQL/MariaDB no XAMPP | [MySQL e XAMPP](MYSQL_XAMPP.md) |
-| Consultar a API pelo Postman | [Collection e instruções](postman/README.md) |
-| Transferir arquivos e banco | [Transferência](TRANSFERENCIA.md) |
-| Preparar commits e publicar código | [GitHub](GITHUB.md) |
+| [Desenvolvimento](DESENVOLVIMENTO.md) | Ambiente, testes, arquitetura, manutenção, CI e publicação no GitHub |
+| [Banco de dados](database_schema_design.md) | Tabelas, migrações, backup, MySQL/MariaDB e diagnóstico do XAMPP |
+| [Atlas EER](database_eer.md) | Diagramas por área, chaves e dicionário das 24 tabelas; gerado pelo schema |
+| [API](API.md) | Autenticação HTTP, endpoints, contratos, pesquisas e paginação |
+| [Segurança](SEGURANCA.md) | Limites de autenticação, logout, sete perfis e permissões |
+| [Operação](OPERACAO.md) | PDV, saldo por lote e devolução ao fornecedor |
+| [Transferência](TRANSFERENCIA.md) | Mudança de máquina, arquivos, restauração do banco e conferências |
+| [Postman](postman/README.md) | Configuração da Collection, variáveis e roteiro completo de execução |
 
-## Fontes de verdade
+## Histórico por data
 
-O comportamento HTTP está em `backend/farmacontrol/routes/` e `backend/farmacontrol/middleware.py`, com entrada em `backend/app.py`; as variáveis validadas estão em `backend/farmacontrol/core/runtime_config.py`; tabelas, índices e relacionamentos estão em `backend/schema.sql` e nas migrações. O schema descreve uma instalação nova, enquanto as migrações registram alterações para bases anteriores.
+| Período | Revisões registradas |
+| --- | --- |
+| [Novembro de 2026](historico/2026-11.md) | 04/11 pesquisas; 05/11 testes reais; 09/11 comentários e CI; 11/11 autenticação, permissões e consolidação documental |
+| [Outubro de 2026](historico/2026-10.md) | 06–08/10 mapeamento e auditoria; 15/10 segurança; 19 e 23/10 validações; 23/10 modularização |
 
-Documentação não substitui esses contratos. Ao alterar uma rota, configuração, regra de acesso ou estrutura de dados, atualize o documento correspondente e os testes afetados no mesmo conjunto de mudanças.
+Cada registro conserva a data, o escopo e as limitações da revisão original. Contagens antigas, caminhos locais e descrições da antiga SPA são históricos. Consultas de vulnerabilidades de 15/10 e testes anteriores não foram repetidos pela consolidação.
 
-## Relatórios históricos
+Para novas revisões, atualize o guia do assunto e registre resultados na seção da data, em `historico/AAAA-MM.md`. Reutilize o arquivo do mês e ordene suas seções cronologicamente; abra outro apenas quando mudar o mês. Use datas ISO no nome dos arquivos e dia/mês/ano no texto. Não crie um Markdown separado para cada revisão.
 
-- [Mapeamento de 06/10](auditoria-mapeamento-2026-10-06.md).
-- [Auditoria e refatoração de 06/10](auditoria-relatorio-2026-10-06.md).
-- [Revisão de segurança de 15/10](seguranca-relatorio-2026-10-15.md).
+## Instalação e fontes de verdade
 
-Esses documentos preservam os resultados e limitações das respectivas revisões. Contagens antigas, caminhos de evidências locais e descrições da antiga SPA não representam necessariamente a versão atual. A consulta de vulnerabilidades de 15/10 não foi repetida nesta atualização documental.
+- [README principal](../README.md): módulos, requisitos e instalação.
+- [Backend](../backend/README.md): configuração e autorização.
+- [Frontend](../frontend/README.md) e [fluxo de autenticação](../frontend/src/pages/README-authentication.md): páginas, navegação, cadastro e recuperação.
+- [Migrações](../backend/migrations/README.md) e [convenção de versões novas](../backend/migrations/managed/README.md): baseline e aplicação controlada.
 
-## Validação de referência em 09/11/2026
+O comportamento HTTP está em `backend/farmacontrol/routes/` e `middleware.py`; as variáveis validadas em `core/runtime_config.py`; a instalação nova em `backend/schema.sql`; e a evolução de bases existentes nas migrações. Atualize os guias e testes afetados junto de cada mudança de contrato. SQLs históricos, versões registradas e checksums permanecem imutáveis.
 
-- 195 testes Python e 25 testes JavaScript aprovados.
-- Sintaxe de 55 scripts frontend e dependências Python verificadas.
-- Auditoria sem assets ausentes, IDs HTML duplicados ou imports de backend não utilizados.
-- [GitHub Actions do commit 710e9dc](https://github.com/SamuelDlv/FarmaControl/actions/runs/42654607638): cinco jobs aprovados, cobrindo unitários/auditoria, encerramento Windows, schema MySQL 8.0.46, schema MariaDB 10.4 e integração MySQL/navegador.
-
-As contagens descrevem essa revisão, não uma garantia sobre versões futuras.
-Confira a execução associada ao commit instalado. O CI usa bases descartáveis;
-não confirma o estado da base operacional, entrega SMTP real ou compilação do
-instalador. Veja os detalhes e limites em [CI](CI.md) e no [registro de manutenção](COMENTARIOS_MANUTENCAO.md).
-
-Os resultados de 19/10 (120 testes Python, 17 JavaScript e 53 scripts) são
-históricos. Para preparar outra máquina, crie uma nova `.venv`; não copie
-ambientes virtuais da instalação anterior.
+Screenshots e evidências visuais ficam em `.audit-backup/`, fora do versionamento. Não publique credenciais, `.env`, bases ou dados operacionais. Os JSONs históricos já existentes em `docs/` continuam acessíveis pelos relatórios correspondentes.

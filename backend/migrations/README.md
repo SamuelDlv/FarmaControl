@@ -89,7 +89,6 @@ antigas permanecem nulos.
 concorrência e falha parcial de DDL em base temporária, removida ao terminar.
 O CI executa esse teste no MySQL 8.0.46; MariaDB não está coberto por essa matriz.
 
-
 O [CI de referência de 09/11/2026](https://github.com/SamuelDlv/FarmaControl/actions/runs/42654607638)
 aprovou o runner no job MySQL/navegador e a importação/reimportação do schema
 em MySQL 8.0.46 e MariaDB 10.4. A matriz de schema MariaDB não equivale à
@@ -98,4 +97,4 @@ na instalação do usuário.
 
 Os comentários de manutenção foram acrescentados aos utilitários Python; os
 SQLs históricos e `baseline_023.json` permaneceram intactos. Consulte o
-[guia de manutenção](../../docs/COMENTARIOS_MANUTENCAO.md) e a [reprodução do CI](../../docs/CI.md).
+[guia de manutenção](../../docs/DESENVOLVIMENTO.md#manutencao) e a [reprodução do CI](../../docs/DESENVOLVIMENTO.md#ci).

@@ -13,7 +13,6 @@ pelo comando `python scripts/migrate.py baseline --legacy-reviewed`, depois das
 verificações descritas no [guia](../README.md). `apply` executa apenas os SQLs desta
 pasta, em ordem, sob bloqueio exclusivo por banco.
 
-
 ## Conferir e aplicar
 
 Execute pela raiz do projeto, no ambiente Python configurado:
@@ -32,5 +31,5 @@ de continuar, pois DDL pode ter sido confirmado parcialmente pelo MySQL.
 O [CI de referência](https://github.com/SamuelDlv/FarmaControl/actions/runs/42654607638)
 validou baseline, checksums, concorrência e falha parcial em MySQL descartável.
 Os procedimentos e limites estão no [guia de migrações](../README.md) e em
-[CI](../../../docs/CI.md). Esta atualização documental não adiciona migração nem
+[CI](../../../docs/DESENVOLVIMENTO.md#ci). Esta atualização documental não adiciona migração nem
 altera os SQLs ou o contrato congelado da baseline.

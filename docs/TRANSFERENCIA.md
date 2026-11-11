@@ -1,6 +1,6 @@
 # Transferir o FarmaControl para outra máquina
 
-Revisado em **19/10/2026**. Para instalação sem dados anteriores, use o [README](../README.md). Para trazer o código por Git, veja [GitHub](GITHUB.md). Este guia trata da preservação de uma instalação existente.
+Revisado em **19/10/2026**. Para instalação sem dados anteriores, use o [README](../README.md). Para trazer o código por Git, veja [GitHub](DESENVOLVIMENTO.md#publicacao). Este guia trata da preservação de uma instalação existente.
 
 Este roteiro mantém o sistema em localhost e considera Windows no destino.
 O projeto usa Python, Flask e um servidor MySQL separado. Não é necessário

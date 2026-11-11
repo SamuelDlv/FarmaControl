@@ -47,7 +47,7 @@ Não há instalador automático do banco, conta administrativa criada automatica
 ### Instalador de dependências (Windows)
 
 Depois de clonar ou extrair o projeto completo, execute
-[`dist/installer/Instalar Dependencias FarmaControl.exe`](dist/installer/Instalar%20Dependencias%20FarmaControl.exe).
+[`dist/installer/Instalar Dependencias FarmaControl.exe`](dist/installer/Instalar Dependencias FarmaControl.exe).
 O instalador sugere a raiz do projeto dois níveis acima do executável;
 confirme ou selecione a pasta que contém `backend/app.py` e
 `backend/requirements.txt`. Não o execute diretamente dentro do ZIP.
@@ -96,7 +96,7 @@ As migrações opcionais 014 e 017 criam usuários com credenciais públicas par
 
 Após a configuração, `Iniciar-FarmaControl.bat` usa `.venv/Scripts/python.exe` e abre o navegador após dois segundos. Mantenha a janela do servidor aberta. Encerre com `Ctrl+C` ou com `Encerrar-FarmaControl.bat`: o servidor para de receber requisições e aguarda as que já estão em andamento, incluindo o fechamento das conexões do banco. O BAT sinaliza somente a instância desta pasta na sessão Windows, sem finalizar processos à força nem parar MySQL/MariaDB ou Apache. Se demorar mais de 30 segundos, informa que não confirmou o término; confira a janela do servidor.
 
-Após atualizar de uma versão antiga, encerre uma vez com `Ctrl+C` e reinicie pelo iniciador para habilitar o novo sinal de encerramento. O modo local mantém `APP_DEBUG` para diagnóstico, sem recarga automática. Para usar XAMPP, inicie o MySQL pelo painel antes da aplicação; pare o banco pelo próprio painel somente depois de encerrar o FarmaControl. Apache é necessário para o phpMyAdmin, mas não para servir o FarmaControl. Veja [compatibilidade e diagnóstico do banco](docs/MYSQL_XAMPP.md).
+Após atualizar de uma versão antiga, encerre uma vez com `Ctrl+C` e reinicie pelo iniciador para habilitar o novo sinal de encerramento. O modo local mantém `APP_DEBUG` para diagnóstico, sem recarga automática. Para usar XAMPP, inicie o MySQL pelo painel antes da aplicação; pare o banco pelo próprio painel somente depois de encerrar o FarmaControl. Apache é necessário para o phpMyAdmin, mas não para servir o FarmaControl. Veja [compatibilidade e diagnóstico do banco](docs/database_schema_design.md#mysql-xampp).
 
 O servidor local escuta em `127.0.0.1:5000`. O repositório distribui `backend/.env.example`; crie o `.env` privado com os dados da sua instalação. Gere uma chave persistente com:
 
@@ -110,7 +110,7 @@ Copie o resultado apenas para `SECRET_KEY` no `.env` privado. Sem uma chave vál
 
 As verificações agora rodam automaticamente no GitHub em pushes para `main` e
 pull requests, incluindo MySQL e navegador em ambiente descartável. Consulte
-[CI e reprodução local](docs/CI.md). O controle de migrações permite consultar
+[CI e reprodução local](docs/DESENVOLVIMENTO.md#ci). O controle de migrações permite consultar
 pendências com `python scripts/migrate.py status`; consulte a
 [adoção da baseline e aplicação](backend/migrations/README.md) antes de gravar.
 
@@ -161,7 +161,7 @@ as alterações revisadas, preservando arquivos locais e a configuração privad
 
 Revise a lista de arquivos antes do commit. `git check-ignore` deve mostrar `backend/.env`; somente o exemplo deve ser publicado. O envio ao GitHub versiona o projeto, mas não coloca a aplicação em funcionamento na internet.
 
-O guia [GitHub](docs/GITHUB.md) detalha os arquivos incluídos, a revisão do índice e o tratamento de arquivos privados já rastreados.
+O guia [GitHub](docs/DESENVOLVIMENTO.md#publicacao) detalha os arquivos incluídos, a revisão do índice e o tratamento de arquivos privados já rastreados.
 
 ## Operação e limites atuais
 
@@ -183,11 +183,11 @@ O FarmaControl permite **uso, estudo, cópia, modificação e redistribuição p
 
 ## Documentação e colaboração
 
-As páginas internas exigem sessão e permissão no servidor antes da entrega do HTML. Acesso direto sem login redireciona à tela de acesso, e a guarda visual revalida páginas restauradas pelo histórico. A autenticação permite 5 solicitações por IP/processo em 5 minutos; erros de login exibem tentativas restantes e tempo de espera. Veja os detalhes e limites no [fluxo de autenticação](frontend/src/pages/README-authentication.md).
+As páginas internas exigem sessão e permissão no servidor antes da entrega do HTML. Acesso direto sem login redireciona à tela de acesso, e a guarda visual revalida páginas restauradas pelo histórico. A política de autenticação distingue 5 falhas por conta e 100 requisições por IP/processo em 5 minutos; cadastro e recuperação têm cotas por operação. Logout permanece disponível com as cotas esgotadas. Veja [limites e permissões](docs/SEGURANCA.md). Veja os detalhes e limites no [fluxo de autenticação](frontend/src/pages/README-authentication.md).
 
 Explore o **[Atlas EER do banco](docs/database_eer.md)**: 24 tabelas organizadas em sete áreas, diagramas de relacionamentos e dicionário de colunas com PK/FK, tipos e nulabilidade.
 
-Acesse o [índice completo](docs/README.md), o [guia de desenvolvimento](docs/DESENVOLVIMENTO.md), a [referência da API](docs/API.md) e o [guia dos comentários para manutenção](docs/COMENTARIOS_MANUTENCAO.md). Para propor uma mudança, descreva o problema, o comportamento esperado, testes executados e eventual migração de banco.
+Acesse o [índice completo](docs/README.md), o [guia de desenvolvimento](docs/DESENVOLVIMENTO.md), a [referência da API](docs/API.md) e o [guia dos comentários para manutenção](docs/DESENVOLVIMENTO.md#manutencao). Para propor uma mudança, descreva o problema, o comportamento esperado, testes executados e eventual migração de banco.
 
 Na revisão de 09/11/2026, passaram **195 testes Python**, **25 testes JavaScript**,
 a sintaxe de **55 scripts frontend**, `pip check` e a auditoria estática. O

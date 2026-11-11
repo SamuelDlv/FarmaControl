@@ -1,11 +1,12 @@
-# Desenvolvimento e validação
+# Desenvolvimento, manutenção e publicação
 
-Atualização de manutenção em 05/11/2026: consulte [CI e integração real](CI.md)
-para a rotina automatizada e [migrações controladas](../backend/migrations/README.md)
-para status, adoção da baseline e novas versões. `requirements-dev.txt` inclui
-as dependências da aplicação e o Playwright usado nos testes de navegador.
+Consolidado em **11/11/2026**. Reúne ambiente, arquitetura, manutenção, CI e GitHub. Resultados de execuções anteriores ficam no [histórico de outubro](historico/2026-10.md) e [novembro](historico/2026-11.md). Os comandos partem da raiz do projeto.
 
-Revisado em 23/10/2026. Todos os comandos abaixo partem da raiz do projeto.
+- [Ambiente e verificações](#ambiente-de-trabalho)
+- [Arquitetura do backend](#arquitetura)
+- [Manutenção do código](#manutencao)
+- [CI e integração](#ci)
+- [Publicação no GitHub](#publicacao)
 
 ## Ambiente de trabalho
 
@@ -83,7 +84,7 @@ Os utilitários `migrate_catalogo.py` e `migrate_audit.py` permitem inspeção e
 
 No frontend, mantenha a ordem dos estilos e use os utilitários compartilhados. No backend, parametrize valores SQL e confirme mutações e auditoria na mesma transação quando esse for o contrato do fluxo. Não crie tabelas como efeito de uma requisição comum.
 
-As rotas estão em `backend/farmacontrol/routes/`, agrupadas por área e registradas por `create_app()`. Infraestrutura e permissões ficam em `core/`, regras compartilhadas em `services/` e os hooks HTTP em `middleware.py`. Ao simular dependências em testes, aplique o patch no módulo correspondente, por exemplo `farmacontrol.core.database.get_db`; `backend/app.py` contém apenas a entrada da aplicação. Veja o [mapa de arquivos](REFATORACAO_BACKEND.md).
+As rotas estão em `backend/farmacontrol/routes/`, agrupadas por área e registradas por `create_app()`. Infraestrutura e permissões ficam em `core/`, regras compartilhadas em `services/` e os hooks HTTP em `middleware.py`. Ao simular dependências em testes, aplique o patch no módulo correspondente, por exemplo `farmacontrol.core.database.get_db`; `backend/app.py` contém apenas a entrada da aplicação. Veja o [mapa de arquivos](#arquitetura).
 
 ## Diagnóstico
 
@@ -102,10 +103,208 @@ As rotas estão em `backend/farmacontrol/routes/`, agrupadas por área e registr
 
 Logs podem conter informações operacionais; mantenha-os fora do repositório. Não trate mensagens de erros simulados da suíte como falha se o resultado final dos testes for `OK`.
 
-## Registro de validação
+<a id="arquitetura"></a>
 
-Em 23/10/2026, após a modularização do backend: 137 testes Python aprovados, compilação de `backend/`, `tests/` e `scripts/` sem erros e auditoria estática sem imports de backend não utilizados, assets ausentes ou IDs HTML duplicados. O teste de contrato confirma URLs, métodos HTTP e nomes dos endpoints. A comparação estrutural das 112 funções extraídas confirmou a preservação da lógica, descontando os novos caminhos de importação e acessos ao contexto Flask. A validação usa banco simulado; não confirma integração real com MySQL nem entrega SMTP.
+## Arquitetura do backend
 
-Em 19/10/2026, antes da remoção do ambiente de auditoria: 120 testes Python aprovados e `pip check` sem inconsistências. Os 17 testes JavaScript passaram usando o runtime Node do VS Code com isolamento de processo desativado, pois o ambiente bloqueou a criação de subprocessos. O comando padrão acima é destinado a uma instalação normal do Node. A última verificação de sintaxe examinou 53 scripts.
+Atualizado em **23/10/2026**. Todos os caminhos são relativos à raiz do projeto.
 
-Em 23/10/2026, a proteção de páginas foi validada com 105 testes: 59 de backend, 19 de segurança, 9 de acesso a páginas, 14 de infraestrutura frontend e 4 da guarda visual. A sintaxe de 54 scripts externos e inline passou. As suítes usam banco e ambiente de navegador simulados; essa etapa não validou integração real com MySQL nem renderização em navegador. Os testes de logout e contador foram executados nas mudanças anteriores, separadamente desse total.
+`backend/app.py` passa a ser apenas a entrada local e WSGI. A composição da aplicação fica em `backend/farmacontrol/__init__.py`, as rotas em `routes/`, a infraestrutura em `core/` e as regras compartilhadas em `services/`. Os hooks HTTP ficam em `middleware.py`.
+
+O comando `python backend/app.py`, a entrada WSGI `app:app`, as URLs, os métodos HTTP e os nomes dos endpoints permanecem compatíveis. Os imports internos usados por testes e scripts foram atualizados. O `.env` continua em `backend/.env` e o frontend em `frontend/src/`.
+
+### Mapa de responsabilidades
+
+| Caminho | Responsabilidade |
+| --- | --- |
+| `backend/app.py` | Entrada local e WSGI |
+| `backend/farmacontrol/__init__.py` | Factory e registro das rotas |
+| `backend/farmacontrol/middleware.py` | Hooks HTTP e proteção de requisições |
+| `backend/farmacontrol/core/` | Acesso, credenciais, banco, respostas, configuração e segurança |
+| `backend/farmacontrol/routes/` | Handlers agrupados por domínio |
+| `backend/farmacontrol/services/` | Auditoria, e-mail, produtos, relatórios e configurações compartilhadas |
+
+O inventário dos 58 arquivos da extração e sua validação estão no [registro de 23/10](historico/2026-10.md#refatoracao-2026-10-23).
+
+<a id="manutencao"></a>
+
+## Manutenção do código
+
+### Como acompanhar um fluxo
+
+1. Comece pelo HTML em `frontend/src/pages/`: os comentários identificam a região
+   principal, formulários, tabelas e diálogos. Preserve os IDs usados pelo JavaScript.
+2. No JavaScript correspondente, leia os comentários das funções de carregamento,
+   renderização e envio. Os utilitários em `frontend/src/utils/` compartilham sessão
+   visual, transporte HTTP, ciclo de vida, menu e preferências.
+3. Localize a URL em `backend/farmacontrol/routes/`. Os comentários apontam as
+   chaves lidas do JSON e as tabelas com nomes literais nas consultas diretas. Essa
+   lista não inclui dependências indiretas dos serviços chamados pela rota.
+4. Confira `middleware.py`, `core/` e `services/` para autorização, validações,
+   sessão, conexão, auditoria e regras compartilhadas. Ao alterar uma gravação,
+   preserve os limites de transação documentados junto ao código.
+5. Leia os testes correspondentes e execute os comandos em `DESENVOLVIMENTO.md`.
+
+### Cuidados documentados junto ao código
+
+- A sessão visual no navegador não autoriza operações; a API revalida a conta,
+  as permissões e o CSRF.
+- A conexão de banco pertence ao contexto Flask. A operação e sua auditoria usam
+  a mesma transação; threads de notificação abrem contexto e conexão próprios.
+- O PDV revalida preço e saldo por lote sob bloqueio. Falha de rede após o envio
+  não comprova que a venda foi recusada; a tela bloqueia repetição automática.
+- O recebimento de compras movimenta saldo na transição de estado. Descarte e
+  devolução preservam motivos, permissões adicionais e histórico.
+- Timers e listeners pertencem ao ciclo de vida da tela. Novas rotinas devem usar
+  os wrappers compartilhados para permitir descarte.
+- A cascata CSS, os breakpoints, os estados de foco e o empilhamento de diálogos
+  fazem parte do comportamento visual dos componentes.
+- Os BATs e o PowerShell compartilham o protocolo de encerramento cooperativo
+  com `core/local_server.py`, identificado pelo caminho da instalação.
+
+As migrações históricas, as versões registradas e `baseline_023.json` são imutáveis, inclusive comentários que alterariam checksums. Consulte o [guia de migrações](../backend/migrations/README.md). Capturas e backups ficam apenas em `.audit-backup/`. O registro da revisão de comentários de 09/11 está no [histórico](historico/2026-11.md#2026-11-09).
+
+<a id="ci"></a>
+
+## CI e reprodução local
+
+O workflow `.github/workflows/ci.yml` roda em pushes para `main`, pull requests e
+acionamento manual pelo GitHub Actions. Usa Python 3.12, Node 22 e Ubuntu 24.04.
+
+### Unitários e auditoria
+
+- Instala as dependências fixadas e executa `pip check`.
+- Executa todos os testes Python e JavaScript, sem banco real.
+- Valida sintaxe dos scripts frontend.
+- Falha se a auditoria encontrar assets ausentes, IDs HTML duplicados ou imports
+  de backend não utilizados. Repetições de CSS continuam apenas informativas.
+
+### MySQL e navegador
+
+- Inicia MySQL 8.0.46 em um serviço descartável, com credenciais exclusivas do job.
+- Instala `requirements-dev.txt` e Chromium pelo Playwright.
+- Executa `check_migrations_mysql.py`, `check_catalogo_mysql.py` e
+  `check_devolucao_mysql.py --browser`.
+- Os testes criam e removem bases aleatórias. Não usam o `.env` privado da instalação.
+- Não publica screenshots nem faz deploy ou migração da base operacional.
+
+### Compatibilidade e encerramento
+
+- A matriz de schema importa e reimporta o arquivo completo em MySQL 8.0.46 e
+  MariaDB 10.4, com uma conta limitada à base descartável, sem privilégios globais.
+- O job Windows executa o BAT real contra os eventos de controle e verifica o
+  isolamento entre pastas. Também verifica que uma requisição em andamento termina
+  e que o teardown fecha sua conexão antes de concluir o encerramento.
+- Esses testes não reproduzem uma instalação XAMPP com arquivos internos corrompidos.
+
+Todos os jobs precisam ficar verdes para a validação ser considerada concluída.
+O workflow publica resultados na aba Actions. Exigir esses checks antes de merge
+depende de uma regra de proteção da branch; criar o workflow não ativa essa regra.
+
+### Reprodução local
+
+```powershell
+python -m pip install -r requirements-dev.txt
+python -m playwright install chromium
+python -B -m unittest discover -s tests -v
+node --test tests/*.test.cjs
+node scripts/check_frontend.cjs
+python -B scripts/audit_static.py
+python -B scripts/check_migrations_mysql.py
+python -B scripts/check_schema_mysql.py
+python -B scripts/check_catalogo_mysql.py
+python -B scripts/check_devolucao_mysql.py --browser
+```
+
+No Windows, o teste usa o Chrome instalado quando disponível; `CHROME_PATH`
+permite escolher outro executável. No CI Linux usa o Chromium instalado pelo
+Playwright. Os testes de integração exigem MySQL local e credenciais com permissão
+para criar/remover bases temporárias. Variáveis `DB_*` de ambiente prevalecem sobre
+`backend/.env`.
+
+Referências: [workflows Python do GitHub](https://docs.github.com/en/actions/tutorials/build-and-test-code/python)
+e [instalação de navegadores Playwright](https://playwright.dev/python/docs/browsers).
+
+<a id="publicacao"></a>
+
+## Versionamento e publicação
+
+Revisado em 23/10/2026. Execute os comandos na raiz do projeto, com Git instalado. Publicar o código não hospeda a API Flask nem o banco MySQL.
+
+### Conteúdo do repositório
+
+O instalador compilado é publicado em `dist/installer/Instalar Dependencias FarmaControl.exe`.
+Essa é a única exceção de distribuição em `dist/`; mantenha o executável nessa
+posição ao copiar ou extrair o projeto. Os arquivos `installer/*.iss` ficam apenas
+na máquina de desenvolvimento, conforme a política de publicação deste projeto.
+
+Versione `backend/` sem o `.env`, `frontend/`, `tests/`, `scripts/`, `docs/`, `README.md`, `LICENSE`, os arquivos `.bat`, `.gitignore` e `.gitattributes`. Mantenha `backend/.env.example` como modelo sem credenciais.
+
+O `.gitignore` exclui ambientes virtuais, arquivos `.env` e suas variantes privadas, caches, logs, resultados de auditoria, backups e arquivos locais de banco. Arquivos SQL de schema e migrações são código do projeto e devem permanecer versionados. Exportações de dados reais não devem ser colocadas entre as migrações.
+
+O `.gitattributes` normaliza arquivos de texto e preserva CRLF nos scripts `.bat`. Favicons e documentos binários são tratados como binários.
+
+### Primeiro envio
+
+Crie no GitHub um repositório vazio, sem README ou licença gerados automaticamente. Use a URL dele no comando `remote add`:
+
+```powershell
+git init -b main
+git add .
+git status --short
+git diff --cached --stat
+git diff --cached -- backend/.env.example .gitignore
+git check-ignore backend/.env
+git ls-files -- backend/.env
+```
+
+O penúltimo comando deve listar o `.env`; o último não deve retornar nenhum arquivo. Revise os arquivos preparados antes de continuar:
+
+```powershell
+git commit -m "Prepara FarmaControl para versionamento"
+git remote add origin https://github.com/SEU_USUARIO/FarmaControl.git
+git push -u origin main
+```
+
+Se o Git solicitar identidade, configure `user.name` e `user.email` conforme sua conta antes do commit. Autentique-se pelo mecanismo oferecido pelo Git/GitHub; não coloque tokens na URL salva do repositório.
+
+### Atualizações posteriores
+
+```powershell
+git status --short
+git diff
+git add README.md
+# Acrescente somente os caminhos revisados para esta mudança.
+git diff --cached
+git commit -m "Descreve a mudança realizada"
+git push
+```
+
+Adapte a lista de caminhos aos arquivos modificados. Para trabalho em equipe, use uma branch e um pull request, descrevendo comportamento, validação e eventuais migrações necessárias.
+
+### Arquivo privado já rastreado
+
+O `.gitignore` não remove arquivos que já entraram no histórico. Se o `.env` aparecer em `git ls-files`, retire-o do índice preservando a cópia local:
+
+```powershell
+git rm --cached -- backend/.env
+```
+
+Revise e registre essa alteração. Se credenciais reais já foram publicadas, removê-las do arquivo atual não elimina versões antigas: substitua as credenciais expostas e trate o histórico separadamente.
+
+### Copiar para outra máquina
+
+```powershell
+git clone https://github.com/SEU_USUARIO/FarmaControl.git
+cd FarmaControl
+```
+
+Siga o [README](../README.md) para criar o ambiente e o [guia de transferência](TRANSFERENCIA.md) se houver dados a restaurar. O clone não inclui `.env`, dependências instaladas ou banco de dados.
+
+### Estado do repositório
+
+O repositório é [SamuelDlv/FarmaControl](https://github.com/SamuelDlv/FarmaControl), com branch principal `main`. Em 23/10/2026, as correções de logout e limite de autenticação foram publicadas pelo conector GitHub. Esse envio não cria uma pasta `.git` nem configura um remoto no diretório local; os comandos de Git deste guia exigem um clone ou repositório local inicializado.
+
+Arquivos locais de `.audit-backup` e ambientes virtuais permanecem fora do versionamento. Publicar uma atualização no GitHub não reinicia o servidor local: depois de atualizar o código, reinicie o backend para carregar mudanças Python.
+
+A atualização de modularização de 23/10/2026 mantém `backend/app.py` como entrada e distribui a implementação em `backend/farmacontrol/`. O [mapa da refatoração](#arquitetura) lista cada arquivo criado, movido ou alterado. Os módulos antigos na raiz de `backend/` são removidos do repositório junto com a inclusão de seus novos caminhos, no mesmo commit.
