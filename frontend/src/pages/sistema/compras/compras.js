@@ -367,13 +367,16 @@ function initReportButtons() {
 
   // 3. Pedidos Pendentes → filtra a tabela pelos pedidos pendentes usando o mesmo mecanismo das tabs
   document.getElementById('rpt-venc')?.addEventListener('click', () => {
-    let pendingTab = document.querySelector('.ftab[data-type="pendente"]');
+    const pendingTab = document.querySelector('.ftab[data-type="pendente"]');
     if (!pendingTab) return;
     document.querySelectorAll('.ftab[data-type]').forEach(t => t.classList.remove('active'));
     pendingTab.classList.add('active');
+    const search = document.getElementById('table-search');
+    if (search) search.value = '';
     purchasePage = 1;
     renderPurchases();
-    toast('Mostrando pedidos pendentes…', 'info');
+    pendingTab.closest('.card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    pendingTab.focus({ preventScroll: true });
   });
 
   // 4. Relatório de Compras → exporta o histórico do período em CSV

@@ -11,7 +11,8 @@ const assert = require('node:assert/strict');
 const { spawn, spawnSync } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
 const phase = process.argv[2] || 'after';
-const backup = path.join(root, '.audit-backup', '2026-10-06');
+const backup = path.join(root, '.audit-backup', phase === 'table-actions' ? 'table-actions' : '2026-10-06');
+fs.mkdirSync(backup, { recursive: true });
 const pages = [
   'dashboard',
   'estoque',
@@ -360,6 +361,59 @@ function fingerprint() {
         throw new Error(r.exceptionDetails.exception?.description || r.exceptionDetails.text);
       return r.result.value;
     };
+    if (phase === 'table-actions') {
+      const checkRows = () => [...document.querySelectorAll('#mov-table-body tr')].every(row => {
+        const cells = [...row.cells];
+        const boxes = cells.map(cell => cell.getBoundingClientRect());
+        return cells.length === 9 && cells.every(cell => getComputedStyle(cell).display === 'table-cell') &&
+          boxes.every(box => Math.abs(box.top - boxes[0].top) < 1 && Math.abs(box.bottom - boxes[0].bottom) < 1);
+      });
+      for (const page of ['compras', 'relatorios']) {
+        await send('Page.navigate', { url: origin + `/pages/sistema/${page}/${page}.html` });
+        await delay(800);
+        if (page === 'compras') {
+          assert(await evaluate(`(() => {
+            const now = new Date();
+            const day = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-01';
+            window.__allCompras = Array.from({length: 14}, (_, i) => ({
+              id: i + 1, status: i === 13 ? 'recebido' : 'pendente', data_pedido: day,
+              fornecedor_nome: 'Fornecedor de teste com nome longo '.repeat(4),
+              usuario_nome: 'Responsável de teste', itens_count: 2, valor_total: 12
+            }));
+            purchasePage = 2;
+            document.getElementById('table-search').value = 'busca sem resultado';
+            renderPurchases();
+            document.getElementById('rpt-venc').click();
+            return purchasePage === 1 && document.getElementById('table-search').value === '' &&
+              document.activeElement.dataset.type === 'pendente' &&
+              document.querySelectorAll('#mov-table-body tr[data-type="pendente"]').length === 10 &&
+              !document.querySelector('#mov-table-body tr[data-type="recebido"]');
+          })()`), 'Atalho deve limpar busca, reiniciar página e mostrar apenas pendentes');
+          await delay(700);
+          assert(await evaluate(`(() => {
+            const box = document.querySelector('.ftab[data-type="pendente"]').getBoundingClientRect();
+            return box.top >= 0 && box.bottom <= innerHeight;
+          })()`), 'Atalho deve levar a tabela até a área visível');
+          assert(await evaluate(`(() => {
+            window.__allCompras = [];
+            document.getElementById('rpt-venc').click();
+            return document.getElementById('mov-filter-count').textContent === 'Exibindo 0 de 0 registros';
+          })()`), 'Atalho sem pendentes deve exibir estado vazio');
+          await evaluate(`window.__allCompras = [{id: 1, status: 'pendente', data_pedido: new Date().toISOString().slice(0,7)+'-01', fornecedor_nome: 'Fornecedor longo '.repeat(15), itens_count: 2}]; renderPurchases();`);
+        } else {
+          await evaluate(`allMovs = [1,2,3].map(id => ({produto_nome: 'Produto longo '.repeat(15), categoria: 'Categoria teste', lote: 'LOTE-TESTE', quantidade: 2, tipo_movimentacao: 'saida', usuario_nome: 'Teste'})); movTotal = 3; renderMovimentacoesPage();`);
+        }
+        for (const width of [1440, 390]) {
+          await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 500 });
+          await delay(150);
+          assert(await evaluate('(' + checkRows.toString() + ')()'), `${page}: bordas alinhadas em ${width}px`);
+        }
+      }
+      assert.deepStrictEqual(report.errors, [], 'Erros JavaScript no navegador');
+      report.passed = true;
+      console.log('Atalho, busca, paginação, estado vazio e alinhamento em 1440/390px: OK');
+      return;
+    }
     if (phase === 'cashflow') {
       await send('Emulation.setDeviceMetricsOverride', {
         width: 1440,
