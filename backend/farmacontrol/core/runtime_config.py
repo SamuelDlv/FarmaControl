@@ -1,5 +1,5 @@
 # Guia de manutenção — Valida ambiente, sessão, cookies e origens durante a criação da aplicação.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Configuração validável sem carregar Flask, .env ou acessar o banco."""
 import secrets
 from datetime import timedelta

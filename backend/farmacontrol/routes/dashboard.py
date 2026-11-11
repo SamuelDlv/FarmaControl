@@ -1,5 +1,5 @@
 # Guia de manutenção — Agrega os indicadores usados na abertura do painel do sistema.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """routes.dashboard: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import database

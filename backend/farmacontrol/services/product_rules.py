@@ -1,5 +1,5 @@
 # Guia de manutenção — Compartilha as regras de produto, preço, validade e persistência do catálogo.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Regras comuns ao catálogo, cadastro de estoque e recebimento de compras."""
 from datetime import date
 from decimal import Decimal, InvalidOperation

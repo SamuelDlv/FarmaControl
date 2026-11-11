@@ -1,5 +1,5 @@
 # Guia de manutenção — Fábrica Flask: compõe configuração, infraestrutura HTTP e registro dos módulos.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Criação e composição da aplicação Flask do FarmaControl."""
 
 import logging

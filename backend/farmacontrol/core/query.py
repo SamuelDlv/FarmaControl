@@ -1,5 +1,5 @@
 # Guia de manutenção — Valida parâmetros de consulta antes de compor paginação e pesquisas SQL.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Validação compartilhada de consultas; SQL e políticas ficam nas rotas."""
 
 import re

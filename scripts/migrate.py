@@ -1,5 +1,5 @@
 # Guia de manutenção — Controla baseline, checksums e aplicação ordenada de migrações novas.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Histórico de migrações MySQL: status (somente leitura), baseline e apply."""
 import argparse
 from contextlib import contextmanager

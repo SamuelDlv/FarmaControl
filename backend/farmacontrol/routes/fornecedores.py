@@ -1,5 +1,5 @@
 # Guia de manutenção — Mantém fornecedores e valida seus dados de contato e identificação.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """routes.fornecedores: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import database

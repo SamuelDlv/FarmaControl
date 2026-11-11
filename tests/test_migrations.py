@@ -1,7 +1,7 @@
 # Guia de manutenção — Testes de migrations.
 # Os cenários e asserts abaixo definem os contratos esperados e os casos de regressão.
 # Leia os mocks e fixtures de cada caso antes de interpretar o resultado como integração real.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Contratos de descoberta de migrações; não conecta a banco."""
 import importlib.util
 from pathlib import Path

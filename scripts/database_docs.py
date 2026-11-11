@@ -1,5 +1,5 @@
 # Guia de manutenção — Lê o schema SQL e produz documentação textual e diagrama das relações.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Emite a documentação EER em UTF-8 a partir do schema, sem acessar o banco.
 
 Uso: python scripts/database_docs.py (Markdown na saída padrão).
@@ -103,7 +103,7 @@ def markdown(tables):
            f'**24 tabelas · {fk_count} chaves estrangeiras · 7 áreas**', '',
            'Referência visual conferida com o EER fornecido e gerada a partir do [schema SQL](../backend/schema.sql). '
            'Descreve a instalação nova; não representa uma inspeção do banco em execução. '
-           'Consulte o [guia do banco](database_schema_design.md) para instalação e migrações.', '',
+           'Consulte o [guia do banco](banco-de-dados.md) para instalação e migrações.', '',
            '## Como ler', '',
            '- **PK**: chave primária; **FK**: chave estrangeira declarada no SQL.',
            '- `||`: exatamente um; `o|` / `|o`: zero ou um; `o{`: zero ou muitos.',

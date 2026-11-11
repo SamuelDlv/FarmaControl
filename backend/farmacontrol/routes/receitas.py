@@ -1,5 +1,5 @@
 # Guia de manutenção — Mantém o cadastro de receitas e suas referências a produtos e clientes.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """routes.receitas: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import database

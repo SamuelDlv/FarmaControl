@@ -2,7 +2,7 @@
 
 **24 tabelas · 30 chaves estrangeiras · 7 áreas**
 
-Referência visual conferida com o EER fornecido e gerada a partir do [schema SQL](../backend/schema.sql). Descreve a instalação nova; não representa uma inspeção do banco em execução. Consulte o [guia do banco](database_schema_design.md) para instalação e migrações.
+Referência visual conferida com o EER fornecido e gerada a partir do [schema SQL](../backend/schema.sql). Descreve a instalação nova; não representa uma inspeção do banco em execução. Consulte o [guia do banco](banco-de-dados.md) para instalação e migrações.
 
 ## Como ler
 

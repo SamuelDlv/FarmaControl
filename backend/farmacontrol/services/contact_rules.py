@@ -1,5 +1,5 @@
 # Guia de manutenção — Valida CNPJ, telefone e dados obrigatórios de fornecedores.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Validação de formato sem alterar documentos previamente armazenados."""
 import re
 

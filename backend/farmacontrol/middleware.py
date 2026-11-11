@@ -1,5 +1,5 @@
 # Guia de manutenção — Aplica validação, autorização, cabeçalhos, auditoria e agendamento no ciclo HTTP.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """middleware: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import access

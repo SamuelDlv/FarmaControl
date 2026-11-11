@@ -1,6 +1,6 @@
 # Transferir o FarmaControl para outra máquina
 
-Revisado em **19/10/2026**. Para instalação sem dados anteriores, use o [README](../README.md). Para trazer o código por Git, veja [GitHub](DESENVOLVIMENTO.md#publicacao). Este guia trata da preservação de uma instalação existente.
+Revisado em **19/10/2026**. Para instalação sem dados anteriores, use o [README](../README.md). Para trazer o código por Git, veja [GitHub](desenvolvimento.md#publicacao). Este guia trata da preservação de uma instalação existente.
 
 Este roteiro mantém o sistema em localhost e considera Windows no destino.
 O projeto usa Python, Flask e um servidor MySQL separado. Não é necessário
@@ -144,7 +144,7 @@ Faça qualquer operação de teste primeiro em uma cópia descartável. Na insta
 
 ## 6. Atualização de código durante a transferência
 
-Restaurar uma base e atualizar o código são operações diferentes. Registre a versão de origem e compare as migrações necessárias antes de iniciar código mais novo. Consulte [banco de dados](database_schema_design.md); não execute cargas opcionais sobre os dados restaurados.
+Restaurar uma base e atualizar o código são operações diferentes. Registre a versão de origem e compare as migrações necessárias antes de iniciar código mais novo. Consulte [banco de dados](banco-de-dados.md); não execute cargas opcionais sobre os dados restaurados.
 
 Preserve a cópia original e o backup até concluir a conferência. Se precisar voltar, pare o serviço do destino e restaure um conjunto compatível de código, configuração e banco. Evite manter duas instalações recebendo gravações independentes sobre cópias divergentes dos mesmos dados.
 

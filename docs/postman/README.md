@@ -50,7 +50,7 @@ devolução, ajuste o corpo com `tipo_movimentacao: "saida"`,
 `finalidade: "devolucao_fornecedor"`, `estoque_id`, quantidade inteira positiva
 e `motivo`. Não envie `estoque_destino_id`. O fornecedor vem do produto no
 servidor; se informado, precisa corresponder ao cadastro. O contrato completo
-está em [devolução ao fornecedor](../OPERACAO.md#devolucao).
+está em [devolução ao fornecedor](../operacao.md#devolucao).
 
 Essas baixas administrativas podem retirar lote vencido; isso não libera vendas
 de lotes vencidos. Revise a preparação 022/023 e a baseline no
@@ -60,7 +60,7 @@ A conferência documental de 09/11 preservou os 64 exemplos (43 GET e 21 POST).
 O [CI de referência](https://github.com/SamuelDlv/FarmaControl/actions/runs/42654607638)
 passou com testes de API e integração MySQL/navegador; ele não executa esta
 Collection no Postman. O roteiro manual completo está [neste guia](#roteiro).
-PUT e DELETE estão descritos na [referência da API](../API.md).
+PUT e DELETE estão descritos na [referência da API](../api.md).
 
 <a id="roteiro"></a>
 

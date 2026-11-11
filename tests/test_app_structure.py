@@ -1,7 +1,7 @@
 # Guia de manutenção — Testes de app structure.
 # Os cenários e asserts abaixo definem os contratos esperados e os casos de regressão.
 # Leia os mocks e fixtures de cada caso antes de interpretar o resultado como integração real.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Regressões da composição modular, sem banco ou envio de e-mails reais."""
 
 import os

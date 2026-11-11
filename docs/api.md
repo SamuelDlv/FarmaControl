@@ -45,7 +45,7 @@ Recuperação recebe `email`; redefinição recebe `token` e `password`. A [docu
 
 ## Autorização
 
-A política de 11/11/2026 separa 5 falhas por conta em 300 segundos, 100 mutações de autenticação por IP/processo em 300 segundos e 5 solicitações por operação/IP para cadastro, recuperação, redefinição e recusa. Logout fica fora dessas cotas e preserva origem, CSRF e auditoria. Respostas de bloqueio incluem `limite_escopo`, `tentativas_restantes`, `aguarde_segundos` e `Retry-After`. Consulte [segurança e permissões](SEGURANCA.md).
+A política de 11/11/2026 separa 5 falhas por conta em 300 segundos, 100 mutações de autenticação por IP/processo em 300 segundos e 5 solicitações por operação/IP para cadastro, recuperação, redefinição e recusa. Logout fica fora dessas cotas e preserva origem, CSRF e auditoria. Respostas de bloqueio incluem `limite_escopo`, `tentativas_restantes`, `aguarde_segundos` e `Retry-After`. Consulte [segurança e permissões](seguranca.md).
 
 O acesso direto aos HTMLs internos em `/pages/sistema/` e no alias `/pages/proprietario/` também exige sessão e permissão. Sem sessão válida, a resposta é 302 para `/pages/acesso/acesso.html`; sem permissão, 403; indisponibilidade na validação, 503. Essas respostas e o HTML interno usam `Cache-Control: no-store`. A rota genérica de arquivos aplica a mesma proteção pelo destino físico. APIs continuam usando 401 para sessão inválida, sem redirecionamento HTTP.
 
@@ -59,7 +59,7 @@ Mapeamento principal: `/admin/` → usuários; `/financeiro/` → financeiro; `/
 
 `/produtos` usa campos como `tipo_produto`, `exige_validade`, `estoque_minimo` e `fornecedor_id`, além dos dados comerciais. `/estoque` recebe campos do lote e os equivalentes de cadastro com prefixo `produto_`; `produto_id` permite usar um cadastro existente. PUT de produto é parcial e preserva campos omitidos conforme o handler.
 
-Medicamentos e outros produtos possuem regras diferentes; consulte [banco](database_schema_design.md). Não interprete uma categoria como autorização para omitir validade ou marcar receita.
+Medicamentos e outros produtos possuem regras diferentes; consulte [banco](banco-de-dados.md). Não interprete uma categoria como autorização para omitir validade ou marcar receita.
 
 ### Recebimento de compras
 
@@ -79,7 +79,7 @@ Exemplo de estrutura para `POST /vendas/balcao`; IDs e preço devem corresponder
 }
 ```
 
-O servidor admite de 1 a 100 lotes distintos e compara o preço enviado ao preço atual do banco. Recalcula o total e confirma os efeitos numa transação. Sucesso retorna `id` e `valor_total` com status 201. Receita exigida depende de confirmação booleana `true`. Formas aceitas: dinheiro, pix, cartão de crédito e débito com os slugs documentados em [PDV](OPERACAO.md#pdv).
+O servidor admite de 1 a 100 lotes distintos e compara o preço enviado ao preço atual do banco. Recalcula o total e confirma os efeitos numa transação. Sucesso retorna `id` e `valor_total` com status 201. Receita exigida depende de confirmação booleana `true`. Formas aceitas: dinheiro, pix, cartão de crédito e débito com os slugs documentados em [PDV](operacao.md#pdv).
 
 ### Permissões
 

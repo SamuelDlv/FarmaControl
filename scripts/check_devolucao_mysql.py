@@ -1,7 +1,7 @@
 # Guia de manutenção — Verificador de devolucao mysql.
 # Este é um utilitário de validação; confira main e os argumentos antes de executá-lo.
 # Os cenários usam servidor MySQL e bases de teste; valide o destino e os privilégios antes da execução.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Integração real de descarte/devolução; usa e remove somente uma base aleatória.
 
 Execute: python scripts/check_devolucao_mysql.py --browser

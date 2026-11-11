@@ -1,5 +1,5 @@
 # Guia de manutenção — Consulta indicadores e lançamentos e registra transações financeiras.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """routes.financeiro: responsabilidades extraídas da aplicação Flask."""
 
 from datetime import datetime

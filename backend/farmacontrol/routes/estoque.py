@@ -1,5 +1,5 @@
 # Guia de manutenção — Controla lotes, saldos, histórico, saídas, transferências e devoluções.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """routes.estoque: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core.access import INVENTORY_ROLES

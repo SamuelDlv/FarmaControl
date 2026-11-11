@@ -1,5 +1,5 @@
 # Guia de manutenção — Coordena pedidos, itens e os efeitos do recebimento ou cancelamento no estoque.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """routes.compras: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import database

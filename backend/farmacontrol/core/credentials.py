@@ -1,5 +1,5 @@
 # Guia de manutenção — Centraliza hashes de senha, convite e recuperação e o registro de acessos.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """core.credentials: responsabilidades extraídas da aplicação Flask."""
 
 from flask import g

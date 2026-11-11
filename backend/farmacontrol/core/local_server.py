@@ -1,5 +1,5 @@
 # Guia de manutenção — Serve a instalação local e coordena o encerramento das requisições no Windows.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Servidor local com encerramento cooperativo, sem controlar o serviço de banco."""
 
 import ctypes

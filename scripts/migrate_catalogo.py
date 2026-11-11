@@ -1,6 +1,6 @@
 # Guia de manutenção — Utilitário de manutenção de catalogo.
 # Revise a conexão, as opções de aplicação e o SQL antes de executar em uma instalação.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Aplica as migrações 012 e 019 na instância local configurada em backend/.env."""
 import argparse
 import os

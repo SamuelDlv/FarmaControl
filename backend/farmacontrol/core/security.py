@@ -1,5 +1,5 @@
 # Guia de manutenção — Implementa revogação de credenciais e limite de tentativas em memória.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Controles de entrada e contenção local, sem acesso ao banco."""
 import hashlib
 import hmac

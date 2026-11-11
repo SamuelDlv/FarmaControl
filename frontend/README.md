@@ -54,7 +54,7 @@ os layouts nem garante disponibilidade de CDNs ou entrega SMTP.
 
 Mantenha `../../../utils/auth-guard.js` no início do `<head>` das páginas internas, antes dos demais scripts e do conteúdo. A proteção real depende da entrega autenticada pelo Flask; a guarda visual não substitui a validação no servidor.
 
-Consulte o [guia dos comentários para manutenção](../docs/DESENVOLVIMENTO.md#manutencao). Edite o trio HTML/CSS/JS da página em `src/pages/sistema/`. Confira os caminhos dos assets, o tratamento de erro da API, carregamento vazio e ações de gravação. Use o wrapper de `global-settings.js` para preservar cookies e CSRF, e os registros de `page-lifecycle.js` para recursos que precisam de descarte.
+Consulte o [guia dos comentários para manutenção](../docs/desenvolvimento.md#manutencao). Edite o trio HTML/CSS/JS da página em `src/pages/sistema/`. Confira os caminhos dos assets, o tratamento de erro da API, carregamento vazio e ações de gravação. Use o wrapper de `global-settings.js` para preservar cookies e CSRF, e os registros de `page-lifecycle.js` para recursos que precisam de descarte.
 
 Mantenha o menu compatível com permissões devolvidas pelo servidor. Para conteúdo vindo de usuários ou da API, prefira inserção textual e preserve as rotinas de escape existentes. Verifique desktop e mobile quando alterar layout, modal, tabela ou sidebar.
 
@@ -88,7 +88,7 @@ Regressão de edição em Chrome isolado, com APIs simuladas: `node scripts/chec
 
 Descarte e devolução ao fornecedor são saídas estruturadas com motivo e
 autorização no backend; podem retirar lotes vencidos sem liberar sua venda.
-Consulte [devolução](../docs/OPERACAO.md#devolucao) para o contrato e a preparação
+Consulte [devolução](../docs/operacao.md#devolucao) para o contrato e a preparação
 do banco. A interface não deve inferir autorização a partir de observações livres.
 
 No PDV, o carrinho agrupa quantidades por produto e o envio as distribui por lote.

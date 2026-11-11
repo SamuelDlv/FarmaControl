@@ -1,6 +1,6 @@
 # Operação: vendas, estoque e devoluções
 
-Consolidado em **11/11/2026**. Consulte [API](API.md), [banco](database_schema_design.md) e [permissões](SEGURANCA.md#permissoes).
+Consolidado em **11/11/2026**. Consulte [API](api.md), [banco](banco-de-dados.md) e [permissões](seguranca.md#permissoes).
 
 - [Vendas e PDV](#pdv)
 - [Devolução ao fornecedor](#devolucao)
@@ -9,7 +9,7 @@ Consolidado em **11/11/2026**. Consulte [API](API.md), [banco](database_schema_d
 
 ## Vendas e PDV
 
-Revisado em **23/10/2026**. Página: `frontend/src/pages/sistema/vendas/vendas.html`. Implementação: `catalogo_pdv` e `concluir_pdv` em `backend/farmacontrol/routes/vendas.py`. Consulte também [API](API.md) e [banco](database_schema_design.md).
+Revisado em **23/10/2026**. Página: `frontend/src/pages/sistema/vendas/vendas.html`. Implementação: `catalogo_pdv` e `concluir_pdv` em `backend/farmacontrol/routes/vendas.py`. Consulte também [API](api.md) e [banco](banco-de-dados.md).
 
 ### Acesso e catálogo
 

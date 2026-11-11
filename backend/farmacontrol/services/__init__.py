@@ -1,3 +1,3 @@
 # Guia de manutenção — Inicialização do pacote backend/farmacontrol/services.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Componentes do backend FarmaControl."""

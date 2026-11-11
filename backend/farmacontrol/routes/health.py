@@ -1,5 +1,5 @@
 # Guia de manutenção — Oferece a verificação de disponibilidade HTTP da aplicação.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """routes.health: responsabilidades extraídas da aplicação Flask."""
 
 from datetime import datetime

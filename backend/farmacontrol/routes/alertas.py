@@ -1,5 +1,5 @@
 # Guia de manutenção — Expõe consulta e manutenção dos alertas associados ao estoque.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """routes.alertas: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import database

@@ -1,7 +1,7 @@
 # Guia de manutenção — Testes de page access.
 # Os cenários e asserts abaixo definem os contratos esperados e os casos de regressão.
 # Leia os mocks e fixtures de cada caso antes de interpretar o resultado como integração real.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Acesso direto a HTML usa a sessão real do cliente Flask e banco simulado."""
 import unittest
 from unittest.mock import patch

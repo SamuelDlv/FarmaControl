@@ -31,5 +31,5 @@ de continuar, pois DDL pode ter sido confirmado parcialmente pelo MySQL.
 O [CI de referência](https://github.com/SamuelDlv/FarmaControl/actions/runs/42654607638)
 validou baseline, checksums, concorrência e falha parcial em MySQL descartável.
 Os procedimentos e limites estão no [guia de migrações](../README.md) e em
-[CI](../../../docs/DESENVOLVIMENTO.md#ci). Esta atualização documental não adiciona migração nem
+[CI](../../../docs/desenvolvimento.md#ci). Esta atualização documental não adiciona migração nem
 altera os SQLs ou o contrato congelado da baseline.

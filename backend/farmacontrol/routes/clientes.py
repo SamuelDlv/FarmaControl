@@ -1,5 +1,5 @@
 # Guia de manutenção — Atende consulta e manutenção do cadastro de clientes.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """routes.clientes: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import database

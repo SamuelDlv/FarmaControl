@@ -1,5 +1,5 @@
 # Guia de manutenção — Compartilha a consulta de estoque entre telas e relatórios.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Agregações de relatórios feitas no banco, sem truncar o histórico de movimentos."""
 
 PERIOD_START = {

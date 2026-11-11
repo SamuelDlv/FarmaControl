@@ -1,5 +1,5 @@
 # Guia de manutenção — Gerencia uma conexão MySQL por contexto Flask, com confirmação explícita.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """core.database: responsabilidades extraídas da aplicação Flask."""
 
 from flask import g

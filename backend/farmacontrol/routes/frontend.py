@@ -1,5 +1,5 @@
 # Guia de manutenção — Entrega arquivos estáticos e protege o HTML das telas internas no servidor.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """routes.frontend: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import access

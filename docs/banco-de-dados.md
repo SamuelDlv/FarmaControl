@@ -39,17 +39,17 @@ Use-o em uma instalação nova. Em base existente, compare estrutura e migraçõ
 
 ## Mapa visual das tabelas
 
-Abra o **[Atlas EER: diagramas por área e dicionário completo](database_eer.md)** para consultar as 24 tabelas, todas as FKs declaradas, colunas, tipos, nulabilidade e regras de exclusão. Os diagramas foram divididos em sete áreas para evitar nomes cortados e excesso de cruzamentos.
+Abra o **[Atlas EER: diagramas por área e dicionário completo](diagrama-do-banco.md)** para consultar as 24 tabelas, todas as FKs declaradas, colunas, tipos, nulabilidade e regras de exclusão. Os diagramas foram divididos em sete áreas para evitar nomes cortados e excesso de cruzamentos.
 
 | Área | Consulta visual |
 | --- | --- |
-| Identidade e autorização | [Acesso e permissões](database_eer.md#acesso) |
-| Convites, análises e aceites | [Cadastro e consentimento](database_eer.md#cadastro) |
-| Produtos, fornecedores e lotes | [Catálogo e estoque](database_eer.md#estoque) |
-| Pedidos e recebimento | [Compras](database_eer.md#compras) |
-| Clientes, PDV e receitas | [Vendas e prescrições](database_eer.md#vendas) |
-| Categorias e lançamentos | [Financeiro](database_eer.md#financeiro) |
-| Alertas, logs e configurações | [Operação e auditoria](database_eer.md#operacao) |
+| Identidade e autorização | [Acesso e permissões](diagrama-do-banco.md#acesso) |
+| Convites, análises e aceites | [Cadastro e consentimento](diagrama-do-banco.md#cadastro) |
+| Produtos, fornecedores e lotes | [Catálogo e estoque](diagrama-do-banco.md#estoque) |
+| Pedidos e recebimento | [Compras](diagrama-do-banco.md#compras) |
+| Clientes, PDV e receitas | [Vendas e prescrições](diagrama-do-banco.md#vendas) |
+| Categorias e lançamentos | [Financeiro](diagrama-do-banco.md#financeiro) |
+| Alertas, logs e configurações | [Operação e auditoria](diagrama-do-banco.md#operacao) |
 
 ### Visão geral do fluxo comercial
 
@@ -146,7 +146,7 @@ Essas roles não são os perfis funcionais salvos em `perfis`. O schema base nã
 
 ## Backup e validação
 
-O banco não está dentro do repositório. Preserve estrutura, dados e rotinas necessárias em backup separado; não versione exportações com dados reais. Siga [transferência](TRANSFERENCIA.md) para migração entre máquinas.
+O banco não está dentro do repositório. Preserve estrutura, dados e rotinas necessárias em backup separado; não versione exportações com dados reais. Siga [transferência](transferencia.md) para migração entre máquinas.
 
 Testes unitários usam banco simulado. `check_catalogo_mysql.py` e `check_seed_mysql.py` são verificações adicionais com bases temporárias e privilégios próprios. A revisão documental de 19/10 não executou esses scripts nem confirmou as migrações instaladas.
 
@@ -166,7 +166,7 @@ SELECT VERSION(), @@version_comment, @@port, @@datadir;
 O schema base usa InnoDB e `utf8mb4_unicode_ci`, disponíveis em MySQL 8 e
 MariaDB 10.4+. A matriz de CI verifica a importação completa nos dois motores.
 Não copie a pasta de dados entre MySQL e MariaDB: transfira o banco da aplicação
-por exportação/importação SQL, conforme [TRANSFERENCIA.md](TRANSFERENCIA.md).
+por exportação/importação SQL, conforme [transferencia.md](transferencia.md).
 
 ### Instalação nova
 

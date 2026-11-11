@@ -1,6 +1,6 @@
 # Segurança: autenticação e permissões
 
-Política e revisão de **11/11/2026**, consolidadas na mesma data. Configuração geral em [backend](../backend/README.md); contratos HTTP em [API](API.md). A revisão de vulnerabilidades de 15/10 permanece no [histórico](historico/2026-10.md#seguranca-2026-10-15).
+Política e revisão de **11/11/2026**, consolidadas na mesma data. Configuração geral em [backend](../backend/README.md); contratos HTTP em [API](api.md). A revisão de vulnerabilidades de 15/10 permanece no [histórico](historico/2026-10.md#seguranca-2026-10-15).
 
 - [Limites de autenticação](#limites)
 - [Perfis e permissões](#permissoes)

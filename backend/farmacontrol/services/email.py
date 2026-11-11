@@ -1,5 +1,5 @@
 # Guia de manutenção — Monta mensagens HTML e realiza o envio SMTP usado pelos fluxos da aplicação.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """services.email: responsabilidades extraídas da aplicação Flask."""
 
 from email.message import EmailMessage

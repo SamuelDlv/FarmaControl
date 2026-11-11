@@ -1,5 +1,5 @@
 # Guia de manutenção — Registra o histórico com campos permitidos e confirmação junto à operação.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Auditoria transacional com campos permitidos, sem segredos ou dados clínicos."""
 from flask import g, request, session
 

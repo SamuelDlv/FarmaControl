@@ -1,5 +1,5 @@
 # Guia de manutenção — Inspeciona referências, imports e estrutura dos arquivos sem iniciar a aplicação.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Inventário estático de referências/duplicações, sem importar app ou acessar banco.
 
 Candidatos sem referência textual não são considerados mortos: handlers HTML,

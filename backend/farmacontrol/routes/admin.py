@@ -1,5 +1,5 @@
 # Guia de manutenção — Atende gestão de usuários, convites, permissões e consulta do histórico de atividades.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """routes.admin: responsabilidades extraídas da aplicação Flask."""
 
 from datetime import datetime

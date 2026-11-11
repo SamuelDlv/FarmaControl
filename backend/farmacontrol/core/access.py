@@ -1,5 +1,5 @@
 # Guia de manutenção — Autoriza o acesso aos módulos e revalida a conta da sessão no banco.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """core.access: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import database

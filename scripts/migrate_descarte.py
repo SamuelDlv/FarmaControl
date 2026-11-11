@@ -1,6 +1,6 @@
 # Guia de manutenção — Utilitário de manutenção de descarte.
 # Revise a conexão, as opções de aplicação e o SQL antes de executar em uma instalação.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Inspeciona ou aplica a migração de finalidade no banco local configurado."""
 import argparse
 from migrate_catalogo import connection

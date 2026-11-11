@@ -1,5 +1,5 @@
 # Guia de manutenção — Coordena venda, baixa por lote e receita financeira, incluindo o PDV de balcão.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """routes.vendas: responsabilidades extraídas da aplicação Flask."""
 
 from decimal import Decimal

@@ -72,7 +72,7 @@ node scripts/check_theme.cjs verify
 
 `check_catalogo_mysql.py` e `check_seed_mysql.py` criam bancos temporários e exigem privilégios de criação/remoção de bases. Leia o script, confira a conexão e use um servidor destinado a testes. Nunca confunda esses verificadores com migrações da aplicação.
 
-Os utilitários `migrate_catalogo.py` e `migrate_audit.py` permitem inspeção e aplicação explícita com `--apply`. Antes de aplicar, confira o banco configurado, faça backup e leia o SQL. Veja [banco de dados](database_schema_design.md).
+Os utilitários `migrate_catalogo.py` e `migrate_audit.py` permitem inspeção e aplicação explícita com `--apply`. Antes de aplicar, confira o banco configurado, faça backup e leia o SQL. Veja [banco de dados](banco-de-dados.md).
 
 ## Organização de mudanças
 
@@ -143,7 +143,7 @@ O inventário dos 58 arquivos da extração e sua validação estão no [registr
 4. Confira `middleware.py`, `core/` e `services/` para autorização, validações,
    sessão, conexão, auditoria e regras compartilhadas. Ao alterar uma gravação,
    preserve os limites de transação documentados junto ao código.
-5. Leia os testes correspondentes e execute os comandos em `DESENVOLVIMENTO.md`.
+5. Leia os testes correspondentes e execute os comandos em `desenvolvimento.md`.
 
 ### Cuidados documentados junto ao código
 
@@ -299,7 +299,7 @@ git clone https://github.com/SEU_USUARIO/FarmaControl.git
 cd FarmaControl
 ```
 
-Siga o [README](../README.md) para criar o ambiente e o [guia de transferência](TRANSFERENCIA.md) se houver dados a restaurar. O clone não inclui `.env`, dependências instaladas ou banco de dados.
+Siga o [README](../README.md) para criar o ambiente e o [guia de transferência](transferencia.md) se houver dados a restaurar. O clone não inclui `.env`, dependências instaladas ou banco de dados.
 
 ### Estado do repositório
 

@@ -1,5 +1,5 @@
 # Guia de manutenção — Mantém o contrato JSON de sucesso e erro consumido pelas telas.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """core.responses: responsabilidades extraídas da aplicação Flask."""
 
 from flask import jsonify

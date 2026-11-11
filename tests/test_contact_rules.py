@@ -1,7 +1,7 @@
 # Guia de manutenção — Testes de contact rules.
 # Os cenários e asserts abaixo definem os contratos esperados e os casos de regressão.
 # Leia os mocks e fixtures de cada caso antes de interpretar o resultado como integração real.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Regressões de formato e rejeição antes de gravar dados de fornecedores."""
 import unittest
 import test_backend as backend_tests

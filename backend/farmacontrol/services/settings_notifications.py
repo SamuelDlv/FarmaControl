@@ -1,5 +1,5 @@
 # Guia de manutenção — Processa resumos por e-mail em thread separada com exclusão no MySQL.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Resumos automáticos, avaliados durante o uso do sistema, sem bloquear a tela."""
 import html
 import logging

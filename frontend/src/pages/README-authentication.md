@@ -1,6 +1,6 @@
 # Autenticação, contas e permissões
 
-Revisado em **09/11/2026**, a partir de `backend/farmacontrol/routes/auth.py`, `backend/farmacontrol/middleware.py` e dos módulos `access.py`, `credentials.py`, `runtime_config.py` e `security.py` em `backend/farmacontrol/core/`. Consulte [backend](../../../backend/README.md) e [API](../../../docs/API.md).
+Revisado em **09/11/2026**, a partir de `backend/farmacontrol/routes/auth.py`, `backend/farmacontrol/middleware.py` e dos módulos `access.py`, `credentials.py`, `runtime_config.py` e `security.py` em `backend/farmacontrol/core/`. Consulte [backend](../../../backend/README.md) e [API](../../../docs/api.md).
 
 ## Páginas públicas
 
@@ -72,7 +72,7 @@ Sem SMTP não há entrega do link, mesmo com resposta genérica de sucesso. O li
 
 O middleware reconsulta status, perfil, credencial e módulos permitidos. A maioria das rotas usa `perfil_permissoes`. Vendas, clientes e receitas usam os perfis comerciais fixos; `/admin/logs` aceita proprietário, admin e TI. Visualizador não pode alterar dados nas APIs protegidas.
 
-Mutações autenticadas enviam `X-CSRF-Token`. O wrapper fetch o adiciona apenas à origem da API. Mutações de autenticação validam `Origin` quando presente. A política de 11/11/2026 separa 5 falhas por conta em 300 segundos, 100 requisições por IP/processo em 300 segundos e 5 solicitações por operação/IP para cadastro, recuperação, redefinição e recusa de convite. Logout fica fora dessas cotas, mantendo origem, CSRF e auditoria. Consulte [limites e permissões](../../../docs/SEGURANCA.md).
+Mutações autenticadas enviam `X-CSRF-Token`. O wrapper fetch o adiciona apenas à origem da API. Mutações de autenticação validam `Origin` quando presente. A política de 11/11/2026 separa 5 falhas por conta em 300 segundos, 100 requisições por IP/processo em 300 segundos e 5 solicitações por operação/IP para cadastro, recuperação, redefinição e recusa de convite. Logout fica fora dessas cotas, mantendo origem, CSRF e auditoria. Consulte [limites e permissões](../../../docs/seguranca.md).
 
 Credenciais incorretas retornam HTTP 401 com `tentativas_restantes` e `aguarde_segundos`. Na última tentativa disponível, o 401 já informa zero restantes e o tempo até a janela expirar; solicitações seguintes recebem 429. Quando há espera, `Retry-After` contém a duração em segundos. A tela mantém o aviso visível e mostra uma contagem regressiva. As janelas começam no primeiro evento correspondente; login aprovado e auditado zera as falhas da conta, preservando a cota geral do IP. Reiniciar o processo limpa o limitador em memória; múltiplos workers precisam de controle compartilhado na infraestrutura.
 
@@ -115,4 +115,4 @@ simuladas; a integração MySQL/navegador do CI não comprova entrega SMTP nem
 homologa todos os fluxos de conta com um serviço de e-mail real.
 
 Os comentários próximos aos hooks, handlers e utilitários explicam a ordem de
-validação e o descarte de recursos; veja o [guia de manutenção](../../../docs/DESENVOLVIMENTO.md#manutencao).
+validação e o descarte de recursos; veja o [guia de manutenção](../../../docs/desenvolvimento.md#manutencao).

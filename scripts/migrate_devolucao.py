@@ -1,6 +1,6 @@
 # Guia de manutenção — Utilitário de manutenção de devolucao.
 # Revise a conexão, as opções de aplicação e o SQL antes de executar em uma instalação.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Inspeciona/aplica a migracao 023 sem modificar saldos."""
 import argparse
 from migrate_catalogo import connection

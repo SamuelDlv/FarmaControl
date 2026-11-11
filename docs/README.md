@@ -6,13 +6,13 @@ Organizada em **11/11/2026**: **11 Markdown**, sendo oito guias principais, um g
 
 | Guia | Conteúdo |
 | --- | --- |
-| [Desenvolvimento](DESENVOLVIMENTO.md) | Ambiente, testes, arquitetura, manutenção, CI e publicação no GitHub |
-| [Banco de dados](database_schema_design.md) | Tabelas, migrações, backup, MySQL/MariaDB e diagnóstico do XAMPP |
-| [Atlas EER](database_eer.md) | Diagramas por área, chaves e dicionário das 24 tabelas; gerado pelo schema |
-| [API](API.md) | Autenticação HTTP, endpoints, contratos, pesquisas e paginação |
-| [Segurança](SEGURANCA.md) | Limites de autenticação, logout, sete perfis e permissões |
-| [Operação](OPERACAO.md) | PDV, saldo por lote e devolução ao fornecedor |
-| [Transferência](TRANSFERENCIA.md) | Mudança de máquina, arquivos, restauração do banco e conferências |
+| [Desenvolvimento](desenvolvimento.md) | Ambiente, testes, arquitetura, manutenção, CI e publicação no GitHub |
+| [Banco de dados](banco-de-dados.md) | Tabelas, migrações, backup, MySQL/MariaDB e diagnóstico do XAMPP |
+| [Atlas EER](diagrama-do-banco.md) | Diagramas por área, chaves e dicionário das 24 tabelas; gerado pelo schema |
+| [API](api.md) | Autenticação HTTP, endpoints, contratos, pesquisas e paginação |
+| [Segurança](seguranca.md) | Limites de autenticação, logout, sete perfis e permissões |
+| [Operação](operacao.md) | PDV, saldo por lote e devolução ao fornecedor |
+| [Transferência](transferencia.md) | Mudança de máquina, arquivos, restauração do banco e conferências |
 | [Postman](postman/README.md) | Configuração da Collection, variáveis e roteiro completo de execução |
 
 ## Histórico por data

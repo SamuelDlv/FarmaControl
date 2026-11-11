@@ -97,4 +97,4 @@ na instalação do usuário.
 
 Os comentários de manutenção foram acrescentados aos utilitários Python; os
 SQLs históricos e `baseline_023.json` permaneceram intactos. Consulte o
-[guia de manutenção](../../docs/DESENVOLVIMENTO.md#manutencao) e a [reprodução do CI](../../docs/DESENVOLVIMENTO.md#ci).
+[guia de manutenção](../../docs/desenvolvimento.md#manutencao) e a [reprodução do CI](../../docs/desenvolvimento.md#ci).

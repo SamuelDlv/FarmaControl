@@ -1,5 +1,5 @@
 # Guia de manutenção — Expõe preferências visuais e configurações operacionais da instalação.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """routes.configuracoes: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import database

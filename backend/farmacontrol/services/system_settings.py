@@ -1,5 +1,5 @@
 # Guia de manutenção — Centraliza padrões e validações das regras configuráveis de operação.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Validação e leitura das preferências persistidas da farmácia."""
 import re
 from datetime import date

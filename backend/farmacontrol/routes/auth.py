@@ -1,5 +1,5 @@
 # Guia de manutenção — Atende cadastro, login, logout, convites e recuperação de senha.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """routes.auth: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import access

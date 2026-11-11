@@ -1,7 +1,7 @@
 # Guia de manutenção — Testes de runtime config.
 # Os cenários e asserts abaixo definem os contratos esperados e os casos de regressão.
 # Leia os mocks e fixtures de cada caso antes de interpretar o resultado como integração real.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Política de inicialização, sem ler .env ou conectar ao banco."""
 import sys
 import unittest

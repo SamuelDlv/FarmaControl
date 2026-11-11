@@ -1,7 +1,7 @@
 # Guia de manutenção — Verificador de migrations mysql.
 # Este é um utilitário de validação; confira main e os argumentos antes de executá-lo.
 # Os cenários usam servidor MySQL e bases de teste; valide o destino e os privilégios antes da execução.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Valida o controle de versões em banco MySQL temporário, incluindo falhas de DDL."""
 import json
 import re

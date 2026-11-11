@@ -1,5 +1,5 @@
 # Guia de manutenção — Mantém produtos e categorias com validações compartilhadas de cadastro.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """routes.catalogo: responsabilidades extraídas da aplicação Flask."""
 
 from farmacontrol.core import database

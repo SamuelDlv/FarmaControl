@@ -1,6 +1,6 @@
 # Guia de manutenção — Utilitário de manutenção de audit.
 # Revise a conexão, as opções de aplicação e o SQL antes de executar em uma instalação.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Amplia os detalhes do histórico no banco local, preservando os eventos existentes."""
 import argparse
 from migrate_catalogo import ROOT, connection, execute_sql

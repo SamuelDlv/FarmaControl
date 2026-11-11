@@ -1,7 +1,7 @@
 # Guia de manutenção — Verificador de catalogo mysql.
 # Este é um utilitário de validação; confira main e os argumentos antes de executá-lo.
 # Os cenários usam servidor MySQL e bases de teste; valide o destino e os privilégios antes da execução.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Valida schema, migração reaplicável e fluxos reais num banco temporário isolado."""
 import sys
 import uuid

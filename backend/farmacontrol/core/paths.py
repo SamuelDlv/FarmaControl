@@ -1,5 +1,5 @@
 # Guia de manutenção — Resolve caminhos a partir do código instalado, sem depender da pasta do terminal.
-# Consulte docs/DESENVOLVIMENTO.md para executar as verificações desta camada.
+# Consulte docs/desenvolvimento.md para executar as verificações desta camada.
 """Caminhos absolutos, independentes do diretório de execução."""
 
 from pathlib import Path
